@@ -245,6 +245,11 @@ h2 { font-size: clamp(28px, 4vw, 44px); line-height: 1.08; letter-spacing: -0.03
 .cta .btn-primary { background: #fff; color: var(--indigo); }
 .cta .btn-ghost { background: rgba(255,255,255,0.14); color: #fff; border-color: rgba(255,255,255,0.35); }
 .cta .btn-ghost:hover { background: rgba(255,255,255,0.22); }
+.install { list-style: none; display: grid; gap: 8px; max-width: 480px; margin: 28px auto 0; text-align: left; position: relative; }
+.install li { display: flex; align-items: center; gap: 12px; font-size: 14px; color: rgba(255,255,255,0.96); background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.22); padding: 10px 14px; border-radius: 12px; }
+.install li span { flex-shrink: 0; width: 22px; height: 22px; display: grid; place-items: center; background: #fff; color: var(--indigo); border-radius: 50%; font-weight: 800; font-size: 12px; }
+.install code { background: rgba(255,255,255,0.2); padding: 1px 6px; border-radius: 6px; font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; }
+.install b { font-weight: 700; }
 
 /* footer */
 .footer { border-top: 1px solid var(--border); padding: 48px 24px; margin-top: 40px; }
