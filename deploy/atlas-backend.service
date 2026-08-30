@@ -1,0 +1,20 @@
+[Unit]
+Description=Atlas capture backend (Bun + bun:sqlite)
+After=network.target
+
+[Service]
+Type=simple
+User=pritam
+WorkingDirectory=/home/pritam/personal/apps/atlas/apps/backend
+Environment=ATLAS_PORT=8790
+Environment=ATLAS_DATA_DIR=/home/pritam/.local/share/atlas
+# Comma-separated web origins for CORS (the future website). chrome-extension
+# origins are always allowed.
+Environment=ATLAS_ALLOWED_ORIGINS=
+Environment=PATH=/home/pritam/.bun/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/home/pritam/.bun/bin/bun run src/index.ts
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,14 @@
+[Unit]
+Description=Atlas Cloudflare Tunnel (atlas.notpritam.in -> localhost:8790)
+After=network.target atlas-backend.service
+Wants=atlas-backend.service
+
+[Service]
+Type=simple
+User=pritam
+ExecStart=/usr/local/bin/cloudflared tunnel --config /home/pritam/.cloudflared/config.yml run atlas
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
