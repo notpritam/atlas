@@ -1,0 +1,20 @@
+<svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="atlasg" x1="6" y1="4" x2="42" y2="44" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#8B5CF6"/>
+      <stop offset="0.55" stop-color="#6366F1"/>
+      <stop offset="1" stop-color="#38BDF8"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="44" height="44" rx="13" fill="url(#atlasg)"/>
+  <g stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <line x1="24" y1="16" x2="15" y2="32"/>
+    <line x1="24" y1="16" x2="33" y2="32"/>
+    <line x1="15" y1="32" x2="33" y2="32"/>
+  </g>
+  <g fill="#fff">
+    <circle cx="24" cy="15" r="4"/>
+    <circle cx="14.5" cy="32.5" r="3.4" fill-opacity="0.92"/>
+    <circle cx="33.5" cy="32.5" r="3.4" fill-opacity="0.92"/>
+  </g>
+</svg>
