@@ -1,0 +1,7 @@
+# Atlas capture backend — public HTTPS for the browser extension.
+# Installed at /etc/caddy/Caddyfile on omni. caddy auto-fetches a Let's Encrypt
+# cert for this name once the `atlas` A record points at omni (157.180.102.248)
+# and inbound 80/443 are reachable.
+atlas.notpritam.in {
+	reverse_proxy localhost:8790
+}
