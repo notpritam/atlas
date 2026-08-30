@@ -5,19 +5,12 @@
     <link rel="stylesheet" href="popup.css" />
   </head>
   <body>
-    <!-- MAIN -->
     <div id="view-main">
       <header class="topbar">
-        <div class="brand">
-          <img src="../icons/icon32.png" width="22" height="22" alt="" />
-          <span>Atlas</span>
-        </div>
-        <button id="statusChip" class="status" title="Connection">
-          <span id="dot" class="dot"></span><span id="conn">…</span>
-        </button>
+        <div class="brand"><img src="../icons/icon32.png" width="22" height="22" alt="" /> <span>Atlas</span></div>
+        <button id="statusChip" class="status" title="Agent status"><span id="dot" class="dot"></span><span id="conn">…</span></button>
       </header>
 
-      <!-- composer -->
       <div class="composer">
         <textarea id="note" rows="3" placeholder="Capture a thought…"></textarea>
         <div class="composer-foot">
@@ -26,55 +19,38 @@
         </div>
       </div>
 
-      <!-- quick actions -->
       <div class="section-label">Clip this page</div>
       <div class="actions">
-        <button class="action" data-act="region">
-          <span class="a-ic ic-shot"></span><span>Region</span>
-        </button>
-        <button class="action" data-act="fullpage">
-          <span class="a-ic ic-page"></span><span>Full page</span>
-        </button>
-        <button class="action" data-act="highlight">
-          <span class="a-ic ic-highlight"></span><span>Highlight</span>
-        </button>
-        <button class="action" data-act="savepage">
-          <span class="a-ic ic-bookmark"></span><span>Bookmark</span>
-        </button>
+        <button class="action" data-act="region"><span class="a-ic ic-shot"></span><span>Region</span></button>
+        <button class="action" data-act="fullpage"><span class="a-ic ic-page"></span><span>Full page</span></button>
+        <button class="action" data-act="highlight"><span class="a-ic ic-highlight"></span><span>Highlight</span></button>
+        <button class="action" data-act="savepage"><span class="a-ic ic-bookmark"></span><span>Bookmark</span></button>
       </div>
 
-      <!-- recent -->
-      <div class="section-label recent-label">
-        <span>Recent</span>
-      </div>
+      <div class="section-label">Recent</div>
       <ul id="recent" class="recent"></ul>
 
       <footer class="footer">
-        <button id="openSettings" class="link">
-          <span class="a-ic ic-gear"></span> Settings
-        </button>
-        <span id="toast" class="toast"></span>
+        <button id="openLib" class="btn btn-primary lib">Open Library</button>
+        <button id="openSettings" class="iconbtn" aria-label="Settings"><span class="a-ic ic-gear"></span></button>
       </footer>
     </div>
 
-    <!-- SETTINGS -->
     <div id="view-settings" hidden>
       <header class="topbar">
-        <button id="backBtn" class="iconbtn" aria-label="Back">
-          <span class="a-ic ic-back"></span>
-        </button>
+        <button id="backBtn" class="iconbtn" aria-label="Back"><span class="a-ic ic-back"></span></button>
         <div class="brand"><span>Settings</span></div>
-        <span style="width:22px"></span>
+        <span style="width:30px"></span>
       </header>
       <div class="settings">
-        <label>Backend URL</label>
-        <input id="baseUrl" placeholder="https://atlas.notpritam.in" />
-        <label>Device token <span class="muted">(ingest scope)</span></label>
-        <input id="token" type="password" placeholder="paste your ingest token" />
+        <label>Atlas Agent URL</label>
+        <input id="agentUrl" placeholder="http://127.0.0.1:8791" />
+        <label class="row"><input id="enrichEnabled" type="checkbox" /> <span>Enrich captures with Claude Code</span></label>
         <button id="saveSettings" class="btn btn-primary full">Save &amp; test</button>
         <p class="fineprint">
-          Stored locally in this browser and only sent to your backend. Mint a
-          token with <code>atlas devices add "…" --scope ingest</code>.
+          Everything is stored locally in your browser. Enrichment runs on your own
+          machine via the Atlas Agent + Claude Code — nothing is sent to a server.
+          Run the agent with <code>npx @notpritam/atlas-agent</code>.
         </p>
       </div>
     </div>

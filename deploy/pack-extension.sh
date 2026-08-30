@@ -9,7 +9,7 @@ import zipfile, os, sys, shutil, tempfile
 root = sys.argv[1]
 src = os.path.join(root, "apps", "extension")
 out = os.path.join(root, "apps", "web", "atlas-extension.zip")
-include = ["manifest.json", "icons", "src", "README.md"]
+include = ["manifest.json", "icons", "assets", "src", "README.md"]
 with tempfile.TemporaryDirectory() as tmp:
     stage = os.path.join(tmp, "atlas-extension")
     os.makedirs(stage)

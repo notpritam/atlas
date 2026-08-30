@@ -1,17 +1,19 @@
-// Extension settings live in chrome.storage.local. The device token is a
-// bearer secret; it is only ever read here and used from the background worker.
+// Extension settings (local only). No tokens, no server — the DB is in the
+// browser and enrichment goes to a local Atlas Agent bridging to Claude Code.
+
+const DEFAULTS = {
+  agentUrl: "http://127.0.0.1:8791",
+  enrichEnabled: true,
+};
 
 export async function getSettings() {
-  const { atlasBaseUrl, atlasToken } = await chrome.storage.local.get([
-    "atlasBaseUrl",
-    "atlasToken",
-  ]);
-  return { baseUrl: (atlasBaseUrl || "").replace(/\/+$/, ""), token: atlasToken || "" };
+  const s = await chrome.storage.local.get(["agentUrl", "enrichEnabled"]);
+  return {
+    agentUrl: (s.agentUrl || DEFAULTS.agentUrl).replace(/\/+$/, ""),
+    enrichEnabled: s.enrichEnabled ?? DEFAULTS.enrichEnabled,
+  };
 }
 
-export async function setSettings({ baseUrl, token }) {
-  await chrome.storage.local.set({
-    atlasBaseUrl: (baseUrl || "").trim(),
-    atlasToken: (token || "").trim(),
-  });
+export async function setSettings(patch) {
+  await chrome.storage.local.set(patch);
 }

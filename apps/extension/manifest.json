@@ -1,17 +1,20 @@
 {
   "manifest_version": 3,
   "name": "Atlas Capture",
-  "version": "0.1.1",
-  "description": "Capture screenshots, highlights, bookmarks, images and notes to your Atlas.",
+  "version": "0.2.0",
+  "description": "Capture screenshots, highlights, bookmarks, tweets and notes into a private, local library — organized by your own Claude Code.",
   "permissions": [
     "activeTab",
     "scripting",
     "contextMenus",
     "storage",
-    "tabs"
+    "tabs",
+    "alarms"
   ],
   "host_permissions": [
-    "<all_urls>"
+    "<all_urls>",
+    "http://localhost/*",
+    "http://127.0.0.1/*"
   ],
   "icons": {
     "16": "icons/icon16.png",

@@ -51,7 +51,7 @@
           <h1 class="reveal">Capture anything. Your <span class="grad">agent</span> files it.</h1>
           <p class="lede reveal">
             Clip a screenshot, a highlight, a tweet, a link or a stray thought from anywhere you
-            browse. Atlas sends it to <em>your</em> box, where your own AI agent reads it, tags it and
+            browse. It stays <em>on your machine</em>, where your own Claude Code reads it, tags it and
             connects it — so you find it later by meaning, not by folders.
           </p>
           <div class="hero-actions reveal">
@@ -191,9 +191,9 @@
             <h2>Three moving parts. All yours.</h2>
           </div>
           <div class="steps">
-            <div class="step reveal"><span class="step-n">01</span><h3>The extension captures</h3><p>A tiny Chrome extension posts what you clip to your backend over an authenticated link.</p></div>
-            <div class="step reveal"><span class="step-n">02</span><h3>Your box stores it</h3><p>A self-hosted service on your own machine keeps the originals and a full-text index.</p></div>
-            <div class="step reveal"><span class="step-n">03</span><h3>Your agent enriches</h3><p>Your AI agent drains the queue — OCR, tags, summaries, links — into your library.</p></div>
+            <div class="step reveal"><span class="step-n">01</span><h3>The extension captures</h3><p>A tiny Chrome extension saves what you clip straight to your browser — instantly, offline, private.</p></div>
+            <div class="step reveal"><span class="step-n">02</span><h3>Your browser stores it</h3><p>Everything lives in the extension on your machine — originals, text, search. No server, no account.</p></div>
+            <div class="step reveal"><span class="step-n">03</span><h3>Your Claude Code enriches</h3><p>A local agent hands each capture to your own Claude Code for OCR, tags and summaries — queued when it's off.</p></div>
           </div>
         </div>
       </section>
@@ -205,7 +205,7 @@
             <div class="privacy-copy">
               <span class="kicker">Self-hosted by design</span>
               <h2>Your second brain lives on your hardware.</h2>
-              <p>No accounts, no third-party cloud, no one mining your reading history. The backend is a single small service you run yourself; the code is open. Point the extension at your own domain and you're done.</p>
+              <p>No accounts, no third-party cloud, no one mining your reading history. Everything runs in your browser and your own Claude Code — the code is open. Install the extension, run the agent once, done.</p>
               <div class="privacy-tags"><span>Own your data</span><span>Open source</span><span>Runs anywhere</span><span>Token-authed</span></div>
             </div>
             <div class="privacy-badge" aria-hidden="true"><img src="assets/mark.svg" width="64" height="64" alt="" /></div>
@@ -219,7 +219,7 @@
           <div class="cta reveal">
             <span class="kicker">Get started</span>
             <h2>Start your second brain today.</h2>
-            <p>Download the extension, point it at your Atlas, and start clipping. Everything else is automatic — and it auto-updates itself.</p>
+            <p>Download the extension, run the agent once, and start clipping. Everything stays on your machine — and it auto-updates itself.</p>
             <div class="hero-actions center" style="justify-content:center;margin-top:26px">
               <a class="btn btn-primary btn-lg" href="atlas-extension.zip" download><img src="assets/mark.svg" width="17" height="17" alt="" /> Download the extension (.zip)</a>
               <a class="btn btn-secondary btn-lg" href="https://github.com/notpritam/atlas#readme" target="_blank" rel="noreferrer">Read the docs</a>
@@ -228,7 +228,7 @@
               <li><span class="n">1</span> Unzip the download</li>
               <li><span class="n">2</span> Open <code>chrome://extensions</code> · turn on <b>Developer mode</b></li>
               <li><span class="n">3</span> <b>Load unpacked</b> → pick the <code>atlas-extension</code> folder</li>
-              <li><span class="n">4</span> Click the Atlas icon → add your backend URL + token</li>
+              <li><span class="n">4</span> Run the agent once: <code>npx @notpritam/atlas-agent</code></li>
             </ol>
           </div>
         </div>

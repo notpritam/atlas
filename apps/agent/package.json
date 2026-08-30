@@ -1,0 +1,15 @@
+{
+  "name": "@notpritam/atlas-agent",
+  "version": "0.1.0",
+  "description": "Local bridge that enriches Atlas captures using your own Claude Code — nothing leaves your machine.",
+  "type": "module",
+  "bin": { "atlas-agent": "index.mjs" },
+  "files": ["index.mjs", "README.md"],
+  "engines": { "node": ">=18" },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.1.0",
+    "@hono/node-server": "^1.13.7",
+    "hono": "^4.11.9"
+  },
+  "license": "MIT"
+}
