@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 # refresh the downloadable extension zip first
 "$ROOT/deploy/pack-extension.sh"
 
-sudo mkdir -p /srv/atlas-web
-sudo cp -rT "$ROOT/apps/web" /srv/atlas-web
-sudo chmod -R a+rX /srv/atlas-web
-echo "published $ROOT/apps/web -> /srv/atlas-web  (https://atlas.notpritam.in/)"
+sudo mkdir -p /var/www/atlas
+sudo cp -rT "$ROOT/apps/web" /var/www/atlas
+sudo chmod -R a+rX /var/www/atlas
+echo "published $ROOT/apps/web -> /var/www/atlas  (https://atlas.notpritam.in/)"
