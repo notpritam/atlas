@@ -1,0 +1,59 @@
+name: Release extension
+
+# Publishes a signed .crx + update manifest to GitHub Releases whenever the
+# extension changes on main (or on manual dispatch). Chrome auto-updates from
+# the release's stable `latest/download` asset URLs.
+on:
+  push:
+    branches: [main]
+    paths:
+      - "apps/extension/**"
+      - "deploy/release-extension.mjs"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    # secrets can't be used in `if:` directly — surface it as an env flag
+    env:
+      HAS_KEY: ${{ secrets.EXTENSION_PEM != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - run: bun install --frozen-lockfile
+
+      - name: Read extension version
+        id: v
+        run: echo "version=$(node -p "require('./apps/extension/manifest.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Build signed crx + update manifest
+        if: env.HAS_KEY == 'true'
+        env:
+          EXTENSION_PEM_B64: ${{ secrets.EXTENSION_PEM }}
+        run: node deploy/release-extension.mjs --no-bump
+
+      - name: Publish GitHub Release
+        if: env.HAS_KEY == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ext-v${{ steps.v.outputs.version }}
+          name: Atlas extension v${{ steps.v.outputs.version }}
+          body: |
+            Auto-updating Atlas browser extension.
+
+            - Chrome update manifest: `updates.xml`
+            - Signed extension: `atlas-extension.crx`
+            - Unpacked bundle: `atlas-extension.zip`
+
+            Installs & auto-updates via the force-install policy in `deploy/policy/`.
+          files: |
+            apps/web/ext/atlas-extension.crx
+            apps/web/updates.xml
+            apps/web/atlas-extension.zip

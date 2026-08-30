@@ -67,3 +67,48 @@ bb plugin reload tracker
 
 Load `apps/extension` unpacked in Chrome, then in the popup Settings enter
 `https://atlas.notpritam.in` and the **ingest** token.
+
+## Releases & auto-update (GitHub Releases)
+
+The extension auto-updates from **GitHub Releases** — no manual re-download ever.
+
+- Extension ID: `mjfcgmboaijfcaanepdipbgmipnccnpn` (pinned by the signing key).
+- Update manifest: `https://github.com/notpritam/atlas/releases/latest/download/updates.xml`
+- Signed build: `.../releases/latest/download/atlas-extension.crx`
+
+### Cutting a release
+
+Automatic: bump `apps/extension/manifest.json` `version`, push to `main`, and the
+**Release extension** GitHub Action signs the `.crx`, writes `updates.xml`, and
+publishes a `ext-v<version>` release. Chrome picks it up within ~5h (or via
+`chrome://extensions` → Update).
+
+Manual from omni (needs `gh auth login` once):
+
+```bash
+bun run release:publish          # bump patch, sign, and publish the release
+# or: node deploy/release-extension.mjs --version 0.4.0 --publish
+```
+
+### One-time setup
+
+1. **CI signing key** — the Action needs the signing key as a secret so every
+   build keeps the same extension ID:
+   ```bash
+   gh secret set EXTENSION_PEM --repo notpritam/atlas < deploy/keys/atlas-extension.pem.b64
+   ```
+   (The key lives only in `deploy/keys/` on omni — gitignored — and in the secret.)
+
+2. **Force-install + auto-update policy** on each browser machine (this is what
+   lets an off-store extension install and silently update):
+   - **Linux (Chrome):** copy `deploy/policy/atlas-extension.json` to
+     `/etc/opt/chrome/policies/managed/` (Chromium: `/etc/chromium/...`), restart Chrome.
+   - **macOS (Chrome):**
+     ```bash
+     defaults write com.google.Chrome ExtensionInstallForcelist -array \
+       "mjfcgmboaijfcaanepdipbgmipnccnpn;https://github.com/notpritam/atlas/releases/latest/download/updates.xml"
+     ```
+     then fully quit + reopen Chrome.
+
+   Verify at `chrome://policy` (Reload policies) and `chrome://extensions` — Atlas
+   installs itself and can't be removed by hand. That's the "force update" behavior.

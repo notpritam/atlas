@@ -8,6 +8,11 @@
   ],
   "scripts": {
     "backend": "bun run --cwd apps/backend dev",
-    "test": "bun test"
+    "test": "bun test",
+    "release": "node deploy/release-extension.mjs",
+    "release:publish": "node deploy/release-extension.mjs --publish"
+  },
+  "devDependencies": {
+    "crx3": "^2.0.0"
   }
 }

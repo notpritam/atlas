@@ -12,3 +12,6 @@ apps/backend/data/
 
 # Extension build output
 apps/extension/dist/
+
+# extension signing key (keep secret!)
+deploy/keys/
