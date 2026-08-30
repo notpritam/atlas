@@ -1,0 +1,69 @@
+import type { Database } from "bun:sqlite";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import { config } from "./config.ts";
+import { authMiddleware, type Env } from "./auth.ts";
+import {
+  captureRoutes,
+  listCategoryFacets,
+  listTagFacets,
+} from "./captures.ts";
+import { deviceRoutes } from "./devices.ts";
+import { buildCaptureGraph } from "./graph.ts";
+
+function count(db: Database, sql: string): number {
+  return (db.query(sql).get() as { n: number }).n;
+}
+
+export function createApp(db: Database): Hono<Env> {
+  const app = new Hono<Env>();
+
+  app.use(
+    "*",
+    cors({
+      origin: (origin) => {
+        if (origin.startsWith("chrome-extension://")) return origin;
+        if (config.allowedOrigins.includes(origin)) return origin;
+        return null;
+      },
+      allowHeaders: ["authorization", "content-type"],
+      allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+      maxAge: 86400,
+    }),
+  );
+
+  // Admin token minting — own guard, outside the Bearer group.
+  app.route("/admin/devices", deviceRoutes(db));
+
+  // Everything under /v1 requires a valid device token.
+  const v1 = new Hono<Env>();
+  v1.use("*", authMiddleware(db));
+
+  v1.get("/health", (c) =>
+    c.json({
+      ok: true,
+      service: "atlas" as const,
+      device: c.get("device").id,
+      pending: count(
+        db,
+        "SELECT COUNT(*) n FROM captures WHERE status IN ('pending','processing')",
+      ),
+      total: count(db, "SELECT COUNT(*) n FROM captures"),
+      diskBytes: count(
+        db,
+        "SELECT COALESCE(SUM(blob_bytes),0) n FROM captures WHERE blob_path IS NOT NULL",
+      ),
+    }),
+  );
+
+  v1.get("/tags", (c) => c.json({ tags: listTagFacets(db) }));
+  v1.get("/categories", (c) => c.json({ categories: listCategoryFacets(db) }));
+  v1.get("/graph", (c) => c.json(buildCaptureGraph(db)));
+
+  v1.route("/captures", captureRoutes(db));
+
+  app.route("/v1", v1);
+
+  app.notFound((c) => c.json({ error: "not_found" }, 404));
+  return app;
+}

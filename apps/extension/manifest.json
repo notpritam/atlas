@@ -1,0 +1,30 @@
+{
+  "manifest_version": 3,
+  "name": "Atlas Capture",
+  "version": "0.1.0",
+  "description": "Capture screenshots, highlights, bookmarks, images and notes to your Atlas.",
+  "permissions": ["activeTab", "scripting", "contextMenus", "storage", "tabs"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "action": {
+    "default_popup": "src/popup.html",
+    "default_title": "Atlas Capture"
+  },
+  "commands": {
+    "region-screenshot": {
+      "suggested_key": { "default": "Alt+Shift+S" },
+      "description": "Screenshot a region to Atlas"
+    },
+    "full-page-screenshot": {
+      "suggested_key": { "default": "Alt+Shift+F" },
+      "description": "Full-page screenshot to Atlas"
+    },
+    "save-highlight": {
+      "suggested_key": { "default": "Alt+Shift+H" },
+      "description": "Save the selected text to Atlas"
+    }
+  }
+}

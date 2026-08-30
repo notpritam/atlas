@@ -1,0 +1,13 @@
+{
+  "name": "atlas-monorepo",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "backend": "bun run --cwd apps/backend dev",
+    "test": "bun test"
+  }
+}

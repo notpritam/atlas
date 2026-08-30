@@ -1,0 +1,14 @@
+node_modules/
+dist/
+build/
+*.log
+.env
+.env.*
+!.env.example
+.DS_Store
+
+# Runtime data (SQLite db + blobs) lives on omni, never committed
+apps/backend/data/
+
+# Extension build output
+apps/extension/dist/
