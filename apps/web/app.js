@@ -1,12 +1,14 @@
-// Landing page interactions — reveal-on-scroll, nav state, mobile menu.
+// Landing interactions: staggered scroll reveals (once), nav state, mobile menu.
+// Motion is gentle and honors prefers-reduced-motion (cross-fade, no travel).
 (() => {
   const nav = document.getElementById("nav");
   const toggle = document.getElementById("navToggle");
+  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
 
-  // Sticky nav gets a background once you scroll past the hero top.
-  const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 12);
+  // Sticky nav gains a translucent background past the top.
+  const onScroll = () => nav.classList.toggle("scrolled", window.scrollY > 8);
   onScroll();
-  window.addEventListener("scroll", onScroll, { passive: true });
+  addEventListener("scroll", onScroll, { passive: true });
 
   // Mobile menu.
   toggle?.addEventListener("click", () => {
@@ -20,44 +22,30 @@
     }),
   );
 
-  // Reveal on scroll.
-  const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const items = document.querySelectorAll(".reveal");
-  if (reduce || !("IntersectionObserver" in window)) {
+  // Reveal on scroll — once, staggered by position among reveal siblings.
+  const items = [...document.querySelectorAll(".reveal")];
+  for (const el of items) {
+    const sibs = [...el.parentElement.children].filter((c) => c.classList.contains("reveal"));
+    const i = sibs.indexOf(el);
+    if (i > 0) el.style.transitionDelay = `${Math.min(i, 6) * 55}ms`;
+  }
+
+  if (reduce.matches || !("IntersectionObserver" in window)) {
     items.forEach((el) => el.classList.add("in"));
   } else {
     const io = new IntersectionObserver(
       (entries) => {
-        entries.forEach((e) => {
-          if (e.isIntersecting) {
-            e.target.classList.add("in");
-            io.unobserve(e.target);
-          }
-        });
+        for (const e of entries) {
+          if (!e.isIntersecting) continue;
+          e.target.classList.add("in");
+          io.unobserve(e.target);
+        }
       },
-      { threshold: 0.14, rootMargin: "0px 0px -8% 0px" },
+      { rootMargin: "0px 0px -12% 0px", threshold: 0.1 },
     );
     items.forEach((el) => io.observe(el));
-
-    // Gentle parallax on the aurora blobs.
-    const blobs = document.querySelectorAll(".blob");
-    let ticking = false;
-    window.addEventListener(
-      "scroll",
-      () => {
-        if (ticking) return;
-        ticking = true;
-        requestAnimationFrame(() => {
-          const y = window.scrollY;
-          blobs.forEach((b, i) => {
-            b.style.transform = `translateY(${y * (0.02 + i * 0.015)}px)`;
-          });
-          ticking = false;
-        });
-      },
-      { passive: true },
-    );
   }
 
-  document.getElementById("year").textContent = String(new Date().getFullYear());
+  const y = document.getElementById("year");
+  if (y) y.textContent = String(new Date().getFullYear());
 })();

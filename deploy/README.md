@@ -28,6 +28,15 @@ ATLAS_DATA_DIR=/home/pritam/.local/share/atlas bun run bin/atlas.ts devices list
 
 Current tokens are in `/home/pritam/.local/share/atlas/tokens.txt` (chmod 600).
 
+## Landing page
+
+The **backend serves the static landing page** (`apps/web`) for any non-API path,
+straight from the repo — so `atlas.notpritam.in/` shows the site and `/v1`,
+`/admin` are the API, with caddy doing nothing but a plain `reverse_proxy
+localhost:8790`. Edit `apps/web/*` and it's live immediately (no build, no sync,
+no `/var/www`). Override the served dir with `ATLAS_WEB_DIR` if needed.
+(`deploy/sync-web.sh` + `/var/www/atlas` are legacy and no longer required.)
+
 ## Public HTTPS — caddy + Vercel DNS (current setup)
 
 notpritam.in's DNS is on Vercel, so we point the subdomain straight at omni's

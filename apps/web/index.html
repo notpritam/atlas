@@ -1,44 +1,33 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Atlas — capture anything, let your agent organize it</title>
     <meta
       name="description"
-      content="Atlas is a self-hosted second brain. Clip screenshots, highlights, links and notes from anywhere; your own AI agent files, tags and connects them so you can find anything by meaning."
+      content="Atlas is a self-hosted second brain. Clip screenshots, highlights, links, tweets and notes from anywhere; your own AI agent files, tags and connects them so you can find anything by meaning."
     />
-    <meta name="theme-color" content="#faf9f7" />
+    <meta name="theme-color" content="#08090a" />
     <link rel="icon" href="assets/mark.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="assets/apple-touch-icon.png" />
-
     <meta property="og:title" content="Atlas — your self-hosted second brain" />
     <meta property="og:description" content="Capture anything. Your agent organizes it. Find it by meaning." />
     <meta property="og:type" content="website" />
     <meta property="og:image" content="assets/mark-512.png" />
-
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Instrument+Serif:ital@0;1&display=swap"
-      rel="stylesheet"
-    />
+    <link rel="preload" as="font" type="font/woff2" href="assets/fonts/geist-latin.woff2" crossorigin />
+    <link rel="preload" as="font" type="font/woff2" href="assets/fonts/ClarityCity-SemiBold.woff2" crossorigin />
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body>
-    <!-- ambient gradient field -->
     <div class="aurora" aria-hidden="true">
-      <span class="blob b1"></span>
-      <span class="blob b2"></span>
-      <span class="blob b3"></span>
+      <span class="blob v"></span><span class="blob b"></span><span class="blob g"></span>
     </div>
 
-    <!-- NAV -->
     <header class="nav" id="nav">
       <div class="container nav-inner">
         <a class="brand" href="#top" aria-label="Atlas home">
-          <img src="assets/mark.svg" width="30" height="30" alt="" />
-          <span>Atlas</span>
+          <img src="assets/mark.svg" width="28" height="28" alt="" /> <span>Atlas</span>
         </a>
         <nav class="nav-links" aria-label="Primary">
           <a href="#capture">Capture</a>
@@ -50,272 +39,209 @@
           <a class="btn btn-ghost" href="https://github.com/notpritam/atlas" target="_blank" rel="noreferrer">GitHub</a>
           <a class="btn btn-primary" href="#get">Get Atlas</a>
         </div>
-        <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false">
-          <span></span><span></span>
-        </button>
+        <button class="nav-toggle" id="navToggle" aria-label="Menu" aria-expanded="false"><span></span><span></span></button>
       </div>
     </header>
 
     <main id="top">
       <!-- HERO -->
-      <section class="hero container">
-        <div class="hero-copy reveal">
-          <span class="eyebrow"><span class="dot"></span> Your self-hosted second brain</span>
-          <h1>
-            Capture anything.<br />
-            Your <span class="grad">agent</span> organizes it.
-          </h1>
-          <p class="lede">
-            Clip a screenshot, a highlight, a link or a stray thought from anywhere you
-            browse. Atlas sends it to <em>your</em> box, where your own AI agent reads it,
-            tags it, and connects it — so you can find it later by meaning, not by folders.
+      <section class="hero">
+        <div class="container">
+          <span class="eyebrow reveal"><span class="dot"></span> Your self-hosted second brain</span>
+          <h1 class="reveal">Capture anything. Your <span class="grad">agent</span> files it.</h1>
+          <p class="lede reveal">
+            Clip a screenshot, a highlight, a tweet, a link or a stray thought from anywhere you
+            browse. Atlas sends it to <em>your</em> box, where your own AI agent reads it, tags it and
+            connects it — so you find it later by meaning, not by folders.
           </p>
-          <div class="hero-actions">
-            <a class="btn btn-primary btn-lg" href="#get">
-              <img src="assets/mark.svg" width="18" height="18" alt="" />
-              Add the extension
-            </a>
-            <a class="btn btn-ghost btn-lg" href="#how">See how it works</a>
+          <div class="hero-actions reveal">
+            <a class="btn btn-primary btn-lg" href="#get"><img src="assets/mark.svg" width="17" height="17" alt="" /> Download the extension</a>
+            <a class="btn btn-secondary btn-lg" href="#how">See how it works</a>
           </div>
-          <p class="microtrust">Open source · Runs on your hardware · No account, no cloud lock-in</p>
-        </div>
+          <p class="reassure reveal">Open source · runs on your hardware · no account, no cloud lock-in</p>
 
-        <!-- product mock -->
-        <div class="hero-mock reveal" aria-hidden="true">
-          <div class="mock-window glass">
-            <div class="mock-bar">
-              <span class="tl r"></span><span class="tl y"></span><span class="tl g"></span>
-              <div class="mock-url">example.com/article</div>
-              <div class="mock-clip">
-                <img src="assets/mark.svg" width="16" height="16" alt="" /> Clip
+          <div class="mock reveal" aria-hidden="true">
+            <div class="mock-glow"></div>
+            <div class="win glass">
+              <div class="win-bar">
+                <span class="tl"></span><span class="tl"></span><span class="tl"></span>
+                <span class="win-url">example.com/article</span>
+                <span class="win-clip"><img src="assets/mark.svg" width="13" height="13" alt="" /> Clip</span>
+              </div>
+              <div class="win-body">
+                <p class="win-sel"><span class="hl">The mitochondria is the powerhouse of the cell</span> → saved to Atlas</p>
+                <div class="bars"><i style="width:92%"></i><i style="width:80%"></i><i style="width:88%"></i><i style="width:62%"></i></div>
               </div>
             </div>
-            <div class="mock-body">
-              <div class="mock-selection">
-                <span class="hl">The mitochondria is the powerhouse of the cell</span>
-                saved to Atlas
-              </div>
-              <div class="mock-lines">
-                <i style="width:92%"></i><i style="width:80%"></i><i style="width:88%"></i><i style="width:64%"></i>
-              </div>
+            <div class="mock-flow">
+              <svg viewBox="0 0 40 24" width="40" height="24"><path d="M2 12h32M28 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
             </div>
-          </div>
-
-          <div class="mock-flow">
-            <svg viewBox="0 0 40 24" width="40" height="24"><path d="M2 12 H34 M28 6 L34 12 L28 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-          </div>
-
-          <div class="mock-card glass">
-            <div class="mc-head"><span class="mc-type">highlight</span><span class="mc-badge">enriched ✓</span></div>
-            <div class="mc-title">Cell biology — energy</div>
-            <p class="mc-sum">A note on how cells generate ATP.</p>
-            <div class="mc-tags"><span>#biology</span><span>#energy</span><span>#study</span></div>
+            <div class="mc glass">
+              <div class="mc-top"><span class="mc-kind">highlight</span><span class="mc-badge">enriched</span></div>
+              <h4>Cell biology — energy</h4>
+              <p>How cells generate ATP.</p>
+              <div class="mc-tags"><span>#biology</span><span>#energy</span><span>#study</span></div>
+            </div>
           </div>
         </div>
       </section>
 
-      <!-- SOURCES STRIP -->
-      <section class="strip container reveal">
-        <p>Capture from wherever you already are</p>
-        <div class="strip-items">
-          <span>Articles</span><span>Docs</span><span>Dashboards</span><span>Tweets</span>
-          <span>Designs</span><span>PDFs in the browser</span><span>Anything on screen</span>
+      <!-- SOURCES -->
+      <section class="rail reveal">
+        <div class="container">
+          <p>Capture from wherever you already are</p>
+          <div class="rail-items">
+            <span>Articles</span><span>Docs</span><span>Dashboards</span><span>Tweets / X</span>
+            <span>Designs</span><span>PDFs in the browser</span><span>Anything on screen</span>
+          </div>
         </div>
       </section>
 
       <!-- CAPTURE -->
-      <section class="section container" id="capture">
-        <div class="section-head reveal">
-          <span class="kicker">Capture</span>
-          <h2>One shortcut. Five ways to save.</h2>
-          <p>A right-click or a keystroke — the page you're on never gets in the way.</p>
-        </div>
-        <div class="grid cards-5 reveal">
-          <article class="card">
-            <div class="ic ic-shot"></div>
-            <h3>Screenshots</h3>
-            <p>Drag a region or grab the full page — auto-scrolled and stitched. The source URL rides along.</p>
-            <kbd>⌥⇧S</kbd>
-          </article>
-          <article class="card">
-            <div class="ic ic-highlight"></div>
-            <h3>Highlights</h3>
-            <p>Select text, save the quote with its surrounding context and a link back to where you found it.</p>
-            <kbd>⌥⇧H</kbd>
-          </article>
-          <article class="card">
-            <div class="ic ic-link"></div>
-            <h3>Bookmarks</h3>
-            <p>Save a link and Atlas fetches the readable article for search and a clean reader view.</p>
-            <kbd>Right-click</kbd>
-          </article>
-          <article class="card">
-            <div class="ic ic-image"></div>
-            <h3>Images</h3>
-            <p>Right-click any image to keep it. Text inside it becomes searchable automatically.</p>
-            <kbd>Right-click</kbd>
-          </article>
-          <article class="card">
-            <div class="ic ic-note"></div>
-            <h3>Quick notes</h3>
-            <p>A thought worth keeping? Drop it in the popup — it lands with the page as context.</p>
-            <kbd>Popup</kbd>
-          </article>
+      <section class="section" id="capture">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="kicker">Capture</span>
+            <h2>One shortcut. Every kind of thing.</h2>
+            <p>A right-click or a keystroke — the page you're on never gets in the way.</p>
+          </div>
+          <div class="grid cards-5">
+            <article class="card reveal">
+              <span class="chip"><svg class="draw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><path d="M14 3h7v7M10 21H3v-7"/></svg></span>
+              <h3>Screenshots</h3><p>Region or full-page — auto-scrolled and stitched, with the source URL.</p><span class="k">⌥⇧S</span>
+            </article>
+            <article class="card reveal">
+              <span class="chip"><svg class="draw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h16M6 16l8-8 4 4-8 8H6z"/></svg></span>
+              <h3>Highlights</h3><p>Select text, keep the quote with its context and a link back.</p><span class="k">⌥⇧H</span>
+            </article>
+            <article class="card reveal">
+              <span class="chip"><svg class="draw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1"/><path d="M14 11a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg></span>
+              <h3>Bookmarks &amp; X</h3><p>Save a link or a tweet in one click — Atlas fetches readable text.</p><span class="k">Right-click</span>
+            </article>
+            <article class="card reveal">
+              <span class="chip"><svg class="draw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="9" cy="9" r="2"/><path d="M21 15l-5-5L5 21"/></svg></span>
+              <h3>Images</h3><p>Right-click any image — the text inside it becomes searchable.</p><span class="k">Right-click</span>
+            </article>
+            <article class="card reveal">
+              <span class="chip"><svg class="draw" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v12l-4 4H4z"/><path d="M16 20v-4h4"/></svg></span>
+              <h3>Quick notes</h3><p>A thought worth keeping lands with the page as context.</p><span class="k">Popup</span>
+            </article>
+          </div>
         </div>
       </section>
 
       <!-- ORGANIZE -->
-      <section class="section container band" id="organize">
-        <div class="split">
-          <div class="split-copy reveal">
-            <span class="kicker">Organize</span>
-            <h2>Your agent does the filing.</h2>
-            <p>
-              The moment something lands, your own agent gets to work. It reads the text,
-              runs OCR on images, writes a one-line summary, drops it in a category, and
-              tags it with reusable concepts — then links it to everything related.
-            </p>
-            <ul class="checks">
-              <li>OCR &amp; vision on every screenshot</li>
-              <li>Auto-summary, category &amp; concept tags</li>
-              <li>Associations across notes saved weeks apart</li>
-              <li>Zero folders to maintain — ever</li>
-            </ul>
-          </div>
-          <div class="split-visual reveal" aria-hidden="true">
-            <div class="enrich glass">
-              <div class="en-row"><span class="en-k">status</span><span class="pill done">done</span></div>
-              <div class="en-row"><span class="en-k">category</span><span class="chip solid">reference</span></div>
-              <div class="en-row"><span class="en-k">summary</span><span class="en-v">Fast all-in-one JavaScript runtime.</span></div>
-              <div class="en-row"><span class="en-k">tags</span>
-                <span class="chips"><span>#javascript</span><span>#runtime</span><span>#dev-tools</span></span>
+      <section class="section band" id="organize">
+        <div class="container">
+          <div class="split">
+            <div class="split-copy reveal">
+              <span class="kicker">Organize</span>
+              <h2>Your agent does the filing.</h2>
+              <p>The moment something lands, your own agent reads it, runs OCR on images, writes a one-line summary, drops it in a category and tags it — then links it to everything related.</p>
+              <ul class="checks">
+                <li>OCR &amp; vision on every screenshot</li>
+                <li>Auto-summary, category &amp; concept tags</li>
+                <li>Associations across items saved weeks apart</li>
+                <li>Zero folders to maintain — ever</li>
+              </ul>
+            </div>
+            <div class="split-visual reveal" aria-hidden="true">
+              <div class="enrich glass">
+                <div class="en-row"><span class="en-k">status</span><span class="pill">done</span></div>
+                <div class="en-row"><span class="en-k">category</span><span class="chip-solid">reference</span></div>
+                <div class="en-row"><span class="en-k">summary</span><span class="en-v">Fast all-in-one JavaScript runtime.</span></div>
+                <div class="en-row"><span class="en-k">tags</span><span class="chips"><span>#javascript</span><span>#runtime</span><span>#dev-tools</span></span></div>
+                <div class="en-row"><span class="en-k">ocr</span><span class="en-v mono">bun install · bun run · bun test</span></div>
               </div>
-              <div class="en-row"><span class="en-k">ocr</span><span class="en-v mono">bun install · bun run · bun test</span></div>
-              <div class="en-glow"></div>
             </div>
           </div>
         </div>
       </section>
 
       <!-- RECALL -->
-      <section class="section container" id="recall">
-        <div class="split reverse">
-          <div class="split-copy reveal">
-            <span class="kicker">Recall</span>
-            <h2>Find it by meaning.</h2>
-            <p>
-              Search across every screenshot's text, every highlight, every note. Filter by
-              type, tag or category — or open the graph and see how your thinking connects.
-            </p>
-            <div class="searchbar">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              <span>my thoughts on the onboarding redesign</span>
-              <span class="caret"></span>
+      <section class="section" id="recall">
+        <div class="container">
+          <div class="split reverse">
+            <div class="split-copy reveal">
+              <span class="kicker">Recall</span>
+              <h2>Find it by meaning.</h2>
+              <p>Search across every screenshot's text, every highlight, every note. Filter by type, tag or category — or open the graph and watch your thinking connect.</p>
+              <div class="searchbar">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                <span class="q">my thoughts on the onboarding redesign</span><span class="caret"></span>
+              </div>
             </div>
-          </div>
-          <div class="split-visual reveal" aria-hidden="true">
-            <div class="graph glass">
-              <svg viewBox="0 0 260 200" width="100%" height="100%">
-                <g class="edges" stroke="currentColor" stroke-opacity="0.25" stroke-width="1.5">
-                  <line x1="130" y1="100" x2="60" y2="52"/>
-                  <line x1="130" y1="100" x2="205" y2="60"/>
-                  <line x1="130" y1="100" x2="70" y2="150"/>
-                  <line x1="130" y1="100" x2="200" y2="150"/>
-                  <line x1="205" y1="60" x2="200" y2="150"/>
-                  <line x1="60" y1="52" x2="70" y2="150"/>
-                </g>
-                <g class="nodes">
-                  <circle cx="130" cy="100" r="12" class="n-hub"/>
-                  <circle cx="60" cy="52" r="7" class="n-a"/>
-                  <circle cx="205" cy="60" r="7" class="n-b"/>
-                  <circle cx="70" cy="150" r="7" class="n-c"/>
-                  <circle cx="200" cy="150" r="7" class="n-d"/>
-                </g>
-              </svg>
-              <div class="graph-legend"><span>notes</span><span>tags</span><span>captures</span></div>
+            <div class="split-visual reveal" aria-hidden="true">
+              <div class="graph glass">
+                <svg viewBox="0 0 260 200" width="100%" height="100%">
+                  <g class="edges"><line x1="130" y1="100" x2="60" y2="52"/><line x1="130" y1="100" x2="205" y2="60"/><line x1="130" y1="100" x2="70" y2="150"/><line x1="130" y1="100" x2="200" y2="150"/><line x1="205" y1="60" x2="200" y2="150"/></g>
+                  <g class="nodes"><circle class="hub" cx="130" cy="100" r="11"/><circle class="n" cx="60" cy="52" r="7"/><circle class="n blue" cx="205" cy="60" r="7"/><circle class="n green" cx="70" cy="150" r="7"/><circle class="n" cx="200" cy="150" r="7"/></g>
+                </svg>
+              </div>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- HOW IT WORKS -->
-      <section class="section container" id="how">
-        <div class="section-head reveal">
-          <span class="kicker">How it works</span>
-          <h2>Three moving parts. All yours.</h2>
-        </div>
-        <div class="steps reveal">
-          <div class="step">
-            <span class="step-n">01</span>
-            <h3>The extension captures</h3>
-            <p>A tiny Chrome extension posts what you clip to your backend over an authenticated link.</p>
+      <!-- HOW -->
+      <section class="section band" id="how">
+        <div class="container">
+          <div class="section-head reveal">
+            <span class="kicker">How it works</span>
+            <h2>Three moving parts. All yours.</h2>
           </div>
-          <div class="step">
-            <span class="step-n">02</span>
-            <h3>Your box stores it</h3>
-            <p>A self-hosted service on your own machine keeps the originals and a full-text index.</p>
-          </div>
-          <div class="step">
-            <span class="step-n">03</span>
-            <h3>Your agent enriches</h3>
-            <p>Your AI agent drains the queue — OCR, tags, summaries, links — and surfaces it in your library.</p>
+          <div class="steps">
+            <div class="step reveal"><span class="step-n">01</span><h3>The extension captures</h3><p>A tiny Chrome extension posts what you clip to your backend over an authenticated link.</p></div>
+            <div class="step reveal"><span class="step-n">02</span><h3>Your box stores it</h3><p>A self-hosted service on your own machine keeps the originals and a full-text index.</p></div>
+            <div class="step reveal"><span class="step-n">03</span><h3>Your agent enriches</h3><p>Your AI agent drains the queue — OCR, tags, summaries, links — into your library.</p></div>
           </div>
         </div>
       </section>
 
-      <!-- SELF HOSTED -->
-      <section class="section container" id="self-hosted">
-        <div class="privacy glass reveal">
-          <div class="privacy-copy">
-            <span class="kicker">Self-hosted by design</span>
-            <h2>Your second brain lives on your hardware.</h2>
-            <p>
-              No accounts, no third-party cloud, no one mining your reading history. The backend
-              is a single small service you run yourself; the code is open. Point the extension at
-              your own domain and you're done.
-            </p>
-            <div class="privacy-tags">
-              <span>Own your data</span><span>Open source</span><span>Runs anywhere</span><span>Token-authed</span>
+      <!-- SELF-HOSTED -->
+      <section class="section" id="self-hosted">
+        <div class="container">
+          <div class="privacy glass reveal">
+            <div class="privacy-copy">
+              <span class="kicker">Self-hosted by design</span>
+              <h2>Your second brain lives on your hardware.</h2>
+              <p>No accounts, no third-party cloud, no one mining your reading history. The backend is a single small service you run yourself; the code is open. Point the extension at your own domain and you're done.</p>
+              <div class="privacy-tags"><span>Own your data</span><span>Open source</span><span>Runs anywhere</span><span>Token-authed</span></div>
             </div>
-          </div>
-          <div class="privacy-badge" aria-hidden="true">
-            <img src="assets/mark.svg" width="72" height="72" alt="" />
+            <div class="privacy-badge" aria-hidden="true"><img src="assets/mark.svg" width="64" height="64" alt="" /></div>
           </div>
         </div>
       </section>
 
-      <!-- GET / CTA -->
-      <section class="section container" id="get">
-        <div class="cta reveal">
-          <h2>Start your second brain today.</h2>
-          <p>Download the extension, point it at your Atlas, and start clipping. Everything else is automatic.</p>
-          <div class="hero-actions center">
-            <a class="btn btn-primary btn-lg" href="atlas-extension.zip" download>
-              <img src="assets/mark.svg" width="18" height="18" alt="" /> Download the extension (.zip)
-            </a>
-            <a class="btn btn-ghost btn-lg" href="https://github.com/notpritam/atlas#readme" target="_blank" rel="noreferrer">Read the docs</a>
+      <!-- GET -->
+      <section class="section" id="get">
+        <div class="container">
+          <div class="cta reveal">
+            <span class="kicker">Get started</span>
+            <h2>Start your second brain today.</h2>
+            <p>Download the extension, point it at your Atlas, and start clipping. Everything else is automatic — and it auto-updates itself.</p>
+            <div class="hero-actions center" style="justify-content:center;margin-top:26px">
+              <a class="btn btn-primary btn-lg" href="atlas-extension.zip" download><img src="assets/mark.svg" width="17" height="17" alt="" /> Download the extension (.zip)</a>
+              <a class="btn btn-secondary btn-lg" href="https://github.com/notpritam/atlas#readme" target="_blank" rel="noreferrer">Read the docs</a>
+            </div>
+            <ol class="install">
+              <li><span class="n">1</span> Unzip the download</li>
+              <li><span class="n">2</span> Open <code>chrome://extensions</code> · turn on <b>Developer mode</b></li>
+              <li><span class="n">3</span> <b>Load unpacked</b> → pick the <code>atlas-extension</code> folder</li>
+              <li><span class="n">4</span> Click the Atlas icon → add your backend URL + token</li>
+            </ol>
           </div>
-          <ol class="install">
-            <li><span>1</span> Unzip the download</li>
-            <li><span>2</span> Open <code>chrome://extensions</code> · turn on <b>Developer mode</b></li>
-            <li><span>3</span> <b>Load unpacked</b> → pick the <code>atlas-extension</code> folder</li>
-            <li><span>4</span> Click the Atlas icon → add your backend URL + token</li>
-          </ol>
         </div>
       </section>
     </main>
 
     <footer class="footer">
       <div class="container footer-inner">
-        <a class="brand" href="#top">
-          <img src="assets/mark.svg" width="26" height="26" alt="" /> <span>Atlas</span>
-        </a>
+        <a class="brand" href="#top"><img src="assets/mark.svg" width="24" height="24" alt="" /> <span>Atlas</span></a>
         <p class="foot-tag">Capture anything. Your agent organizes it.</p>
         <div class="foot-links">
           <a href="https://github.com/notpritam/atlas" target="_blank" rel="noreferrer">GitHub</a>
-          <a href="#capture">Capture</a>
-          <a href="#organize">Organize</a>
-          <a href="#recall">Recall</a>
+          <a href="#capture">Capture</a><a href="#organize">Organize</a><a href="#recall">Recall</a>
         </div>
         <p class="copy">© <span id="year"></span> Atlas · self-hosted second brain</p>
       </div>

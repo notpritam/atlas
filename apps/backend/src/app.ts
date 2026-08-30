@@ -1,5 +1,7 @@
 import type { Database } from "bun:sqlite";
+import { relative } from "node:path";
 import { Hono } from "hono";
+import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
 import { config } from "./config.ts";
 import { authMiddleware, type Env } from "./auth.ts";
@@ -63,6 +65,12 @@ export function createApp(db: Database): Hono<Env> {
   v1.route("/captures", captureRoutes(db));
 
   app.route("/v1", v1);
+
+  // Static landing site for everything that isn't the API. hono/bun's
+  // serveStatic resolves `root` from cwd, so pass it relative to where the
+  // service runs. Serves /, /styles.css, /assets/*, /atlas-extension.zip, etc.
+  const webRoot = relative(process.cwd(), config.webDir) || ".";
+  app.use("*", serveStatic({ root: webRoot }));
 
   app.notFound((c) => c.json({ error: "not_found" }, 404));
   return app;

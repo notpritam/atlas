@@ -1,20 +1,9 @@
-# Atlas block for omni's SHARED /etc/caddy/Caddyfile (which also hosts
-# mailroom + cutroom). Serves the landing page + extension download at / and
-# proxies the API. NOTE: that file is edited by multiple projects — patch just
-# this block in place (see deploy/sync-web.sh), don't overwrite the whole file.
+# Atlas block for omni's SHARED /etc/caddy/Caddyfile.
+#
+# The backend now serves BOTH the API (/v1, /admin) AND the static landing page
+# (everything else, from apps/web) on :8790 — so caddy only needs a plain proxy.
+# This also matches what the shared Caddyfile reverts to when regenerated, so the
+# site no longer breaks when another project rewrites that file.
 atlas.notpritam.in {
-	encode zstd gzip
-
-	# API + admin → backend on :8790
-	@api path /v1/* /admin/*
-	handle @api {
-		reverse_proxy localhost:8790
-	}
-
-	# landing page + extension .zip → static site
-	handle {
-		root * /var/www/atlas
-		try_files {path} {path}/ /index.html
-		file_server
-	}
+	reverse_proxy localhost:8790
 }

@@ -7,6 +7,11 @@ export const config = {
   dataDir:
     process.env.ATLAS_DATA_DIR ??
     join(new URL("..", import.meta.url).pathname, "data"),
+  /** Static landing site served for non-API paths. Defaults to apps/web, so the
+   *  backend serves atlas.notpritam.in regardless of how caddy is configured. */
+  webDir:
+    process.env.ATLAS_WEB_DIR ??
+    new URL("../../web", import.meta.url).pathname,
   /** Guards the HTTP device-admin routes. Empty => those routes are disabled
    *  (mint tokens with the `atlas devices add` CLI instead). */
   adminToken: process.env.ATLAS_ADMIN_TOKEN ?? "",
