@@ -15,3 +15,6 @@ apps/extension/dist/
 
 # extension signing key (keep secret!)
 deploy/keys/
+
+# stray crx3 default-name output
+web-extension.*
