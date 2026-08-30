@@ -78,7 +78,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 // ---------------------------------------------------------------------------
 // Messages from the popup
 // ---------------------------------------------------------------------------
-chrome.runtime.onMessage.addListener((msg) => {
+chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.kind === "record") {
     recordRecent(msg.entry);
     return;
@@ -95,6 +95,27 @@ chrome.runtime.onMessage.addListener((msg) => {
         flash(false, String(e));
       }
     })();
+    return;
+  }
+  if (msg?.kind === "saveTweet") {
+    (async () => {
+      try {
+        const p = msg.payload;
+        await postCapture({
+          type: "highlight",
+          sourceUrl: p.url,
+          sourceTitle: p.title,
+          selectionText: p.text,
+          faviconUrl: p.favicon,
+          capturedAt: Date.now(),
+        });
+        await recordRecent({ type: "highlight", title: p.title });
+        sendResponse({ ok: true });
+      } catch (e) {
+        sendResponse({ ok: false, error: String(e) });
+      }
+    })();
+    return true; // keep the message channel open for the async response
   }
 });
 

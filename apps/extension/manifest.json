@@ -23,6 +23,13 @@
       "32": "icons/icon32.png"
     }
   },
+  "content_scripts": [
+    {
+      "matches": ["*://x.com/*", "*://twitter.com/*"],
+      "js": ["src/twitter.js"],
+      "run_at": "document_idle"
+    }
+  ],
   "commands": {
     "region-screenshot": {
       "suggested_key": { "default": "Alt+Shift+S" },

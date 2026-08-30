@@ -17,6 +17,10 @@ No build step. Load it unpacked:
 - **Keyboard** — `Alt+Shift+S` region screenshot, `Alt+Shift+F` full-page,
   `Alt+Shift+H` save selected text. (Rebind at `chrome://extensions/shortcuts`.)
 
+- **On X / Twitter** — an Atlas button is injected into every tweet's action
+  bar (next to reply/like/bookmark). One click saves the tweet (author, text,
+  permalink) to Atlas; the icon turns into a check when saved.
+
 A green ✓ / red ! badge flashes on the toolbar icon after each capture.
 
 All network calls happen in the background service worker, so the token never
