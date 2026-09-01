@@ -13,7 +13,7 @@ Environment=ATLAS_DATA_DIR=/home/pritam/.local/share/atlas
 Environment=ATLAS_ALLOWED_ORIGINS=
 Environment=PATH=/home/pritam/.bun/bin:/usr/local/bin:/usr/bin:/bin
 ExecStart=/home/pritam/.bun/bin/bun run src/index.ts
-Restart=on-failure
+Restart=always
 RestartSec=3
 
 [Install]
