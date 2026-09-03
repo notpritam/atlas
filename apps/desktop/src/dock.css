@@ -1,0 +1,65 @@
+:root {
+  --bg: rgba(17, 18, 24, 0.72);
+  --border: rgba(255, 255, 255, 0.1);
+  --fg: #e7e7ea;
+  --muted: #9a9aa4;
+  --primary: #8b7bff;
+  --primary2: #58c7ff;
+}
+* { box-sizing: border-box; margin: 0; }
+html, body { background: transparent; overflow: hidden; user-select: none; }
+body {
+  font: 13px/1.4 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif;
+  color: var(--fg);
+  padding: 8px;
+}
+.wrap {
+  border-radius: 16px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  backdrop-filter: blur(22px) saturate(1.2);
+  -webkit-backdrop-filter: blur(22px) saturate(1.2);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45);
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.bar { display: flex; align-items: center; gap: 8px; -webkit-app-region: drag; cursor: grab; }
+.bar:active { cursor: grabbing; }
+.title { font-weight: 600; letter-spacing: 0.2px; }
+.ghost { -webkit-app-region: no-drag; margin-left: auto; background: transparent; border: 0; color: var(--muted); font-size: 14px; cursor: pointer; padding: 2px 6px; border-radius: 8px; }
+.ghost:hover { background: rgba(255, 255, 255, 0.08); color: var(--fg); }
+
+/* animated brand mark — a 3-node graph that gently pulses/orbits */
+.mark { position: relative; width: 22px; height: 22px; border-radius: 8px;
+  background: radial-gradient(120% 120% at 30% 20%, rgba(139,123,255,0.5), rgba(88,199,255,0.18));
+  overflow: hidden; box-shadow: inset 0 0 12px rgba(139,123,255,0.35); animation: breathe 3.6s ease-in-out infinite; }
+.mark .n { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: #cfc6ff; box-shadow: 0 0 8px #8b7bff; }
+.n1 { top: 4px; left: 8px; animation: float 3s ease-in-out infinite; }
+.n2 { bottom: 5px; left: 4px; animation: float 3s ease-in-out infinite 0.6s; }
+.n3 { bottom: 5px; right: 4px; animation: float 3s ease-in-out infinite 1.2s; }
+@keyframes breathe { 0%,100% { filter: brightness(1); } 50% { filter: brightness(1.35); } }
+@keyframes float { 0%,100% { transform: translateY(0); opacity: .85; } 50% { transform: translateY(-2px); opacity: 1; } }
+
+.actions { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
+.act { -webkit-app-region: no-drag; display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 4px; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.04);
+  color: var(--fg); font-size: 11px; cursor: pointer; transition: all .15s; }
+.act:hover { background: rgba(139,123,255,0.16); border-color: rgba(139,123,255,0.5); transform: translateY(-1px); }
+.act .ico { font-size: 16px; }
+
+.panel { -webkit-app-region: no-drag; display: flex; flex-direction: column; gap: 6px; }
+label { font-size: 10px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); }
+textarea, input {
+  -webkit-app-region: no-drag; width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--fg); padding: 8px; font: inherit; outline: none;
+}
+textarea { height: 84px; resize: none; }
+textarea:focus, input:focus { border-color: rgba(139,123,255,0.6); }
+.row { display: flex; gap: 6px; }
+.primary { -webkit-app-region: no-drag; flex: 1; background: linear-gradient(90deg, var(--primary), var(--primary2)); color: #0c0c12; font-weight: 600; border: 0; border-radius: 10px; padding: 8px; cursor: pointer; }
+.primary:hover { filter: brightness(1.08); }
+.hint { font-size: 10px; color: var(--muted); }
+.toast { -webkit-app-region: no-drag; font-size: 11px; padding: 7px 9px; border-radius: 10px; background: rgba(52,211,153,0.14); color: #6ee7b7; border: 1px solid rgba(52,211,153,0.3); }
+.toast.bad { background: rgba(248,113,113,0.14); color: #fca5a5; border-color: rgba(248,113,113,0.3); }

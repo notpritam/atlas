@@ -1,0 +1,50 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;" />
+    <link rel="stylesheet" href="dock.css" />
+  </head>
+  <body>
+    <div class="wrap">
+      <!-- drag handle / brand -->
+      <div class="bar" id="bar">
+        <div class="mark" id="mark"><span class="n n1"></span><span class="n n2"></span><span class="n n3"></span></div>
+        <div class="title">Atlas</div>
+        <button class="ghost" id="settingsBtn" title="Settings">⚙</button>
+      </div>
+
+      <!-- actions -->
+      <div class="actions">
+        <button class="act" id="regionBtn"><span class="ico">⛶</span><span>Region</span></button>
+        <button class="act" id="clipBtn"><span class="ico">⧉</span><span>Clipboard</span></button>
+        <button class="act" id="noteBtn"><span class="ico">✎</span><span>Note</span></button>
+      </div>
+
+      <!-- quick note -->
+      <div class="panel" id="notePanel" hidden>
+        <textarea id="noteText" placeholder="Jot something for Atlas… ⌘⏎ to save"></textarea>
+        <div class="row">
+          <button class="primary" id="noteSave">Save to Atlas</button>
+          <button class="ghost" id="noteCancel">Cancel</button>
+        </div>
+      </div>
+
+      <!-- settings -->
+      <div class="panel" id="settingsPanel" hidden>
+        <label>Backend URL</label>
+        <input id="backendUrl" placeholder="https://atlas.notpritam.in" />
+        <label>Device token (ingest)</label>
+        <input id="token" type="password" placeholder="paste your Atlas ingest token" />
+        <div class="hint">Shortcuts: region ⌘⇧2 · clipboard ⌘⇧S · note ⌘⇧N</div>
+        <div class="row">
+          <button class="primary" id="settingsSave">Save</button>
+          <button class="ghost" id="settingsCancel">Close</button>
+        </div>
+      </div>
+
+      <div class="toast" id="toast" hidden></div>
+    </div>
+    <script src="dock.js"></script>
+  </body>
+</html>

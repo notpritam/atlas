@@ -1,0 +1,20 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline';" />
+    <style>
+      * { margin: 0; box-sizing: border-box; }
+      html, body { width: 100%; height: 100%; overflow: hidden; cursor: crosshair; background: rgba(10, 10, 14, 0.28); user-select: none; }
+      #hint { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); font: 13px -apple-system, "Segoe UI", sans-serif; color: #fff; background: rgba(0,0,0,0.6); padding: 6px 12px; border-radius: 999px; }
+      #box { position: fixed; border: 1.5px solid #8b7bff; background: rgba(139,123,255,0.14); box-shadow: 0 0 0 100000px rgba(10,10,14,0.28); display: none; }
+      #dim { position: fixed; inset: 0; }
+    </style>
+  </head>
+  <body>
+    <div id="dim"></div>
+    <div id="hint">Drag to capture a region · Esc to cancel</div>
+    <div id="box"></div>
+    <script src="overlay.js"></script>
+  </body>
+</html>
