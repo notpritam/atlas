@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Atlas — Privacy Policy</title>
+    <meta name="description" content="How Atlas handles your data — privacy-first, local by default." />
+    <style>
+      :root { --bg:#0b0c10; --panel:#14151c; --fg:#e9e9ee; --muted:#9a9aa6; --border:rgba(255,255,255,.1); --primary:#8b7bff; }
+      * { box-sizing:border-box; }
+      body { margin:0; background:var(--bg); color:var(--fg); font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Inter,sans-serif; }
+      .wrap { max-width:760px; margin:0 auto; padding:48px 22px 80px; }
+      a { color:var(--primary); }
+      h1 { font-size:32px; letter-spacing:-.02em; margin:0 0 6px; }
+      h2 { font-size:19px; margin:34px 0 8px; }
+      .muted { color:var(--muted); }
+      .lead { color:var(--muted); font-size:17px; margin-top:8px; }
+      .card { background:var(--panel); border:1px solid var(--border); border-radius:14px; padding:16px 18px; margin:18px 0; }
+      ul { padding-left:20px; } li { margin:6px 0; }
+      code { background:rgba(255,255,255,.07); padding:1px 6px; border-radius:6px; font-size:14px; }
+      .back { display:inline-block; margin-bottom:24px; color:var(--muted); text-decoration:none; }
+      footer { margin-top:48px; color:var(--muted); font-size:13px; border-top:1px solid var(--border); padding-top:18px; }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+      <a class="back" href="/">← Atlas</a>
+      <h1>Privacy Policy</h1>
+      <p class="muted">Last updated: 3 September 2026</p>
+      <p class="lead">Atlas is <strong>privacy-first and local by default</strong>. Your captures live on your own machine, and enrichment runs on your own AI. We do not run a server that collects your content unless you explicitly point Atlas at one.</p>
+
+      <div class="card">
+        <strong>In one line:</strong> what you capture stays with you. By default nothing leaves your device except to your own local Claude Code for organizing it.
+      </div>
+
+      <h2>What Atlas captures</h2>
+      <p>Only what you deliberately save: screenshots and region grabs, highlighted text, bookmarks/links, tweets, and quick notes — together with basic page metadata (title, URL, favicon, timestamp) for the item you save.</p>
+
+      <h2>Where your data is stored</h2>
+      <ul>
+        <li><strong>Locally on your device</strong> — captures are stored in your browser's local storage (IndexedDB). They are not uploaded anywhere by default.</li>
+        <li><strong>Your own AI, on your machine</strong> — to organize/tag/summarize a capture, Atlas sends it to <em>your own</em> local Claude Code companion at <code>http://127.0.0.1</code>. This runs on your computer; it is not our server.</li>
+        <li><strong>Optional self-hosted backend</strong> — if <em>you</em> configure a backend URL and token (e.g. your own <code>atlas.notpritam.in</code> instance), captures are sent there instead. That server is operated by you (or whoever you point to), under your control.</li>
+      </ul>
+
+      <h2>Permissions, and why</h2>
+      <ul>
+        <li><code>activeTab</code>, <code>scripting</code>, <code>tabs</code> — to screenshot the current page and read the text/selection you choose to save, only when you trigger a capture.</li>
+        <li><code>&lt;all_urls&gt;</code> host access — so you can capture from any page you're on. Atlas does not read pages in the background; it acts only when you invoke it.</li>
+        <li><code>http://localhost</code> / <code>127.0.0.1</code> — to talk to your own local AI companion for enrichment.</li>
+        <li><code>storage</code> — to keep your captures and settings locally.</li>
+        <li><code>contextMenus</code>, <code>alarms</code> — the right-click "Save to Atlas" menu and periodic local enrichment of pending items.</li>
+      </ul>
+
+      <h2>What we do NOT do</h2>
+      <ul>
+        <li>No analytics, tracking, ads, or fingerprinting.</li>
+        <li>No selling or sharing of your data — ever.</li>
+        <li>No account required. No background collection of your browsing.</li>
+        <li>No transmission of your captures to us. (There is no "us" server in the default setup.)</li>
+      </ul>
+
+      <h2>Third parties</h2>
+      <p>None by default. Enrichment uses your own local Claude Code. If you opt into a hosted backend, your data goes only to the server you configured.</p>
+
+      <h2>Deleting your data</h2>
+      <p>Delete individual captures in the extension, or remove the extension to clear its local storage. If you use a self-hosted backend, delete items there directly.</p>
+
+      <h2>Children</h2>
+      <p>Atlas is a productivity tool not directed at children under 13.</p>
+
+      <h2>Changes</h2>
+      <p>We'll update this page and the "last updated" date when the policy changes.</p>
+
+      <h2>Contact</h2>
+      <p>Questions? Open an issue at <a href="https://github.com/notpritam/atlas">github.com/notpritam/atlas</a>, or email <a href="mailto:atlas@notpritam.in">atlas@notpritam.in</a>.</p>
+
+      <footer>Atlas is open source. This policy covers the Atlas browser extension and desktop companion.</footer>
+    </div>
+  </body>
+</html>
