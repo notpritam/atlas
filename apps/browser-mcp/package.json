@@ -1,0 +1,14 @@
+{
+  "name": "atlas-browser-mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "MCP server that lets your agent drive the page open in your browser, via the Atlas extension (WebSocket bridge). Screenshot, snapshot, click, type, fill forms, scroll, navigate.",
+  "bin": { "atlas-browser-mcp": "server.mjs" },
+  "scripts": { "start": "node server.mjs" },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.0.4",
+    "ws": "^8.18.0",
+    "zod": "^3.23.8"
+  }
+}

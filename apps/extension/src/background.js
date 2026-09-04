@@ -1,4 +1,5 @@
 import { drainQueue, saveCapture } from "./capture.js";
+import "./control-bg.js"; // agent-control bridge (WebSocket → Atlas Browser MCP)
 
 // ---------------------------------------------------------------------------
 // Feedback: a short badge flash (no notifications permission needed).
