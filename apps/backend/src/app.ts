@@ -24,6 +24,7 @@ export function createApp(db: Database): Hono<Env> {
     "*",
     cors({
       origin: (origin) => {
+        if (!origin) return null; // non-CORS / same-origin request — no ACAO needed
         if (origin.startsWith("chrome-extension://")) return origin;
         if (config.allowedOrigins.includes(origin)) return origin;
         return null;
@@ -32,6 +33,19 @@ export function createApp(db: Database): Hono<Env> {
       allowMethods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
       maxAge: 86400,
     }),
+  );
+
+  // Baseline security headers on every response (safe for the API + static site).
+  app.use("*", async (c, next) => {
+    await next();
+    c.header("X-Content-Type-Options", "nosniff");
+    c.header("Referrer-Policy", "strict-origin-when-cross-origin");
+    c.header("X-Frame-Options", "SAMEORIGIN");
+  });
+
+  // Public liveness — no token — for uptime checks and status pages.
+  app.get("/healthz", (c) =>
+    c.json({ ok: true, service: "atlas" as const, version: config.version }),
   );
 
   // Admin token minting — own guard, outside the Bearer group.

@@ -3,6 +3,8 @@ import { join } from "node:path";
 /** Runtime configuration, all overridable via env for the systemd unit on omni. */
 export const config = {
   port: Number(process.env.ATLAS_PORT ?? 8787),
+  /** Service version, surfaced by the public /healthz probe. */
+  version: process.env.ATLAS_VERSION ?? "1.0.0",
   /** Where the SQLite db + blobs live. Defaults to apps/backend/data. */
   dataDir:
     process.env.ATLAS_DATA_DIR ??
