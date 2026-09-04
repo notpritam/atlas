@@ -49,6 +49,16 @@
     if (s && s.agentMode === false) { pill.style.display = "none"; frame.style.display = "none"; }
   });
 
+  // Restore control if this tab was already granted before a reload/navigation —
+  // the background bridge remembers the granted tab, so the agent keeps the tab
+  // across every page it drives instead of dropping control on each page load.
+  try {
+    chrome.runtime.sendMessage({ k: "agent-hello" }, (resp) => {
+      if (chrome.runtime.lastError) return;
+      if (resp && resp.on && !controlling) setControlling(true);
+    });
+  } catch { /* noop */ }
+
   function flash(el) {
     if (!el) return;
     el.classList.add("atlas-agent-flash");
