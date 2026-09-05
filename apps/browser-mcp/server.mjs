@@ -11,48 +11,119 @@
 // tool returns a clear "enable Agent on the page" error.
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { WebSocketServer } from "ws";
+import { WebSocketServer, WebSocket } from "ws";
 import { z } from "zod";
 import { randomUUID } from "node:crypto";
 
 const BRIDGE_PORT = Number(process.env.ATLAS_BRIDGE_PORT ?? 8792);
 const CMD_TIMEOUT = Number(process.env.ATLAS_CMD_TIMEOUT_MS ?? 20000);
 
-// ---- WebSocket bridge to the extension ------------------------------------
-let socket = null; // the (single) connected extension
-let lastStatus = { controllable: false, url: null, title: null };
-const pending = new Map(); // id -> { resolve, reject, timer }
+// ---- shared bridge: the first process to grab the port OWNS the ws server
+// (the extension + any number of agent MCPs connect to it); every later MCP
+// process ATTACHES as a client. So multiple agents can drive without port
+// conflicts or a separate always-on service, and if the owner dies a surviving
+// client takes over. Live page context + user/agent activity stream in too.
+let role = null;                 // "owner" | "client"
+let browserSocket = null;        // owner: the extension ws
+const agentClients = new Set();  // owner: attached agent-MCP client sockets
+let clientWs = null;             // client: ws to the owner
+let lastStatus = { controllable: false, url: null, title: null, cdp: false };
+let latestContext = null;        // { url, title, elements, text, at } — streamed
+const activityLog = [];          // [{ actor:"user"|"agent", type, detail, url, at }]
+const pending = new Map();       // id -> { resolve, reject, timer } (this proc's own calls)
+const routeMap = new Map();      // owner: internalId -> { agentWs, origId } (forwarded)
 
-const wss = new WebSocketServer({ host: "127.0.0.1", port: BRIDGE_PORT });
-wss.on("connection", (ws) => {
-  socket = ws;
-  ws.on("message", (buf) => {
-    let msg;
-    try { msg = JSON.parse(String(buf)); } catch { return; }
-    if (msg.type === "status") { lastStatus = { controllable: !!msg.controllable, url: msg.url ?? null, title: msg.title ?? null }; return; }
-    if (msg.type === "result" && msg.id && pending.has(msg.id)) {
-      const p = pending.get(msg.id);
-      pending.delete(msg.id);
-      clearTimeout(p.timer);
-      if (msg.ok) p.resolve(msg.data);
-      else p.reject(new Error(msg.error || "command failed"));
-    }
-  });
-  ws.on("close", () => { if (socket === ws) { socket = null; lastStatus = { controllable: false, url: null, title: null }; } });
-});
-wss.on("error", (e) => console.error("[atlas-browser-mcp] bridge error:", e.message));
+function pushActivity(ev) { if (!ev) return; activityLog.push(ev); if (activityLog.length > 300) activityLog.splice(0, activityLog.length - 300); }
+function applyIncoming(msg) {
+  if (msg.type === "status") lastStatus = { controllable: !!msg.controllable, url: msg.url ?? null, title: msg.title ?? null, cdp: !!msg.cdp };
+  else if (msg.type === "context") latestContext = { ...(msg.ctx || {}), at: Date.now() };
+  else if (msg.type === "activity") pushActivity(msg.ev);
+}
+function resolvePending(msg) {
+  if (msg.id && pending.has(msg.id)) { const p = pending.get(msg.id); pending.delete(msg.id); clearTimeout(p.timer); if (msg.ok) p.resolve(msg.data); else p.reject(new Error(msg.error || "command failed")); return true; }
+  return false;
+}
+function extConnected() { return role === "owner" ? !!(browserSocket && browserSocket.readyState === 1) : !!(clientWs && clientWs.readyState === 1); }
+function recentActivityLine() {
+  const u = activityLog.filter((e) => e.actor === "user").slice(-3);
+  return u.length ? `\nRecent user activity (they can use the page alongside you): ${u.map((e) => `${e.type}${e.detail ? " (" + e.detail + ")" : ""}`).join(", ")}` : "";
+}
 
 function send(action, params = {}) {
   return new Promise((resolve, reject) => {
-    if (!socket || socket.readyState !== socket.OPEN) {
+    if (role === "owner" && (!browserSocket || browserSocket.readyState !== 1))
       return reject(new Error("The Atlas extension isn't connected. Install/enable it and make sure this bridge is running."));
-    }
+    if (role === "client" && (!clientWs || clientWs.readyState !== 1))
+      return reject(new Error("The Atlas bridge isn't reachable yet — reconnecting. Try again in a moment."));
     const id = randomUUID();
     const timer = setTimeout(() => { pending.delete(id); reject(new Error(`Timed out after ${CMD_TIMEOUT}ms waiting for the page.`)); }, CMD_TIMEOUT);
     pending.set(id, { resolve, reject, timer });
-    socket.send(JSON.stringify({ type: "cmd", id, action, params }));
+    const obj = JSON.stringify({ type: "cmd", id, action, params });
+    try { (role === "owner" ? browserSocket : clientWs).send(obj); }
+    catch (e) { pending.delete(id); clearTimeout(timer); reject(e instanceof Error ? e : new Error(String(e))); }
   });
 }
+
+// ---- owner: run the ws server for the extension + agent-client MCPs ---------
+function becomeOwner(wss) {
+  role = "owner";
+  console.error(`[atlas-browser-mcp] bridge OWNER on ws://127.0.0.1:${BRIDGE_PORT}`);
+  wss.on("connection", (ws) => {
+    ws._role = null;
+    ws.on("message", (buf) => {
+      let msg; try { msg = JSON.parse(String(buf)); } catch { return; }
+      if (!ws._role) {
+        if (msg.type === "hello") {
+          ws._role = msg.role === "agent" ? "agent" : "browser";
+          if (ws._role === "agent") { agentClients.add(ws); try { ws.send(JSON.stringify({ type: "status", ...lastStatus })); if (latestContext) ws.send(JSON.stringify({ type: "context", ctx: latestContext })); } catch { /* noop */ } }
+          else browserSocket = ws;
+          return;
+        }
+        ws._role = msg.type === "cmd" ? "agent" : "browser";
+        if (ws._role === "agent") agentClients.add(ws); else browserSocket = ws;
+      }
+      if (ws._role === "browser") {
+        if (msg.type === "result") {
+          if (!resolvePending(msg) && msg.id && routeMap.has(msg.id)) { const { agentWs, origId } = routeMap.get(msg.id); routeMap.delete(msg.id); try { agentWs.send(JSON.stringify({ type: "result", id: origId, ok: msg.ok, data: msg.data, error: msg.error })); } catch { /* noop */ } }
+          return;
+        }
+        applyIncoming(msg);
+        for (const a of agentClients) { try { a.send(String(buf)); } catch { /* noop */ } } // fan out status/context/activity
+        return;
+      }
+      // agent client → route a command to the extension
+      if (msg.type === "cmd") {
+        if (!browserSocket || browserSocket.readyState !== 1) { try { ws.send(JSON.stringify({ type: "result", id: msg.id, ok: false, error: "The Atlas extension isn't connected." })); } catch { /* noop */ } return; }
+        const internalId = randomUUID(); routeMap.set(internalId, { agentWs: ws, origId: msg.id });
+        try { browserSocket.send(JSON.stringify({ type: "cmd", id: internalId, action: msg.action, params: msg.params })); } catch { routeMap.delete(internalId); }
+      }
+    });
+    ws.on("close", () => { if (ws === browserSocket) { browserSocket = null; lastStatus = { controllable: false, url: null, title: null, cdp: false }; } agentClients.delete(ws); });
+  });
+  wss.on("error", (e) => console.error("[atlas-browser-mcp] bridge error:", e.message));
+}
+
+// ---- client: attach to an existing owner -----------------------------------
+let clientBackoff = 500;
+function connectClient() {
+  role = "client";
+  try { clientWs = new WebSocket(`ws://127.0.0.1:${BRIDGE_PORT}`); } catch { return setTimeout(() => tryStart(true), clientBackoff); }
+  clientWs.on("open", () => { clientBackoff = 500; try { clientWs.send(JSON.stringify({ type: "hello", role: "agent" })); } catch { /* noop */ } });
+  clientWs.on("message", (buf) => { let msg; try { msg = JSON.parse(String(buf)); } catch { return; } if (msg.type === "result") { resolvePending(msg); return; } applyIncoming(msg); });
+  clientWs.on("close", () => { clientWs = null; setTimeout(() => tryStart(true), clientBackoff); }); // owner may have died — try to take over
+  clientWs.on("error", () => { try { clientWs.close(); } catch { /* noop */ } });
+}
+
+// ---- start: own the port if free, else attach as a client ------------------
+function tryStart(fromRetry) {
+  const wss = new WebSocketServer({ host: "127.0.0.1", port: BRIDGE_PORT });
+  wss.once("listening", () => becomeOwner(wss));
+  wss.once("error", (e) => {
+    if (e && e.code === "EADDRINUSE") { clientBackoff = Math.min((clientBackoff || 500) * 1.5, 8000); setTimeout(connectClient, fromRetry ? clientBackoff : 0); }
+    else console.error("[atlas-browser-mcp] bridge bind error:", e.message);
+  });
+}
+tryStart(false);
 
 const ok = (text) => ({ content: [{ type: "text", text }] });
 const asText = (v) => (typeof v === "string" ? v : JSON.stringify(v, null, 2));
@@ -116,19 +187,33 @@ server.tool(
   "Check whether a browser tab is currently under agent control. Returns the URL/title of the controllable tab, or tells you to enable the on-page Agent button. Call this first if a command says the extension isn't connected.",
   {},
   async () => ok(
-    socket
-      ? (lastStatus.controllable
-          ? `Connected. Controlling: ${lastStatus.title ?? ""} — ${lastStatus.url ?? ""}`
-          : "Extension connected, but no tab is under agent control yet. Click the floating “Agent” button on the page you want me to drive.")
-      : "The Atlas extension isn't connected to the bridge.",
+    !extConnected()
+      ? "The Atlas extension isn't connected to the bridge."
+      : (lastStatus.controllable
+          ? `Connected${lastStatus.cdp ? " (full control — Chrome debugger attached)" : ""}. Controlling: ${lastStatus.title ?? ""} — ${lastStatus.url ?? ""}${recentActivityLine()}`
+          : "Extension connected, but no tab is under agent control yet. Click the floating “Agent” button on the page you want me to drive."),
   ),
 );
 
 server.tool(
   "browser_snapshot",
-  "Get a structured snapshot of the current page: the visible text plus a list of interactable elements each with a stable [ref] you pass to browser_click / browser_type / browser_select. Use this to see the page and decide what to do — cheaper and more reliable than a screenshot for acting.",
+  "Get a structured snapshot of the current page: the visible text plus a list of interactable elements each with a stable [ref] you pass to browser_click / browser_type / browser_select. Use this to see the page and decide what to do — cheaper and more reliable than a screenshot for acting. Returns instantly from the live stream when the page just changed.",
   {},
-  async () => ok(asText(await act("snapshot"))),
+  async () => {
+    if (latestContext && Date.now() - latestContext.at < 1200) { const { at, ...c } = latestContext; return ok(asText({ ...c, streamed: true })); }
+    return ok(asText(await act("snapshot")));
+  },
+);
+
+server.tool(
+  "browser_recent_activity",
+  "See what changed on the page recently and WHO did it — the user or the agent. Use to notice if the user touched the page while you were working (they can use the site alongside you) or to confirm your own actions landed. Attribution: actions within ~0.7s of a command are 'agent', the rest are 'user'.",
+  { limit: z.number().int().optional() },
+  async ({ limit }) => {
+    const items = activityLog.slice(-Math.min(limit ?? 20, 100));
+    if (!items.length) return ok("No tracked page activity yet.");
+    return ok(items.map((e) => `${new Date(e.at).toISOString().slice(11, 19)}  [${e.actor}] ${e.type}${e.detail ? " · " + e.detail : ""}`).join("\n"));
+  },
 );
 
 server.tool(
@@ -282,5 +367,5 @@ server.tool(
 );
 
 // ---- go --------------------------------------------------------------------
-console.error(`[atlas-browser-mcp] bridge on ws://127.0.0.1:${BRIDGE_PORT} — waiting for the extension; skills at ${STORE_PATH}`);
+console.error(`[atlas-browser-mcp] starting (shared bridge on 127.0.0.1:${BRIDGE_PORT}); skills at ${STORE_PATH}`);
 await server.connect(new StdioServerTransport());

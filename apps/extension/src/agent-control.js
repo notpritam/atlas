@@ -44,6 +44,11 @@
     #atlas-agent-ring{position:absolute;left:-4px;top:-4px;width:28px;height:28px;border-radius:50%;border:2px solid #8b7bff;opacity:0}
     #atlas-agent-ring.go{animation:atlasRing .55s ease-out}
     @keyframes atlasRing{0%{opacity:.9;transform:scale(.3)}100%{opacity:0;transform:scale(2)}}
+    #atlas-agent-caret{position:absolute;left:3px;top:-3px;width:2px;height:15px;background:#8b7bff;border-radius:1px;opacity:0;box-shadow:0 0 6px #8b7bff}
+    #atlas-agent-cursor.typing #atlas-agent-caret{opacity:1;animation:atlasCaret .8s steps(1) infinite}
+    @keyframes atlasCaret{0%,100%{opacity:1}50%{opacity:.12}}
+    .atlas-agent-trail{position:fixed;z-index:2147483643;pointer-events:none;width:8px;height:8px;border-radius:50%;
+      background:radial-gradient(circle,rgba(139,123,255,.85),transparent 70%);transition:opacity .5s ease,transform .5s ease}
   `;
   document.documentElement.appendChild(style);
 
@@ -59,13 +64,29 @@
     `<span class="cur"><svg width="22" height="26" viewBox="0 0 22 26" fill="none" aria-hidden="true">` +
     `<defs><linearGradient id="atlasCurG" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#a99bff"/><stop offset="1" stop-color="#58c7ff"/></linearGradient></defs>` +
     `<path d="M5 3v16l4-4 2.6 5.6 2.4-1L11.4 14H17z" fill="url(#atlasCurG)" stroke="#fff" stroke-width="1.5" stroke-linejoin="round"/></svg>` +
-    `<span id="atlas-agent-ring"></span></span>` +
+    `<span id="atlas-agent-ring"></span><span id="atlas-agent-caret"></span></span>` +
     `<span class="tag">Agent</span>`;
   const attach = () => { if (document.body) { document.body.append(frame, cursor, pill); } };
   if (document.body) attach(); else document.addEventListener("DOMContentLoaded", attach);
 
-  function moveCursor(x, y) { if (x == null || y == null) return; cursor.style.transform = `translate(${x}px, ${y}px)`; }
+  let curX = -200, curY = -200;
+  let lastAgentActionAt = 0;
+  const markAgent = () => { lastAgentActionAt = Date.now(); };
+  function spawnTrail(x, y) {
+    const d = document.createElement("div"); d.className = "atlas-agent-trail";
+    d.style.left = (x - 4) + "px"; d.style.top = (y - 4) + "px";
+    (document.body || document.documentElement).appendChild(d);
+    requestAnimationFrame(() => { d.style.opacity = "0"; d.style.transform = "scale(.3)"; });
+    setTimeout(() => d.remove(), 520);
+  }
+  function moveCursor(x, y) {
+    if (x == null || y == null) return;
+    if (Math.hypot(x - curX, y - curY) > 26) spawnTrail(curX, curY);
+    curX = x; curY = y; cursor.style.transform = `translate(${x}px, ${y}px)`;
+  }
   function moveToEl(el) { if (!el) return; const r = el.getBoundingClientRect(); moveCursor(Math.round(r.left + r.width / 2), Math.round(r.top + r.height / 2)); }
+  function setLabel(t) { const tag = cursor.querySelector(".tag"); if (tag) tag.textContent = t || "Agent"; }
+  function setTyping(on) { cursor.classList.toggle("typing", !!on); }
   function clickPulse() {
     const ring = cursor.querySelector("#atlas-agent-ring");
     if (ring) { ring.classList.remove("go"); void ring.offsetWidth; ring.classList.add("go"); }
@@ -79,6 +100,7 @@
     cursor.classList.toggle("on", on);
     pill.querySelector(".lbl").textContent = on ? "Agent · on" : "Agent";
     chrome.runtime.sendMessage({ k: "agent-toggle", on });
+    if (on) scheduleCtx();
   }
   pill.addEventListener("click", () => setControlling(!controlling));
 
@@ -150,16 +172,17 @@
     el.scrollIntoView({ block: "center", inline: "center" });
     const r = el.getBoundingClientRect();
     const x = Math.round(r.left + r.width / 2), y = Math.round(r.top + r.height / 2);
-    moveCursor(x, y); flash(el);
+    markAgent(); moveCursor(x, y); flash(el);
     return { x, y, name: nameOf(el) };
   }
 
   async function typeInto(el, text, { submit, clear }) {
-    el.scrollIntoView({ block: "center" }); moveToEl(el); el.focus?.(); flash(el);
+    markAgent(); el.scrollIntoView({ block: "center" }); moveToEl(el); setTyping(true); setLabel("typing…"); el.focus?.(); flash(el);
     if (el.isContentEditable) { if (clear) el.textContent = ""; document.execCommand("insertText", false, text); }
     else setNativeValue(el, (clear ? "" : el.value || "") + text);
     if (submit) el.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true }));
     if (submit && el.form) el.form.requestSubmit?.();
+    setTyping(false); setLabel("Agent");
   }
 
   function waitFor(selector, timeoutMs) {
@@ -175,12 +198,40 @@
     });
   }
 
+  // ---- live context streaming + user/agent interaction tracking -----------
+  // The agent gets fresh page context without polling, and every interaction is
+  // logged with WHO did it — so it knows when you use the site alongside it.
+  let ctxTimer = 0;
+  function pushContext() { if (!controlling) return; try { chrome.runtime.sendMessage({ k: "agent-context", ctx: snapshot() }); } catch { /* noop */ } }
+  function scheduleCtx() { clearTimeout(ctxTimer); ctxTimer = setTimeout(pushContext, 450); }
+  const actorNow = () => (Date.now() - lastAgentActionAt < 700 ? "agent" : "user");
+  function logActivity(type, detail) {
+    if (!controlling) return;
+    try { chrome.runtime.sendMessage({ k: "agent-activity", ev: { actor: actorNow(), type, detail: String(detail || "").slice(0, 120), url: location.href, at: Date.now() } }); } catch { /* noop */ }
+    scheduleCtx();
+  }
+  document.addEventListener("click", (e) => { const t = e.target; logActivity("click", t && (nameOf(t) || t.tagName)); }, true);
+  document.addEventListener("input", (e) => { const t = e.target; const v = t && "value" in t ? ` = "${String(t.value).slice(0, 40)}"` : ""; logActivity("input", (t && (nameOf(t) || t.tagName) || "") + v); }, true);
+  document.addEventListener("change", (e) => { const t = e.target; logActivity("change", t && (nameOf(t) || t.tagName)); }, true);
+  let scrollTimer = 0;
+  document.addEventListener("scroll", () => { clearTimeout(scrollTimer); scrollTimer = setTimeout(() => logActivity("scroll", `y=${Math.round(window.scrollY)}`), 250); }, true);
+  window.addEventListener("load", () => scheduleCtx());
+  try { new MutationObserver(scheduleCtx).observe(document.documentElement, { subtree: true, childList: true, characterData: true }); } catch { /* noop */ }
+
   // ---- command handler ----------------------------------------------------
   chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
     if (msg?.k !== "agent-cmd") return;
     // cursor + locate are internal (from the background) and allowed even to
     // reflect what a real-input CDP action is about to touch.
-    if (msg.action === "cursor") { moveCursor(msg.params?.x, msg.params?.y); if (msg.params?.click) clickPulse(); sendResponse({ ok: true, data: "moved" }); return true; }
+    if (msg.action === "cursor") {
+      markAgent();
+      const p = msg.params || {};
+      if (p.label !== undefined) setLabel(p.label);
+      if (p.typing !== undefined) setTyping(p.typing);
+      moveCursor(p.x, p.y);
+      if (p.click) clickPulse();
+      sendResponse({ ok: true, data: "moved" }); return true;
+    }
     if (!controlling) { sendResponse({ ok: false, error: "This tab is not under agent control — click the floating Agent button." }); return true; }
     (async () => {
       try {
@@ -192,7 +243,7 @@
             const el = params.ref != null ? need(params.ref) : document.body;
             return sendResponse({ ok: true, data: (el.innerText || "").trim().slice(0, 8000) });
           }
-          case "click": { const el = need(params.ref); el.scrollIntoView({ block: "center" }); moveToEl(el); flash(el); clickPulse(); el.click(); return sendResponse({ ok: true, data: `clicked ${nameOf(el) || el.tagName}` }); }
+          case "click": { const el = need(params.ref); markAgent(); el.scrollIntoView({ block: "center" }); moveToEl(el); setLabel(`clicking ${nameOf(el) || el.tagName}`); flash(el); clickPulse(); el.click(); setTimeout(() => setLabel("Agent"), 900); return sendResponse({ ok: true, data: `clicked ${nameOf(el) || el.tagName}` }); }
           case "type": { await typeInto(need(params.ref), params.text ?? "", params); return sendResponse({ ok: true, data: "typed" }); }
           case "fill": { for (const f of params.fields || []) await typeInto(need(f.ref), f.value ?? "", { clear: true }); return sendResponse({ ok: true, data: `filled ${params.fields?.length || 0} field(s)` }); }
           case "select": {

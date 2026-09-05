@@ -69,12 +69,23 @@ chrome.debugger.onDetach.addListener((src, reason) => {
   if (src.tabId === controllableTabId && reason === "canceled_by_user") void setControlled(null);
 });
 
+// Real event-driven waits: resolve navigations on the actual load event.
+const loadWaiters = new Map();
+chrome.debugger.onEvent.addListener((src, method) => {
+  if (src.tabId != null && (method === "Page.loadEventFired" || method === "Page.frameStoppedLoading") && loadWaiters.has(src.tabId)) {
+    const r = loadWaiters.get(src.tabId); loadWaiters.delete(src.tabId); r();
+  }
+});
+function waitForLoad(tabId, timeoutMs = 9000) {
+  return new Promise((resolve) => { const fin = () => { loadWaiters.delete(tabId); resolve(); }; loadWaiters.set(tabId, fin); setTimeout(fin, timeoutMs); });
+}
+
 function schedule() { backoff = Math.min(backoff * 1.5, 15000); setTimeout(connect, backoff); }
 
 function connect() {
   try { ws = new WebSocket(`ws://127.0.0.1:${PORT}`); }
   catch { return schedule(); }
-  ws.onopen = () => { backoff = 1000; sendStatus(); };
+  ws.onopen = () => { backoff = 1000; try { ws.send(JSON.stringify({ type: "hello", role: "browser" })); } catch { /* noop */ } sendStatus(); };
   ws.onclose = () => { ws = null; schedule(); };
   ws.onerror = () => { try { ws.close(); } catch { /* noop */ } };
   ws.onmessage = (ev) => { let m; try { m = JSON.parse(ev.data); } catch { return; } if (m.type === "cmd") void handleCmd(m); };
@@ -101,7 +112,7 @@ async function locate(tabId, ref) {
   if (!res || !res.ok) throw new Error((res && res.error) || "Could not locate the element — call browser_snapshot again.");
   return res.data; // { x, y, name }
 }
-function moveCursor(tabId, x, y, click) { chrome.tabs.sendMessage(tabId, { k: "agent-cmd", action: "cursor", params: { x, y, click: !!click } }).catch(() => {}); }
+function moveCursor(tabId, x, y, opts = {}) { chrome.tabs.sendMessage(tabId, { k: "agent-cmd", action: "cursor", params: { x, y, ...opts } }).catch(() => {}); }
 
 const KEYMAP = {
   Enter: { code: "Enter", vk: 13, text: "\r" }, Tab: { code: "Tab", vk: 9 }, Escape: { code: "Escape", vk: 27 },
@@ -142,15 +153,16 @@ async function handleCmd(m) {
 
     if (action === "navigate") {
       await chrome.tabs.update(tabId, { url: params.url });
-      await delay(1200);
+      if (useCdp) await waitForLoad(tabId); else await delay(1200);
       return reply(id, true, { navigated: params.url });
     }
 
     if (action === "click" && useCdp) {
       try {
         const loc = await locate(tabId, params.ref);
+        moveCursor(tabId, loc.x, loc.y, { label: `clicking ${loc.name || "element"}` });
         await delay(200);              // let the agent cursor visibly arrive
-        moveCursor(tabId, loc.x, loc.y, true);
+        moveCursor(tabId, loc.x, loc.y, { click: true });
         await cdpClick(tabId, loc.x, loc.y);
         return reply(id, true, `clicked ${loc.name || "element"}`);
       } catch { /* fall through to DOM click */ }
@@ -179,6 +191,15 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     // A tab's content script (re)loaded — tell it whether it's still the granted tab.
     void loadControlled().then((cid) => { try { sendResponse({ on: sender.tab?.id != null && sender.tab.id === cid }); } catch { /* noop */ } });
     return true; // async response
+  }
+  // Live context + user/agent activity from the controlled tab → stream to the bridge.
+  if (msg?.k === "agent-context") {
+    if (sender.tab?.id === controllableTabId && ws && ws.readyState === 1) { try { ws.send(JSON.stringify({ type: "context", ctx: msg.ctx })); } catch { /* noop */ } }
+    return;
+  }
+  if (msg?.k === "agent-activity") {
+    if (sender.tab?.id === controllableTabId && ws && ws.readyState === 1) { try { ws.send(JSON.stringify({ type: "activity", ev: msg.ev })); } catch { /* noop */ } }
+    return;
   }
 });
 chrome.tabs.onRemoved.addListener((tid) => { attached.delete(tid); if (tid === controllableTabId) void setControlled(null); });
