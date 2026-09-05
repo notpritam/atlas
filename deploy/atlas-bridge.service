@@ -1,0 +1,20 @@
+[Unit]
+Description=Atlas Browser control bridge (shared WebSocket bridge on 127.0.0.1:8792)
+Documentation=https://github.com/notpritam/atlas
+After=network.target
+
+[Service]
+Type=simple
+User=pritam
+WorkingDirectory=/home/pritam/personal/apps/atlas/apps/browser-mcp
+Environment=ATLAS_BRIDGE_PORT=8792
+Environment=PATH=/home/pritam/.nvm/versions/node/v24.20.0/bin:/usr/local/bin:/usr/bin:/bin
+# server.mjs owns the ws bridge; stdin=null so the stdio-MCP face idles harmlessly
+# while the bridge keeps running. Agent MCPs attach to this owner as clients.
+ExecStart=/home/pritam/.nvm/versions/node/v24.20.0/bin/node server.mjs
+StandardInput=null
+Restart=always
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target

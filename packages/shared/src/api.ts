@@ -7,7 +7,7 @@ import { Capture, CaptureStatus, CaptureType } from "./capture.js";
  *  - read   : list/search/get captures + blobs (the bb plugin, the future web app)
  *  - enrich : claim the queue + write enrichment results (the bb worker)
  */
-export const Scope = z.enum(["ingest", "read", "enrich"]);
+export const Scope = z.enum(["ingest", "read", "enrich", "relay"]);
 export type Scope = z.infer<typeof Scope>;
 
 /** Query params for the list/search endpoint. */

@@ -10,6 +10,8 @@
 const PORT = Number(self.ATLAS_BRIDGE_PORT || 8792);
 let ws = null;
 let backoff = 1000;
+let relayUrl = "";   // wss://.../agent — when set, drive this browser via the hosted relay
+let relayToken = ""; // account token presented to the relay
 let controllableTabId = null;
 let hydrated = false;
 const attached = new Set(); // tabIds we've attached the debugger to
@@ -83,9 +85,15 @@ function waitForLoad(tabId, timeoutMs = 9000) {
 function schedule() { backoff = Math.min(backoff * 1.5, 15000); setTimeout(connect, backoff); }
 
 function connect() {
-  try { ws = new WebSocket(`ws://127.0.0.1:${PORT}`); }
+  const url = relayUrl || `ws://127.0.0.1:${PORT}`;
+  try { ws = new WebSocket(url); }
   catch { return schedule(); }
-  ws.onopen = () => { backoff = 1000; try { ws.send(JSON.stringify({ type: "hello", role: "browser" })); } catch { /* noop */ } sendStatus(); };
+  ws.onopen = () => {
+    backoff = 1000;
+    const hello = relayUrl ? { type: "hello", role: "browser", token: relayToken } : { type: "hello", role: "browser" };
+    try { ws.send(JSON.stringify(hello)); } catch { /* noop */ }
+    sendStatus();
+  };
   ws.onclose = () => { ws = null; schedule(); };
   ws.onerror = () => { try { ws.close(); } catch { /* noop */ } };
   ws.onmessage = (ev) => { let m; try { m = JSON.parse(ev.data); } catch { return; } if (m.type === "cmd") void handleCmd(m); };
@@ -201,8 +209,26 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (sender.tab?.id === controllableTabId && ws && ws.readyState === 1) { try { ws.send(JSON.stringify({ type: "activity", ev: msg.ev })); } catch { /* noop */ } }
     return;
   }
+  if (msg?.k === "relay-state") {
+    sendResponse({ relay: !!relayUrl, connected: !!(ws && ws.readyState === 1) });
+    return true;
+  }
 });
 chrome.tabs.onRemoved.addListener((tid) => { attached.delete(tid); if (tid === controllableTabId) void setControlled(null); });
 chrome.tabs.onUpdated.addListener((tid, info) => { if (tid === controllableTabId && info.status) void sendStatus(); });
 
-connect();
+// Reconnect (to the right endpoint) whenever the relay config changes.
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "local" || (!changes.relayUrl && !changes.relayToken)) return;
+  if (changes.relayUrl) relayUrl = String(changes.relayUrl.newValue || "").trim();
+  if (changes.relayToken) relayToken = String(changes.relayToken.newValue || "").trim();
+  try { if (ws) ws.close(); } catch { /* noop */ }
+  ws = null; backoff = 1000; connect();
+});
+
+// Load relay config, then connect (relay if configured, else the local bridge).
+chrome.storage.local.get(["relayUrl", "relayToken"]).then((s) => {
+  relayUrl = String(s.relayUrl || "").trim();
+  relayToken = String(s.relayToken || "").trim();
+  connect();
+}).catch(() => connect());

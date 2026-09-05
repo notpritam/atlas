@@ -44,6 +44,13 @@
           <label class="row"><input id="enrichEnabled" type="checkbox" /> <span>Enrich captures with Claude Code</span></label>
           <div class="agentbox" id="agentBox"></div>
           <p class="hint">Everything is stored locally in this browser — nothing is sent to a server. Enrichment runs on your own machine via the Atlas Agent + your Claude Code.</p>
+
+          <hr class="sep" />
+          <label>Agent control relay (optional)</label>
+          <input id="relayUrl" placeholder="wss://atlas.notpritam.in/agent" />
+          <input id="relayToken" type="password" placeholder="account token" />
+          <div class="agentbox" id="relayBox"></div>
+          <p class="hint">Leave blank to let an agent drive this browser only over the local bridge. Set the relay URL + your account token to let your agent drive it from anywhere. The agent uses the <b>same</b> token.</p>
           <div class="modal-actions">
             <button id="saveSettings" class="btn btn-primary">Save &amp; test</button>
             <button id="drainNow" class="btn btn-secondary">Enrich now</button>

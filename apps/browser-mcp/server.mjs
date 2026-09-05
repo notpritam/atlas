@@ -17,6 +17,11 @@ import { randomUUID } from "node:crypto";
 
 const BRIDGE_PORT = Number(process.env.ATLAS_BRIDGE_PORT ?? 8792);
 const CMD_TIMEOUT = Number(process.env.ATLAS_CMD_TIMEOUT_MS ?? 20000);
+// Hosted relay mode: point the agent at the shared Atlas backend instead of a
+// local bridge. When both are set, we connect out to the relay as an "agent"
+// (the extension connects to the same relay as a "browser" with the SAME token).
+const RELAY_URL = process.env.ATLAS_RELAY_URL || "";   // e.g. wss://atlas.notpritam.in/agent
+const RELAY_TOKEN = process.env.ATLAS_TOKEN || "";     // account relay token
 
 // ---- shared bridge: the first process to grab the port OWNS the ws server
 // (the extension + any number of agent MCPs connect to it); every later MCP
@@ -114,6 +119,17 @@ function connectClient() {
   clientWs.on("error", () => { try { clientWs.close(); } catch { /* noop */ } });
 }
 
+// ---- hosted relay: connect out to the Atlas backend as an agent ------------
+let relayBackoff = 500;
+function connectRelay() {
+  role = "client";
+  try { clientWs = new WebSocket(RELAY_URL); } catch { return setTimeout(connectRelay, relayBackoff); }
+  clientWs.on("open", () => { relayBackoff = 500; try { clientWs.send(JSON.stringify({ type: "hello", role: "agent", token: RELAY_TOKEN })); } catch { /* noop */ } });
+  clientWs.on("message", (buf) => { let m; try { m = JSON.parse(String(buf)); } catch { return; } if (m.type === "result") { resolvePending(m); return; } applyIncoming(m); });
+  clientWs.on("close", () => { clientWs = null; relayBackoff = Math.min(relayBackoff * 1.5, 8000); setTimeout(connectRelay, relayBackoff); });
+  clientWs.on("error", () => { try { clientWs.close(); } catch { /* noop */ } });
+}
+
 // ---- start: own the port if free, else attach as a client ------------------
 function tryStart(fromRetry) {
   const wss = new WebSocketServer({ host: "127.0.0.1", port: BRIDGE_PORT });
@@ -123,7 +139,8 @@ function tryStart(fromRetry) {
     else console.error("[atlas-browser-mcp] bridge bind error:", e.message);
   });
 }
-tryStart(false);
+if (RELAY_URL && RELAY_TOKEN) { console.error(`[atlas-browser-mcp] hosted relay mode → ${RELAY_URL}`); connectRelay(); }
+else tryStart(false);
 
 const ok = (text) => ({ content: [{ type: "text", text }] });
 const asText = (v) => (typeof v === "string" ? v : JSON.stringify(v, null, 2));

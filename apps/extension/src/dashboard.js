@@ -189,8 +189,27 @@ async function openSettings() {
   const s = await getSettings();
   $("agentUrl").value = s.agentUrl;
   $("enrichEnabled").checked = s.enrichEnabled;
+  $("relayUrl").value = s.relayUrl;
+  $("relayToken").value = s.relayToken;
   await testAgent();
+  await updateRelayBox();
   $("settings").hidden = false;
+}
+async function updateRelayBox() {
+  const box = $("relayBox");
+  if (!box) return;
+  if (!$("relayUrl").value.trim()) {
+    box.innerHTML = `<span class="a-ok">● Local mode</span> — an agent drives this browser over the local bridge.`;
+    return;
+  }
+  try {
+    const st = await chrome.runtime.sendMessage({ k: "relay-state" });
+    box.innerHTML = st && st.connected
+      ? `<span class="a-ok">● Connected to relay</span> — your agent can drive this browser from anywhere.`
+      : `<span class="a-bad">● Not connected to the relay.</span> Check the URL + token; the backend must be reachable.`;
+  } catch {
+    box.innerHTML = `<span class="a-bad">● Relay status unavailable.</span>`;
+  }
 }
 async function testAgent() {
   const box = $("agentBox");
@@ -208,9 +227,16 @@ $("settingsBtn").onclick = openSettings;
 $("settingsClose").onclick = () => ($("settings").hidden = true);
 $("settings").addEventListener("click", (e) => { if (e.target.id === "settings") $("settings").hidden = true; });
 $("saveSettings").onclick = async () => {
-  await setSettings({ agentUrl: $("agentUrl").value.trim() || "http://127.0.0.1:8791", enrichEnabled: $("enrichEnabled").checked });
+  await setSettings({
+    agentUrl: $("agentUrl").value.trim() || "http://127.0.0.1:8791",
+    enrichEnabled: $("enrichEnabled").checked,
+    relayUrl: $("relayUrl").value.trim(),
+    relayToken: $("relayToken").value.trim(),
+  });
   await testAgent();
   chrome.runtime.sendMessage({ kind: "drain" });
+  // give control-bg a moment to reconnect to the new endpoint, then show status
+  setTimeout(updateRelayBox, 1200);
   refreshStatus();
 };
 $("drainNow").onclick = () => { chrome.runtime.sendMessage({ kind: "drain" }); testAgent(); };

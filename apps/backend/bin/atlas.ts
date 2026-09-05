@@ -3,7 +3,7 @@ import type { Scope } from "@atlas/shared";
 import { openDb } from "../src/db.ts";
 import { listDevices, mintDevice, revokeDevice } from "../src/devices.ts";
 
-const VALID_SCOPES: Scope[] = ["ingest", "read", "enrich"];
+const VALID_SCOPES: Scope[] = ["ingest", "read", "enrich", "relay"];
 
 function flag(argv: string[], name: string): string | undefined {
   const i = argv.indexOf(`--${name}`);
@@ -14,11 +14,14 @@ function usage(): never {
   console.log(`atlas — admin CLI
 
 Usage:
-  bun run bin/atlas.ts devices add "<name>" --scope ingest[,read,enrich] [--kind extension]
+  bun run bin/atlas.ts devices add "<name>" --scope ingest[,read,enrich,relay] [--kind extension]
   bun run bin/atlas.ts devices list
   bun run bin/atlas.ts devices revoke <deviceId>
 
-Scopes: ingest (extension), read (plugin/web), enrich (bb worker)`);
+  # hosted browser-control relay account token (used by BOTH the extension and the agent):
+  bun run bin/atlas.ts devices add "<account>" --scope relay --kind relay
+
+Scopes: ingest (extension), read (plugin/web), enrich (bb worker), relay (hosted browser control)`);
   process.exit(1);
 }
 
