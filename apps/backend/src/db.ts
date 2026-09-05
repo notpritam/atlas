@@ -126,6 +126,19 @@ const MIGRATIONS: string[] = [
     revoked_at INTEGER
   );
   `,
+  // 3 — invite codes (self-serve onboarding: redeem a code → get a token)
+  `
+  CREATE TABLE invite_codes (
+    id TEXT PRIMARY KEY,
+    code_sha256 TEXT NOT NULL UNIQUE,
+    scopes TEXT NOT NULL,
+    uses_left INTEGER NOT NULL,
+    redeemed_count INTEGER NOT NULL DEFAULT 0,
+    note TEXT,
+    created_at INTEGER NOT NULL,
+    revoked_at INTEGER
+  );
+  `,
 ];
 
 function migrate(db: Database): void {

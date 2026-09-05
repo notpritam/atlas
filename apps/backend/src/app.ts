@@ -11,6 +11,7 @@ import {
   listTagFacets,
 } from "./captures.ts";
 import { deviceRoutes } from "./devices.ts";
+import { inviteRoutes } from "./invites.ts";
 import { buildCaptureGraph } from "./graph.ts";
 
 function count(db: Database, sql: string): number {
@@ -50,6 +51,10 @@ export function createApp(db: Database): Hono<Env> {
 
   // Admin token minting — own guard, outside the Bearer group.
   app.route("/admin/devices", deviceRoutes(db));
+
+  // Self-serve onboarding: POST /invite/redeem is public; /invite/admin is guarded.
+  app.route("/invite", inviteRoutes(db));
+  app.get("/redeem", (c) => c.redirect("/redeem.html", 302));
 
   // Everything under /v1 requires a valid device token.
   const v1 = new Hono<Env>();

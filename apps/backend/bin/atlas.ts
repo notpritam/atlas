@@ -21,6 +21,10 @@ Usage:
   # hosted browser-control relay account token (used by BOTH the extension and the agent):
   bun run bin/atlas.ts devices add "<account>" --scope relay --kind relay
 
+  # self-serve onboarding — mint an invite code users redeem at /redeem:
+  bun run bin/atlas.ts invite add [--uses 1] [--scope relay,read,ingest] [--note "..."]
+  bun run bin/atlas.ts invite list
+
 Scopes: ingest (extension), read (plugin/web), enrich (bb worker), relay (hosted browser control)`);
   process.exit(1);
 }
@@ -28,9 +32,32 @@ Scopes: ingest (extension), read (plugin/web), enrich (bb worker), relay (hosted
 const argv = process.argv.slice(2);
 const [group, cmd, ...rest] = argv;
 
-if (group !== "devices") usage();
+if (group !== "devices" && group !== "invite") usage();
 
 const db = openDb();
+
+if (group === "invite") {
+  const { mintInvite, listInvites } = await import("../src/invites.ts");
+  if (cmd === "add") {
+    const scopes = (flag(rest, "scope") ?? "relay,read,ingest")
+      .split(",").map((s) => s.trim())
+      .filter((s): s is Scope => VALID_SCOPES.includes(s as Scope));
+    const uses = Number(flag(rest, "uses") ?? "1");
+    const { id, code } = mintInvite(db, { scopes, uses, note: flag(rest, "note") });
+    console.log(`\n  Invite created: ${id}`);
+    console.log(`  scopes : ${scopes.join(", ")}   uses: ${uses}`);
+    console.log(`\n  CODE (share it — redeem at https://atlas.notpritam.in/redeem):\n`);
+    console.log(`    ${code}\n`);
+  } else if (cmd === "list") {
+    const invites = listInvites(db);
+    if (!invites.length) console.log("(no invites)");
+    for (const i of invites) {
+      const state = i.revoked_at ? "REVOKED" : `${i.uses_left} left`;
+      console.log(`  ${i.id}  [${state}]  redeemed ${i.redeemed_count}  (${(JSON.parse(i.scopes) as string[]).join(",")})  ${i.note ?? ""}`);
+    }
+  } else usage();
+  process.exit(0);
+}
 
 if (cmd === "add") {
   const name = rest.find((a) => !a.startsWith("--"));
