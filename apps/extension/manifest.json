@@ -9,7 +9,8 @@
     "contextMenus",
     "storage",
     "tabs",
-    "alarms"
+    "alarms",
+    "debugger"
   ],
   "host_permissions": [
     "<all_urls>",
