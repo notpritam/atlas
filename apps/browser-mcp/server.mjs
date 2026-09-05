@@ -88,6 +88,7 @@ function becomeOwner(wss) {
         if (ws._role === "agent") agentClients.add(ws); else browserSocket = ws;
       }
       if (ws._role === "browser") {
+        if (msg.type === "ping") { try { ws.send(JSON.stringify({ type: "pong" })); } catch { /* noop */ } return; }
         if (msg.type === "result") {
           if (!resolvePending(msg) && msg.id && routeMap.has(msg.id)) { const { agentWs, origId } = routeMap.get(msg.id); routeMap.delete(msg.id); try { agentWs.send(JSON.stringify({ type: "result", id: origId, ok: msg.ok, data: msg.data, error: msg.error })); } catch { /* noop */ } }
           return;

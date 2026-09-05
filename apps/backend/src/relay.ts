@@ -91,6 +91,7 @@ export class RelayHub {
       return;
     }
 
+    if (msg.type === "ping") { try { ws.send(JSON.stringify({ type: "pong" })); } catch { /* noop */ } return; }
     const r = this.room(ws.data.accountId!);
     if (ws.data.role === "browser") this.fromBrowser(r, msg, raw);
     else this.fromAgent(r, ws, msg);

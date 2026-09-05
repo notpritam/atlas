@@ -226,6 +226,16 @@ chrome.storage.onChanged.addListener((changes, area) => {
   ws = null; backoff = 1000; connect();
 });
 
+// Keep the MV3 service worker + the connection alive. The SW is evicted after
+// ~30s idle, which silently drops the relay/bridge socket; a short alarm wakes
+// it to reconnect if dropped, or pings to stay warm while connected.
+try { chrome.alarms.create("atlas-keepalive", { periodInMinutes: 0.4 }); } catch { /* noop */ }
+chrome.alarms.onAlarm.addListener((a) => {
+  if (a.name !== "atlas-keepalive") return;
+  if (!ws || ws.readyState === 2 || ws.readyState === 3) { backoff = 1000; connect(); }
+  else if (ws.readyState === 1) { try { ws.send(JSON.stringify({ type: "ping" })); } catch { /* noop */ } }
+});
+
 // Load relay config, then connect (relay if configured, else the local bridge).
 chrome.storage.local.get(["relayUrl", "relayToken"]).then((s) => {
   relayUrl = String(s.relayUrl || "").trim();
