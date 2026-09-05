@@ -43,14 +43,20 @@
         <span style="width:30px"></span>
       </header>
       <div class="settings">
-        <label>Atlas Agent URL</label>
+        <label>Atlas Agent URL <span class="muted">(enrichment)</span></label>
         <input id="agentUrl" placeholder="http://127.0.0.1:8791" />
         <label class="row"><input id="enrichEnabled" type="checkbox" /> <span>Enrich captures with Claude Code</span></label>
+
+        <label>Agent control relay <span class="muted">(optional)</span></label>
+        <input id="relayUrl" placeholder="wss://atlas.notpritam.in/agent" />
+        <input id="relayToken" type="password" placeholder="account token" />
+        <div class="agentbox" id="relayBox"></div>
+
         <button id="saveSettings" class="btn btn-primary full">Save &amp; test</button>
         <p class="fineprint">
-          Everything is stored locally in your browser. Enrichment runs on your own
-          machine via the Atlas Agent + Claude Code — nothing is sent to a server.
-          Run the agent with <code>npx @notpritam/atlas-agent</code>.
+          Captures + enrichment stay on your machine. The <b>relay</b> is separate —
+          set the URL + your account token to let your agent drive this browser from
+          anywhere (the agent uses the same token). Leave blank for local-only.
         </p>
       </div>
     </div>
