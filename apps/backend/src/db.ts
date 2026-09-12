@@ -468,6 +468,34 @@ const MIGRATIONS: string[] = [
     kind TEXT NOT NULL CHECK(kind IN ('purchase','restore')), expires_at INTEGER NOT NULL
   ); CREATE INDEX customer_purchase_attempts_owner ON customer_purchase_attempts(account_id,expires_at);`,
 
+  // Rebuild customer_subscriptions to allow the 'paddle' provider (SQLite can't
+  // alter a CHECK in place). Reproduce the CURRENT shape incl. next_check_at.
+  `CREATE TABLE customer_subscriptions_new (
+    account_id TEXT NOT NULL REFERENCES customer_accounts(id) ON DELETE CASCADE,
+    provider TEXT NOT NULL CHECK(provider IN ('stripe','revenuecat','paddle')),
+    status TEXT NOT NULL, expires_at INTEGER NOT NULL, renews INTEGER NOT NULL DEFAULT 0,
+    sandbox INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL,
+    next_check_at INTEGER NOT NULL DEFAULT 0,
+    PRIMARY KEY(account_id,provider)
+   );
+   INSERT INTO customer_subscriptions_new (account_id,provider,status,expires_at,renews,sandbox,updated_at,next_check_at)
+     SELECT account_id,provider,status,expires_at,renews,sandbox,updated_at,next_check_at FROM customer_subscriptions;
+   DROP TABLE customer_subscriptions;
+   ALTER TABLE customer_subscriptions_new RENAME TO customer_subscriptions;`,
+
+  // Paddle customer id + partial-unique index; extend the cleanup trigger.
+  `ALTER TABLE customer_billing_identities ADD COLUMN paddle_id TEXT;
+   CREATE UNIQUE INDEX customer_billing_identities_paddle ON customer_billing_identities(paddle_id) WHERE paddle_id IS NOT NULL;
+   DROP TRIGGER customer_billing_identity_cleanup;
+   CREATE TRIGGER customer_billing_identity_cleanup BEFORE DELETE ON customer_billing_identities BEGIN
+     INSERT OR IGNORE INTO customer_billing_cleanup(provider,external_id,created_at)
+       SELECT 'stripe',OLD.stripe_id,CAST(strftime('%s','now') AS INTEGER)*1000 WHERE OLD.stripe_id IS NOT NULL;
+     INSERT OR IGNORE INTO customer_billing_cleanup(provider,external_id,created_at)
+       VALUES('revenuecat',OLD.revenuecat_id,CAST(strftime('%s','now') AS INTEGER)*1000);
+     INSERT OR IGNORE INTO customer_billing_cleanup(provider,external_id,created_at)
+       SELECT 'paddle',OLD.paddle_id,CAST(strftime('%s','now') AS INTEGER)*1000 WHERE OLD.paddle_id IS NOT NULL;
+   END;`,
+
 ];
 
 export const DATABASE_SCHEMA_VERSION = MIGRATIONS.length;

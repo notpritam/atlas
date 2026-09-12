@@ -1,5 +1,5 @@
 import type { Database } from 'bun:sqlite';
-export type SubscriptionProvider = 'stripe' | 'revenuecat';
+export type SubscriptionProvider = 'stripe' | 'revenuecat' | 'paddle';
 export type SubscriptionSnapshot = { status:string; expiresAt:number; renews:boolean; sandbox:boolean };
 export function writeSubscription(db: Database, accountId: string, provider: SubscriptionProvider, value: SubscriptionSnapshot, observedAt = Date.now()) {
   if (!db.query('SELECT 1 FROM customer_accounts WHERE id=?').get(accountId)) return;
