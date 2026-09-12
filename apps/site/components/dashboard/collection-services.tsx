@@ -3,7 +3,7 @@ import {useEffect,useRef,useState} from 'react';
 import {useMutation,useQuery,useQueryClient} from '@tanstack/react-query';
 import {useDashboard} from './context';
 
-type Plan={pro:boolean;subscriptions:{provider:string;active:boolean;renews:boolean;expiresAt:number}[];billing:{stripe:{available:boolean;canManage:boolean}}};
+type Plan={pro:boolean;subscriptions:{provider:string;active:boolean;renews:boolean;expiresAt:number}[];billing:{stripe:{available:boolean;canManage:boolean};paddle:{available:boolean;canManage:boolean}}};
 type Automation={available:boolean;enabled:boolean;fetchLinks:boolean;images:boolean;consentVersion:string;usage:{used:number;reserved:number;limit:number};activity:{id:string;captureId:string;status:string;error:string|null}[]};
 type Agent={id:string;name:string;scopes:string[];expiresAt:number;lastSeenAt:number|null};
 type Connections={agents:Agent[];nudges:{id:string;text:string;status:string}[]};
@@ -18,9 +18,12 @@ export function CollectionServices(){
  const action=useMutation({mutationFn:async({kind,id,value}:{kind:string;id?:string;value?:unknown})=>{
   if(kind==='checkout'||kind==='portal'){
    const result=await request<{url:string}>('/billing/'+kind,{method:'POST',body:{}});
-   const url=new URL(result.url);if(!alive.current)return;if(url.protocol!=='https:'||!['checkout.stripe.com','billing.stripe.com'].includes(url.hostname))throw new Error('The payment destination is unavailable.');window.location.assign(url.href);return;
+   if(!alive.current)return;
+   const dest=new URL(result.url,window.location.origin);
+   if(dest.origin!==window.location.origin&&!/(^|\.)paddle\.com$/.test(dest.hostname))throw new Error('The payment destination is unavailable.');
+   window.location.assign(dest.href);return;
   }
-  if(kind==='sync'){await request('/billing/stripe/sync',{method:'POST',body:{}});await update();return;}
+  if(kind==='sync'){await request('/billing/paddle/sync',{method:'POST',body:{}});await update();return;}
   if(kind==='automation'){await request('/automation',{method:'PUT',body:value});await update();return;}
   if(kind==='create'){
    const result=await request<{token:string}>('/agents',{method:'POST',body:{name,days:90,scopes:['library:read',...(files?['files:read']:[]),...(write?['library:write']:[])]}});
@@ -40,8 +43,8 @@ export function CollectionServices(){
   <section className="settings-section plan-section"><div className="service-heading"><div><span className="service-kicker">YOUR PLAN</span><h3>{plan.data?.pro?'Foundkeep Pro':'A collection, freely yours.'}</h3></div><span className="plan-pill">{plan.data?.pro?'PRO':'FREE'}</span></div>
    <p className="muted">Free includes saving, bookmark imports, folders, tags, and your own connected agent.</p>
    <p className="muted">Pro adds 500 managed processing credits each month and 2 GB of storage. USD $5 / month on the web. Cancel anytime.</p>
-   <div className="service-actions">{!plan.data?.pro && plan.data?.billing.stripe.canManage ? <button className="button secondary compact" disabled={busy} onClick={()=>action.mutate({kind:'portal'})}>Manage subscription</button> : null}{plan.data?.pro?<>{plan.data.subscriptions.some(s=>s.provider==='stripe')?<button className="button secondary compact" disabled={busy} onClick={()=>action.mutate({kind:'portal'})}>Manage subscription</button>:<a className="text-link" href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noopener noreferrer">Manage in your Apple Account ↗</a>}</>:<button className="button primary compact" disabled={busy||!plan.data?.billing.stripe.available||!settings?.available} onClick={()=>action.mutate({kind:'checkout'})}>{plan.data?.billing.stripe.available&&settings?.available?'Get Pro · $5/month':'Pro checkout coming soon'}</button>}
-    {plan.data?.billing.stripe.available?<button className="subtle-button" disabled={busy} onClick={()=>action.mutate({kind:'sync'})}>Refresh plan</button>:null}</div>
+   <div className="service-actions">{!plan.data?.pro && plan.data?.billing.paddle.canManage ? <button className="button secondary compact" disabled={busy} onClick={()=>action.mutate({kind:'portal'})}>Manage subscription</button> : null}{plan.data?.pro?<>{plan.data.subscriptions.some(s=>s.provider==='paddle')||plan.data?.billing.paddle.canManage?<button className="button secondary compact" disabled={busy} onClick={()=>action.mutate({kind:'portal'})}>Manage subscription</button>:plan.data.subscriptions.some(s=>s.provider==='revenuecat')?<a className="text-link" href="https://apps.apple.com/account/subscriptions" target="_blank" rel="noopener noreferrer">Manage in your Apple Account ↗</a>:null}</>:<button className="button primary compact" disabled={busy||!plan.data?.billing.paddle.available||!settings?.available} onClick={()=>action.mutate({kind:'checkout'})}>{plan.data?.billing.paddle.available&&settings?.available?'Get Pro · $5/month':'Pro checkout coming soon'}</button>}
+    {plan.data?.billing.paddle.available?<button className="subtle-button" disabled={busy} onClick={()=>action.mutate({kind:'sync'})}>Refresh plan</button>:null}</div>
    <p className="field-help">App Store purchases use local pricing. Pro follows your Foundkeep account across all devices.</p>
    {plan.error?<p role="alert">{plan.error.message}</p>:null}
   </section>

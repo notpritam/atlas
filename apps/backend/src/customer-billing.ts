@@ -70,7 +70,8 @@ export function createBillingService(db:Database, env:Environment=process.env, f
   function configuration(accountId:string) {
     const owned=identity(accountId);
     return { revenuecat:{ available:rcAvailable, publicKey:rcAvailable?publicKey:null, appUserId:owned.revenuecat_id, entitlementId:rc.entitlement, productId:rc.product },
-      stripe:{ available:stripeAvailable, canManage:!!owned.stripe_id } };
+      stripe:{ available:stripeAvailable, canManage:!!owned.stripe_id },
+      paddle:{ available:paddleAvailable, canManage:!!owned.paddle_id } };
   }
   async function syncRevenueCat(accountId:string) {
     if (!env.REVENUECAT_SECRET_KEY) moduleFail(503,'billing_unavailable','App Store subscriptions are not configured yet.');

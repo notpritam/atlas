@@ -23,9 +23,18 @@ try{
  await page.setViewportSize({width:390,height:844});await page.locator('.plan-section').scrollIntoViewIfNeeded();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);await page.screenshot({path:'docs/agentic-preview/account-services-mobile.png'});
  await page.getByRole('button',{name:'Revoke',exact:true}).click();await page.locator('#confirm-accept').click();await page.getByText('Research assistant',{exact:true}).waitFor({state:'hidden'});
  const revoked=await context.request.post(base+'/api/mcp',{headers:{Authorization:token,'Content-Type':'application/json'},data:{jsonrpc:'2.0',id:2,method:'tools/list',params:{}}});assert.equal(revoked.status(),401);
- await page.route('**/api/plan',async route=>{const response=await route.fetch();const plan=await response.json();plan.billing.stripe.canManage=true;await route.fulfill({response,json:plan});});
+ await page.route('**/api/plan',async route=>{const response=await route.fetch();const plan=await response.json();plan.billing.paddle.canManage=true;await route.fulfill({response,json:plan});});
  await page.reload();await page.getByRole('button',{name:'Manage subscription',exact:true}).waitFor();assert.deepEqual(errors,[]);
- console.log('PASS: free plan, disabled checkout, one-time scoped MCP connection, instructions, revocation, narrow layout, and no runtime errors.');
+ const checkoutRequests=[];
+ await page.unroute('**/api/plan');
+ await page.route('**/api/plan',async route=>{const response=await route.fetch();const plan=await response.json();plan.billing.paddle.available=true;plan.billing.paddle.canManage=false;await route.fulfill({response,json:plan});});
+ await page.route('**/api/automation',async route=>{const response=await route.fetch();const settings=await response.json();settings.available=true;await route.fulfill({response,json:settings});});
+ await page.route('**/api/billing/checkout',async route=>{checkoutRequests.push(route.request().postDataJSON());await route.fulfill({contentType:'application/json',body:JSON.stringify({url:base+'/checkout?_ptxn=txn_1'})});});
+ await page.reload();await page.getByRole('button',{name:'Get Pro · $5/month',exact:true}).click();
+ await page.waitForURL(base+'/checkout?_ptxn=txn_1');
+ assert.equal(checkoutRequests.length,1);
+ assert.deepEqual(errors,[]);
+ console.log('PASS: free plan, disabled checkout, one-time scoped MCP connection, instructions, revocation, narrow layout, same-origin checkout redirect, and no runtime errors.');
 }finally{
  if(owner){const removed=await context.request.delete(base+'/api/account',{headers:{Origin:base},data:{password}});assert.equal(removed.status(),200);}
  await context.close();await browser.close();
