@@ -6,9 +6,10 @@ import { readBoundedText as boundedText } from './customer-network.ts';
 import type { CustomerEnv } from './customer.ts';
 import { moduleFail, type CustomerServices } from './customer-modules.ts';
 import { accountPlan, writeSubscription, type SubscriptionSnapshot } from './customer-plans.ts';
+import { paddleSnapshot, gateSandbox } from './paddle-snapshot.ts';
 
 type Environment = Record<string,string|undefined>;
-type Identity = { account_id:string; revenuecat_id:string; stripe_id:string|null;checkout_id:string|null;checkout_attempt:string|null };
+type Identity = { account_id:string; revenuecat_id:string; stripe_id:string|null;checkout_id:string|null;checkout_attempt:string|null;paddle_id:string|null };
 const inactive = ():SubscriptionSnapshot => ({status:'inactive',expiresAt:0,renews:false,sandbox:false});
 const timestamp = (value:unknown) => typeof value === 'string' && Number.isFinite(Date.parse(value)) ? Date.parse(value) : 0;
 export function revenueCatSnapshot(subscriber: any, config:{entitlement:string;product:string;allowSandbox:boolean}):SubscriptionSnapshot {
@@ -32,6 +33,24 @@ export function createBillingService(db:Database, env:Environment=process.env, f
   const rcAvailable=!!(publicKey && env.REVENUECAT_SECRET_KEY && env.REVENUECAT_WEBHOOK_AUTH);
   const stripe=env.STRIPE_SECRET_KEY ? new Stripe(env.STRIPE_SECRET_KEY,{ maxNetworkRetries:1,timeout:15_000,httpClient:Stripe.createFetchHttpClient(fetcher as typeof fetch) }) : null;
   const stripeAvailable=!!(stripe && env.STRIPE_PRICE_ID && env.STRIPE_WEBHOOK_SECRET);
+  const paddle = {
+    apiKey: env.PADDLE_API_KEY, base: env.PADDLE_API_BASE || 'https://sandbox-api.paddle.com',
+    priceId: env.PADDLE_PRICE_ID, webhookSecret: env.PADDLE_WEBHOOK_SECRET,
+    sandbox: (env.PADDLE_ENV || 'sandbox') === 'sandbox',
+    checkoutOrigin: env.PADDLE_CHECKOUT_ORIGIN || 'https://foundkeep.app',
+    sandboxAccounts: new Set((env.PADDLE_SANDBOX_ACCOUNT_IDS || '').split(',').map(s => s.trim()).filter(Boolean)),
+  };
+  const paddleAvailable = !!(paddle.apiKey && paddle.webhookSecret && paddle.priceId);
+  async function paddleReq(path: string, method: 'GET' | 'POST' = 'GET', body?: unknown) {
+    const res = await fetcher(paddle.base + path, {
+      method, redirect: 'error', signal: AbortSignal.timeout(15_000),
+      headers: { Authorization: `Bearer ${paddle.apiKey}`, 'Content-Type': 'application/json', 'Paddle-Version': '1' },
+      ...(body ? { body: JSON.stringify(body) } : {}),
+    });
+    if (!res.ok) moduleFail(503, 'billing_unavailable', 'Payment provider is temporarily unavailable.');
+    try { return (JSON.parse(await boundedText(res)) as any).data; }
+    catch { moduleFail(503, 'verification_pending', 'Could not read the payment provider response.'); }
+  }
   // Serialize all observations of a provider/account, including webhook and restore.
   // Every event retrieves current provider state; delivery order cannot revert it.
   const operations=billingOperations.get(db)||new Map<string,Promise<unknown>>();
@@ -45,7 +64,7 @@ export function createBillingService(db:Database, env:Environment=process.env, f
   function identity(accountId:string):Identity {
     if (!db.query('SELECT 1 FROM customer_accounts WHERE id=?').get(accountId)) moduleFail(404,'account_not_found','Account not found.');
     db.query('INSERT OR IGNORE INTO customer_billing_identities(account_id,revenuecat_id,created_at) VALUES(?,?,?)').run(accountId,'fk_'+randomBytes(32).toString('base64url'),Date.now());
-    return db.query('SELECT account_id,revenuecat_id,stripe_id,checkout_id,checkout_attempt FROM customer_billing_identities WHERE account_id=?').get(accountId) as Identity;
+    return db.query('SELECT account_id,revenuecat_id,stripe_id,checkout_id,checkout_attempt,paddle_id FROM customer_billing_identities WHERE account_id=?').get(accountId) as Identity;
   }
   function configuration(accountId:string) {
     const owned=identity(accountId);
@@ -88,10 +107,68 @@ export function createBillingService(db:Database, env:Environment=process.env, f
       return accountPlan(db,accountId);
     });
   }
+  async function syncPaddle(accountId:string) {
+    if (!paddleAvailable) moduleFail(503,'billing_unavailable','Web subscriptions are not configured yet.');
+    return serial(`paddle:${accountId}`,async () => {
+      const owned=identity(accountId);
+      if (!owned.paddle_id) { writeSubscription(db,accountId,'paddle',{status:'inactive',expiresAt:0,renews:false,sandbox:paddle.sandbox}); return accountPlan(db,accountId); }
+      const subs=await paddleReq(`/subscriptions?customer_id=${encodeURIComponent(owned.paddle_id)}&status=active`);
+      const list=Array.isArray(subs) ? subs : [];
+      const relevant=list.filter((s:any) => (s.items||[]).some((it:any) => it?.price?.id===paddle.priceId) || list.length===1);
+      const chosen=(relevant.length ? relevant : list).map((s:any) => paddleSnapshot(s,{sandbox:paddle.sandbox}))
+        .sort((a,b) => b.expiresAt-a.expiresAt)[0] ?? {status:'inactive',expiresAt:0,renews:false,sandbox:paddle.sandbox};
+      const gated=gateSandbox(chosen, !paddle.sandbox || paddle.sandboxAccounts.has(accountId));
+      writeSubscription(db,accountId,'paddle',gated);
+      return accountPlan(db,accountId);
+    });
+  }
+  async function ensurePaddleCustomer(accountId:string):Promise<string> {
+    let owned=identity(accountId);
+    if (owned.paddle_id) return owned.paddle_id;
+    const email=(db.query('SELECT email FROM customer_accounts WHERE id=?').get(accountId) as {email:string}).email;
+    // Reuse an existing Paddle customer for this email if present (create 409s otherwise).
+    const existing=await paddleReq(`/customers?email=${encodeURIComponent(email)}`);
+    const found=Array.isArray(existing) && existing[0]?.id;
+    const customerId=found || (await paddleReq('/customers','POST',{email,custom_data:{foundkeep_account:accountId}})).id;
+    identity(accountId); // never recreate access if account was deleted mid-request
+    db.query('UPDATE customer_billing_identities SET paddle_id=? WHERE account_id=? AND paddle_id IS NULL').run(customerId,accountId);
+    owned=identity(accountId);
+    return owned.paddle_id!;
+  }
+  async function paddleCheckout(accountId:string) {
+    if (!paddleAvailable) moduleFail(503,'billing_unavailable','Web subscriptions are coming soon. Your free collection stays available.');
+    return serial(`purchase:${accountId}`,async () => {
+      await refreshProviders(accountId);
+      if (accountPlan(db,accountId).pro) moduleFail(409,'already_pro','You already have Pro. Manage the existing subscription instead.');
+      if (db.query('SELECT 1 FROM customer_purchase_attempts WHERE account_id=? AND expires_at>?').get(accountId,Date.now())) moduleFail(409,'subscription_pending','An App Store purchase is still pending. Finish or cancel it before opening web checkout.');
+      if (accountPlan(db,accountId).subscriptions.some(s => s.provider==='paddle' && !['inactive','canceled'].includes(s.status))) moduleFail(409,'subscription_pending','Your existing subscription needs attention. Manage it instead.');
+      const price=await paddleReq(`/prices/${encodeURIComponent(paddle.priceId!)}`);
+      if (price.status!=='active' || price.unit_price?.amount!=='500' || price.unit_price?.currency_code!=='USD'
+        || price.billing_cycle?.interval!=='month' || price.billing_cycle?.frequency!==1 || price.trial_period) {
+        moduleFail(503,'billing_unavailable','The monthly plan is not configured correctly.');
+      }
+      const customerId=await ensurePaddleCustomer(accountId);
+      const txn=await paddleReq('/transactions','POST',{
+        items:[{price_id:paddle.priceId,quantity:1}], customer_id:customerId,
+        custom_data:{foundkeep_account:accountId},
+      });
+      if (typeof txn?.id!=='string') moduleFail(503,'billing_unavailable','Could not open checkout.');
+      return `${paddle.checkoutOrigin}/checkout?_ptxn=${txn.id}`;
+    });
+  }
+  async function paddlePortal(accountId:string) {
+    const owned=identity(accountId);
+    if (!paddleAvailable || !owned.paddle_id) moduleFail(409,'no_web_subscription','There is no web subscription to manage.');
+    const session=await paddleReq(`/customers/${encodeURIComponent(owned.paddle_id!)}/portal-sessions`,'POST',{});
+    const url=session?.urls?.general?.overview;
+    if (typeof url!=='string') moduleFail(503,'billing_unavailable','Could not open subscription settings.');
+    return url;
+  }
   async function refreshProviders(accountId:string){
     const owned=identity(accountId);
     if(stripe&&env.STRIPE_PRICE_ID&&owned.stripe_id)await syncStripe(accountId);
     if(env.REVENUECAT_SECRET_KEY)await syncRevenueCat(accountId);
+    if(paddleAvailable&&owned.paddle_id)await syncPaddle(accountId);
     return {...accountPlan(db,accountId),billing:configuration(accountId)};
   }
   async function purchaseCheck(accountId:string,intent?:'purchase'|'restore'){
@@ -209,7 +286,7 @@ export function createBillingService(db:Database, env:Environment=process.env, f
     if (!result.url.startsWith('https://billing.stripe.com/')) moduleFail(503,'billing_unavailable','Could not open subscription settings.');
     return result.url;
   }
-  return {configuration,purchaseCheck,cancelMobilePurchase,syncRevenueCat,syncStripe,revenueCatWebhook,stripeWebhook,checkout,portal};
+  return {configuration,purchaseCheck,cancelMobilePurchase,syncRevenueCat,syncStripe,revenueCatWebhook,stripeWebhook,checkout,portal,syncPaddle,paddleCheckout,paddlePortal};
 }
 export function registerCustomerBilling(app:Hono<CustomerEnv>,db:Database,services:CustomerServices) {
   const billing=createBillingService(db);
