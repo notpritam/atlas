@@ -323,11 +323,16 @@ export function registerCustomerBilling(app:Hono<CustomerEnv>,db:Database,servic
     const current=services.auth(c,true); services.rate(`purchase-sync:${current.account.id}`,10,60_000);
     const result=await billing.syncStripe(current.account.id); services.auth(c,true,false); return c.json(result);
   });
-  for (const action of ['checkout','portal'] as const) app.post('/billing/'+action,async c => {
+  for (const [path,fn] of [['checkout',billing.paddleCheckout],['portal',billing.paddlePortal]] as const) app.post('/billing/'+path,async c => {
     const current=services.auth(c,true); services.rate(`billing:${current.account.id}`,5,60_000);
     const body=await services.jsonBody(c); if (Object.keys(body).length) moduleFail(400,'invalid_billing_request','This action does not accept a price or redirect URL.');
-    services.auth(c,true,false); const url=await billing[action](current.account.id); services.auth(c,true,false); return c.json({url});
+    services.auth(c,true,false); const url=await fn(current.account.id); services.auth(c,true,false); return c.json({url});
   });
+  app.post('/billing/paddle/sync',async c => {
+    const current=services.auth(c,true); services.rate(`purchase-sync:${current.account.id}`,10,60_000);
+    const result=await billing.syncPaddle(current.account.id); services.auth(c,true,false); return c.json(result);
+  });
+  app.post('/billing/webhooks/paddle',async c => { await billing.paddleWebhook(c.req.header('paddle-signature')||'',await boundedText(c.req.raw)); return c.json({ok:true}); });
   app.post('/billing/webhooks/revenuecat',async c => {
     const header=c.req.header('authorization')||'';
     // Authenticate before reading the body to reject unauthenticated load early.
