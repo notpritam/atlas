@@ -5,9 +5,9 @@ export function proxy(request:NextRequest){
  const directives=[
   `default-src 'self'`,
   `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${process.env.NODE_ENV==='development'?" 'unsafe-eval'":''}`,
-  `style-src 'self' 'unsafe-inline'`,
+  `style-src 'self' 'unsafe-inline'${isCheckout?' https://*.paddle.com':''}`,
   `img-src 'self' data: blob:${isCheckout?' https://*.paddle.com':''}`,
-  `font-src 'self'`,
+  `font-src 'self'${isCheckout?' https://*.paddle.com data:':''}`,
   `connect-src 'self'${isCheckout?' https://*.paddle.com':''}`,
   `base-uri 'none'`,
   `form-action 'self'`,
