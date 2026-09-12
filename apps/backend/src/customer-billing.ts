@@ -7,6 +7,7 @@ import type { CustomerEnv } from './customer.ts';
 import { moduleFail, type CustomerServices } from './customer-modules.ts';
 import { accountPlan, writeSubscription, type SubscriptionSnapshot } from './customer-plans.ts';
 import { paddleSnapshot, gateSandbox } from './paddle-snapshot.ts';
+import { verifyPaddleSignature } from './paddle-signature.ts';
 
 type Environment = Record<string,string|undefined>;
 type Identity = { account_id:string; revenuecat_id:string; stripe_id:string|null;checkout_id:string|null;checkout_attempt:string|null;paddle_id:string|null };
@@ -236,6 +237,23 @@ export function createBillingService(db:Database, env:Environment=process.env, f
     }
     finishEvent('stripe',event.id);
   }
+  async function paddleWebhook(signature:string,rawBody:string) {
+    if (!paddleAvailable) moduleFail(503,'billing_unavailable','Web billing is not configured.');
+    if (!verifyPaddleSignature(rawBody,signature,paddle.webhookSecret!)) moduleFail(401,'invalid_webhook','Invalid webhook signature.');
+    let event:any;
+    try { event=JSON.parse(rawBody); } catch { moduleFail(400,'invalid_webhook','Invalid webhook body.'); }
+    const eventId=event?.event_id;
+    if (typeof eventId!=='string' || eventId.length>200 || typeof event.event_type!=='string') moduleFail(400,'invalid_webhook','Invalid webhook event.');
+    if (processed('paddle',eventId)) return;
+    // Resolve the account by CUSTOMER ID first: custom_data does not propagate to subscription events.
+    const data=event.data||{};
+    const customerId=typeof data.customer_id==='string' ? data.customer_id : (data.customer && typeof data.customer==='object' ? data.customer.id : undefined);
+    const hint=data.custom_data?.foundkeep_account;
+    const owned=(typeof customerId==='string' && db.query('SELECT account_id FROM customer_billing_identities WHERE paddle_id=?').get(customerId) as {account_id:string}|null)
+      || (typeof hint==='string' && db.query('SELECT account_id FROM customer_billing_identities WHERE account_id=?').get(hint) as {account_id:string}|null);
+    if (owned) await syncPaddle(owned.account_id); // throws on provider error → non-2xx → Paddle retries; finishEvent only after success
+    finishEvent('paddle',eventId);
+  }
   async function checkout(accountId:string) {
     if (!stripe || !stripeAvailable) moduleFail(503,'billing_unavailable','Web subscriptions are coming soon. Your free collection stays available.');
     return serial(`purchase:${accountId}`,async () => {
@@ -286,7 +304,7 @@ export function createBillingService(db:Database, env:Environment=process.env, f
     if (!result.url.startsWith('https://billing.stripe.com/')) moduleFail(503,'billing_unavailable','Could not open subscription settings.');
     return result.url;
   }
-  return {configuration,purchaseCheck,cancelMobilePurchase,syncRevenueCat,syncStripe,revenueCatWebhook,stripeWebhook,checkout,portal,syncPaddle,paddleCheckout,paddlePortal};
+  return {configuration,purchaseCheck,cancelMobilePurchase,syncRevenueCat,syncStripe,revenueCatWebhook,stripeWebhook,checkout,portal,syncPaddle,paddleCheckout,paddlePortal,paddleWebhook};
 }
 export function registerCustomerBilling(app:Hono<CustomerEnv>,db:Database,services:CustomerServices) {
   const billing=createBillingService(db);
@@ -320,14 +338,27 @@ export function registerCustomerBilling(app:Hono<CustomerEnv>,db:Database,servic
 }
 
 export async function processBillingCleanup(db:Database,env:Environment=process.env,fetcher:(input:string|URL|Request,init?:RequestInit)=>Promise<Response>=fetch) {
-  const rows=db.query("SELECT provider,external_id,attempts FROM customer_billing_cleanup WHERE next_attempt_at<=? AND ((provider='stripe' AND ?=1) OR (provider='revenuecat' AND ?=1)) ORDER BY created_at LIMIT 10").all(Date.now(),Number(!!env.STRIPE_SECRET_KEY),Number(!!env.REVENUECAT_SECRET_KEY)) as {provider:string;external_id:string;attempts:number}[];
+  const rows=db.query("SELECT provider,external_id,attempts FROM customer_billing_cleanup WHERE next_attempt_at<=? AND ((provider='stripe' AND ?=1) OR (provider='revenuecat' AND ?=1) OR (provider='paddle' AND ?=1)) ORDER BY created_at LIMIT 10").all(Date.now(),Number(!!env.STRIPE_SECRET_KEY),Number(!!env.REVENUECAT_SECRET_KEY),Number(!!env.PADDLE_API_KEY)) as {provider:string;external_id:string;attempts:number}[];
   const stripe=env.STRIPE_SECRET_KEY?new Stripe(env.STRIPE_SECRET_KEY,{maxNetworkRetries:1,timeout:15_000,httpClient:Stripe.createFetchHttpClient(fetcher as typeof fetch)}):null;
   for(const row of rows){
-    if(row.provider==='stripe'&&!stripe || row.provider==='revenuecat'&&!env.REVENUECAT_SECRET_KEY)continue;
+    if(row.provider==='stripe'&&!stripe || row.provider==='revenuecat'&&!env.REVENUECAT_SECRET_KEY || row.provider==='paddle'&&!env.PADDLE_API_KEY)continue;
     try{
       if(row.provider==='stripe'){
         // Stripe customer deletion also immediately cancels its subscriptions.
         try{await stripe!.customers.del(row.external_id);}catch(error){if((error as {code?:string}).code!=='resource_missing')throw error;}
+      }else if(row.provider==='paddle'){
+        const base=env.PADDLE_API_BASE||'https://sandbox-api.paddle.com';
+        const head={Authorization:`Bearer ${env.PADDLE_API_KEY}`,'Content-Type':'application/json','Paddle-Version':'1'};
+        // Paddle has no customer-delete API: list every active subscription for the
+        // customer, cancel each, then best-effort archive the customer record.
+        const list=await fetcher(`${base}/subscriptions?customer_id=${encodeURIComponent(row.external_id)}&status=active`,{headers:head,redirect:'error',signal:AbortSignal.timeout(15_000)});
+        if(!list.ok&&list.status!==404)throw new Error('Provider cleanup unavailable.');
+        const subs=list.ok?((JSON.parse(await boundedText(list)) as any).data||[]):[];
+        for(const s of subs){
+          const cancelled=await fetcher(`${base}/subscriptions/${encodeURIComponent(s.id)}/cancel`,{method:'POST',headers:head,body:JSON.stringify({effective_from:'immediately'}),redirect:'error',signal:AbortSignal.timeout(15_000)});
+          if(!cancelled.ok&&cancelled.status!==404)throw new Error('Provider cleanup unavailable.');
+        }
+        await fetcher(`${base}/customers/${encodeURIComponent(row.external_id)}`,{method:'PATCH',headers:head,body:JSON.stringify({status:'archived'}),redirect:'error',signal:AbortSignal.timeout(15_000)}).catch(()=>{});
       }else{
         const result=await fetcher('https://api.revenuecat.com/v1/subscribers/'+encodeURIComponent(row.external_id),{method:'DELETE',headers:{authorization:`Bearer ${env.REVENUECAT_SECRET_KEY}`},redirect:'error',signal:AbortSignal.timeout(15_000)});
         if(!result.ok&&result.status!==404)throw new Error('Provider cleanup unavailable.');
@@ -345,12 +376,12 @@ export async function processBillingCleanup(db:Database,env:Environment=process.
 export async function reconcileBilling(db:Database,env:Environment=process.env,fetcher:(input:string|URL|Request,init?:RequestInit)=>Promise<Response>=fetch){
   const stamp=Date.now();
   const rows=db.query(`SELECT account_id,provider FROM customer_subscriptions WHERE updated_at<? AND next_check_at<=?
-    AND ((provider='stripe' AND ?=1) OR (provider='revenuecat' AND ?=1)) ORDER BY next_check_at,updated_at LIMIT 5`)
-    .all(stamp-6*3600_000,stamp,Number(!!(env.STRIPE_SECRET_KEY&&env.STRIPE_PRICE_ID)),Number(!!env.REVENUECAT_SECRET_KEY)) as {account_id:string;provider:string}[];
+    AND ((provider='stripe' AND ?=1) OR (provider='revenuecat' AND ?=1) OR (provider='paddle' AND ?=1)) ORDER BY next_check_at,updated_at LIMIT 5`)
+    .all(stamp-6*3600_000,stamp,Number(!!(env.STRIPE_SECRET_KEY&&env.STRIPE_PRICE_ID)),Number(!!env.REVENUECAT_SECRET_KEY),Number(!!(env.PADDLE_API_KEY&&env.PADDLE_PRICE_ID))) as {account_id:string;provider:string}[];
   const billing=createBillingService(db,env,fetcher);
   for(const row of rows){
     let delay=300_000;
-    try{if(row.provider==='stripe')await billing.syncStripe(row.account_id);else await billing.syncRevenueCat(row.account_id);delay=6*3600_000;}catch{}
+    try{if(row.provider==='stripe')await billing.syncStripe(row.account_id);else if(row.provider==='revenuecat')await billing.syncRevenueCat(row.account_id);else await billing.syncPaddle(row.account_id);delay=6*3600_000;}catch{}
     db.query('UPDATE customer_subscriptions SET next_check_at=? WHERE account_id=? AND provider=?').run(Date.now()+delay,row.account_id,row.provider);
   }
 }

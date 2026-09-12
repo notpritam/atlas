@@ -1,4 +1,5 @@
 import { test, expect } from 'bun:test';
+import { createHmac } from 'node:crypto';
 import { openDb } from '../src/db.ts';
 import { createBillingService } from '../src/customer-billing.ts';
 import { accountPlan } from '../src/customer-plans.ts';
@@ -53,4 +54,31 @@ test('syncPaddle does NOT grant pro for a non-allow-listed sandbox account', asy
   const billing = createBillingService(db, { ...env }, fetcher);
   await billing.syncPaddle('acc_no');
   expect(accountPlan(db, 'acc_no').pro).toBe(false);
+});
+
+function sign(body: string, secret = 'pdl_ntfset_s') {
+  const ts = Math.floor(Date.now() / 1000);
+  return `ts=${ts};h1=${createHmac('sha256', secret).update(`${ts}:${body}`).digest('hex')}`;
+}
+
+test('webhook: valid signature triggers sync exactly once (idempotent on eventId)', async () => {
+  const db = seed('acc_ok');
+  db.query("INSERT INTO customer_billing_identities(account_id,revenuecat_id,created_at,paddle_id) VALUES('acc_ok','fk_a',0,'ctm_1')").run();
+  const future = new Date(Date.now() + 30 * 86400_000).toISOString();
+  let syncCalls = 0;
+  const fetcher = (async (url: any) => { syncCalls++; return new Response(JSON.stringify({ data: [{ id: 'sub_1', status: 'active', current_billing_period: { ends_at: future } }] })); }) as typeof fetch;
+  const billing = createBillingService(db, env, fetcher);
+  const body = JSON.stringify({ event_id: 'evt_1', event_type: 'subscription.created', data: { customer_id: 'ctm_1' } });
+  await billing.paddleWebhook(sign(body), body);
+  await billing.paddleWebhook(sign(body), body); // retry, same eventId
+  expect(syncCalls).toBe(1);
+  expect(accountPlan(db, 'acc_ok').pro).toBe(true);
+});
+
+test('webhook: bad signature throws (caller returns non-2xx) and does not record the event', async () => {
+  const db = seed('acc_ok');
+  const billing = createBillingService(db, env, (async (_url: any) => new Response('{}')) as typeof fetch);
+  const body = JSON.stringify({ event_id: 'evt_2', event_type: 'subscription.created', data: { customer_id: 'ctm_1' } });
+  await expect(billing.paddleWebhook('ts=1;h1=' + '0'.repeat(64), body)).rejects.toBeDefined();
+  expect(db.query("SELECT 1 FROM customer_billing_events WHERE provider='paddle' AND event_id='evt_2'").get()).toBeNull();
 });
