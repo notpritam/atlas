@@ -49,8 +49,11 @@ export function createBillingService(db:Database, env:Environment=process.env, f
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
     if (!res.ok) moduleFail(503, 'billing_unavailable', 'Payment provider is temporarily unavailable.');
-    try { return (JSON.parse(await boundedText(res)) as any).data; }
+    let parsed: unknown;
+    try { parsed = JSON.parse(await boundedText(res)); }
     catch { moduleFail(503, 'verification_pending', 'Could not read the payment provider response.'); }
+    if (!parsed || typeof parsed !== 'object' || !('data' in parsed)) moduleFail(503, 'verification_pending', 'Could not read the payment provider response.');
+    return (parsed as any).data;
   }
   // Serialize all observations of a provider/account, including webhook and restore.
   // Every event retrieves current provider state; delivery order cannot revert it.
@@ -383,7 +386,7 @@ export async function reconcileBilling(db:Database,env:Environment=process.env,f
   const stamp=Date.now();
   const rows=db.query(`SELECT account_id,provider FROM customer_subscriptions WHERE updated_at<? AND next_check_at<=?
     AND ((provider='stripe' AND ?=1) OR (provider='revenuecat' AND ?=1) OR (provider='paddle' AND ?=1)) ORDER BY next_check_at,updated_at LIMIT 5`)
-    .all(stamp-6*3600_000,stamp,Number(!!(env.STRIPE_SECRET_KEY&&env.STRIPE_PRICE_ID)),Number(!!env.REVENUECAT_SECRET_KEY),Number(!!(env.PADDLE_API_KEY&&env.PADDLE_PRICE_ID))) as {account_id:string;provider:string}[];
+    .all(stamp-6*3600_000,stamp,Number(!!(env.STRIPE_SECRET_KEY&&env.STRIPE_PRICE_ID)),Number(!!env.REVENUECAT_SECRET_KEY),Number(!!(env.PADDLE_API_KEY&&env.PADDLE_PRICE_ID&&env.PADDLE_WEBHOOK_SECRET))) as {account_id:string;provider:string}[];
   const billing=createBillingService(db,env,fetcher);
   for(const row of rows){
     let delay=300_000;

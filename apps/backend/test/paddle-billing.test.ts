@@ -82,3 +82,19 @@ test('webhook: bad signature throws (caller returns non-2xx) and does not record
   await expect(billing.paddleWebhook('ts=1;h1=' + '0'.repeat(64), body)).rejects.toBeDefined();
   expect(db.query("SELECT 1 FROM customer_billing_events WHERE provider='paddle' AND event_id='evt_2'").get()).toBeNull();
 });
+
+test('paddleReq surfaces a moduleFail (503) instead of a raw TypeError when the response body is valid JSON but not an object with a data field', async () => {
+  const db = seed();
+  const fetcher = (async (url: any) => {
+    const u = String(url);
+    // A price GET that returns valid, non-object JSON (e.g. a provider outage placeholder).
+    if (u.endsWith('/prices/pri_x')) return new Response('null');
+    throw new Error('unexpected ' + u);
+  }) as typeof fetch;
+  const billing = createBillingService(db, env, fetcher);
+  let error: any;
+  try { await billing.paddleCheckout('acc_ok'); } catch (caught) { error = caught; }
+  expect(error).toBeDefined();
+  expect(error.status).toBe(503);
+  expect(error.code).toBe('verification_pending');
+});

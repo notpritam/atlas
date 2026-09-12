@@ -20,7 +20,7 @@ export function CollectionServices(){
    const result=await request<{url:string}>('/billing/'+kind,{method:'POST',body:{}});
    if(!alive.current)return;
    const dest=new URL(result.url,window.location.origin);
-   if(dest.origin!==window.location.origin&&!/(^|\.)paddle\.com$/.test(dest.hostname))throw new Error('The payment destination is unavailable.');
+   if(dest.protocol!=='https:'||(dest.origin!==window.location.origin&&!/(^|\.)paddle\.com$/.test(dest.hostname)))throw new Error('The payment destination is unavailable.');
    window.location.assign(dest.href);return;
   }
   if(kind==='sync'){await request('/billing/paddle/sync',{method:'POST',body:{}});await update();return;}
