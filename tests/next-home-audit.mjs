@@ -47,7 +47,7 @@ test('homepage search, sharing and install metadata work before JavaScript',asyn
  const manifestResponse=await page.request.get(base+await page.locator('link[rel="manifest"]').getAttribute('href'));
  assert.equal(manifestResponse.status(),200);
  const manifest=await manifestResponse.json();
- assert.equal(manifest.name,'Foundkeep');assert.equal(manifest.start_url,'/');
+ assert.equal(manifest.name,'FoundKeep');assert.equal(manifest.start_url,'/dashboard');
  for(const icon of manifest.icons)assert.equal((await page.request.get(base+icon.src)).status(),200);
  const apple=await page.request.get(base+await page.locator('link[rel="apple-touch-icon"]').getAttribute('href'));
  assert.equal(apple.status(),200);

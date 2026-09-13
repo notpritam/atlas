@@ -2,9 +2,9 @@ import type {MetadataRoute} from 'next';
 
 export default function manifest():MetadataRoute.Manifest {
  return {
-  id:'/',name:'Foundkeep',short_name:'Foundkeep',
+  id:'/',name:'FoundKeep',short_name:'FoundKeep',
   description:'Keep links, highlights, photos and files in one private collection.',
-  start_url:'/',scope:'/',display:'standalone',
+  start_url:'/dashboard',scope:'/',display:'standalone',
   background_color:'#f1f4f4',theme_color:'#f1f4f4',
   icons:[
    {src:'/assets/mark-192.png?v=bookmark-evolved-1',sizes:'192x192',type:'image/png',purpose:'any'},
