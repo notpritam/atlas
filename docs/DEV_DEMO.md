@@ -5,11 +5,11 @@ The permanent test site is [dev.foundkeep.app](https://dev.foundkeep.app). Run `
 | Collection | What to test |
 | --- | --- |
 | [The agent toolkit](https://dev.foundkeep.app/collection/demo-agent-toolkit) | Six public finds about agents, tools, and reusable skills. Signed-in visitors can suggest finds; the curator must approve them. One demo suggestion starts in the private approval queue. |
-| [Design that works](https://dev.foundkeep.app/collection/demo-design-that-works) | Six public design and accessibility references; curator-only contributions. |
-| [Worth a slower read](https://dev.foundkeep.app/collection/demo-worth-reading) | Six essays and original notes; signed-in visitors can contribute directly. |
+| [Design that works](https://dev.foundkeep.app/collection/demo-design-that-works) | Eight image, note, design and accessibility finds; curator-only contributions. |
+| [Worth a slower read](https://dev.foundkeep.app/collection/demo-worth-reading) | Seven essays, original notes and image finds; signed-in visitors can contribute directly. |
 | Private demo scratchpad | One private entry, accessible from the demo curator’s dashboard; anonymous visitors receive 404. |
 
-The curator’s personal library starts with three private notes. The contributor follows the three public collections and owns the pending suggestion. Descriptions identify demo content, annotations are original, and links point to original publishers. These are fixture accounts, not popularity claims. Browse publicly or use your own dev account to follow and contribute.
+The curator’s personal library includes three starter notes, the original demo images, and nine connected agent references for the mind map. The contributor follows the three public collections and owns the pending suggestion. Descriptions identify demo content, annotations are original, and links point to original publishers. These are fixture accounts, not popularity claims. Browse publicly or use your own dev account to follow and contribute.
 
 ## Demo accounts and reruns
 

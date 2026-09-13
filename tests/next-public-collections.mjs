@@ -33,7 +33,8 @@ test('public editorial collection searches all pages, switches layout, shares, a
  async function checkMasonry(){
   await page.waitForFunction(()=>{
    const cards=[...document.querySelectorAll('.public-find')].map(el=>el.getBoundingClientRect());
-   return cards.every((a,i)=>cards.every((b,j)=>i===j||a.right<=b.left+1||b.right<=a.left+1||a.bottom<=b.top+1||b.bottom<=a.top+1));
+   const container=document.querySelector('.collection-entries').getBoundingClientRect();
+   return cards.every(a=>a.left>=container.left-1&&a.right<=container.right+1)&&cards.every((a,i)=>cards.every((b,j)=>i===j||a.right<=b.left+1||b.right<=a.left+1||a.bottom<=b.top+1||b.bottom<=a.top+1));
   });
   const layout=await page.locator('.collection-entries').evaluate(el=>({width:el.getBoundingClientRect().width,heights:[...el.children].map(card=>Math.round(card.getBoundingClientRect().height))}));
   assert.ok(new Set(layout.heights).size>=4,'Content determines card height');
@@ -49,7 +50,7 @@ test('public editorial collection searches all pages, switches layout, shares, a
  await page.getByLabel('Appearance',{exact:true}).selectOption('dark');await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
  assert.equal(await page.locator('.public-find').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(32, 37, 42)');
  await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-dark-desktop.png'});
- await page.setViewportSize({width:390,height:844});await checkMasonry();await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-dark-phone.png'});
+ await page.setViewportSize({width:390,height:844});await checkMasonry();await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-dark-phone.png'});await page.locator('.collection-entries').scrollIntoViewIfNeeded();await page.screenshot({path:'.impeccable/review/friends-beta/collection-cards-dark-phone.png'});await page.evaluate(()=>scrollTo(0,0));
  await page.getByLabel('Appearance',{exact:true}).selectOption('system');await page.emulateMedia({colorScheme:'light'});await page.waitForFunction(()=>document.documentElement.dataset.theme==='light');await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-phone.png'});
  await page.emulateMedia({colorScheme:'dark'});await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');await page.getByLabel('Appearance',{exact:true}).selectOption('light');await page.waitForFunction(()=>document.documentElement.dataset.theme==='light');await page.setViewportSize({width:1440,height:1000});
 
