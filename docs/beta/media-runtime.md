@@ -73,3 +73,24 @@ bunx tsc --noEmit -p apps/backend/tsconfig.json
 ```
 
 The Bun tests use a real synthetic MP4 and ffprobe, exercise cleanup and malformed outputs, and kill real timed/cancelled Python processes. Python tests exercise actual audit events, mixed/rebound DNS, redirects, byte budgets, and the real pinned yt-dlp parser with only HTTP transport replaced by a deterministic fixture. A malicious local config/plugin fixture must not execute. A realistic multi-format fixture exercises the pinned yt-dlp format parser, verifies 720p preference, smaller budget fallbacks, bitrate-duration estimates, incompatible codecs/adaptive video-only exclusion, silent-original support and unknown-size handling. Real direct/yt-dlp opener regressions exercise oversized redirect, HTTP-error and compressed bodies as well as ordinary redirects and gzip/deflate decoding. Live public platform checks are a separate root-owned release gate.
+
+## Processing, private playback and restart cleanup
+
+The managed-processing worker integrates this boundary with Pro access, explicit public-link consent, optional separate image consent, instant/scheduled/manual/paused modes and the user's monthly credit cap. It retains the original source URL and stores validated video bytes under the owner's private save. Cookie and mobile-token file endpoints support authenticated byte ranges for playback and seeking. Other accounts cannot read the saved file.
+
+One successfully preserved video consumes one processing credit, including a media-only result with no readable text. That result preserves the user's existing organization and does not invent a transcript or call AI. When actual text or a consented frame is available, the AI receives that selected evidence plus a separate statement of whether the original file was preserved. A rejected download with no usable source evidence consumes no credit. A source failure cannot be reported as a successfully downloaded video.
+
+File attachment, processing results and credit settlement commit together after rechecking consent, ownership, quota, source revision and the active job lease. Cancellation, editing, deletion, quota failure and provider failure remove uncommitted files. Completed fingerprints include the attached file so retrying the same completed save cannot spend another credit.
+
+The remote namespace is `customer-files/remote/.tmp` during staging and `customer-files/remote/YYYY-MM/UUID` for final files. A bounded rotating sweep checks at most 100 entries per pass, after restart and at most once per minute. It removes only unreferenced regular remote files older than one hour, under a database reference check. Existing uploads, referenced/fresh files, symlinks and nonconforming paths are protected.
+
+The Linux service must additionally isolate extractor scratch files across service lifetimes:
+
+```ini
+[Service]
+PrivateTmp=yes
+KillMode=control-group
+Environment=FOUNDKEEP_MEDIA_PYTHON=/home/pritam/.local/share/foundkeep-media-runtime/yt-dlp-2026.8.19/bin/python
+```
+
+A transient service with these settings successfully downloaded and validated a real public MP4 on the host. Its scratch directory was invisible in the host's `/tmp`, visible only in its mount namespace, and removed when the service stopped. Normal per-download disposal still runs; the dedicated database-aware sweep handles durable staging left by a crash. Do not sweep unrelated host temporary directories.
