@@ -1,9 +1,10 @@
+import '../customer.css';
 import Link from 'next/link';
 import type {Metadata} from 'next';
 export const metadata:Metadata={title:'Terms',alternates:{canonical:'/terms'}};
 export default function Page(){return <div className="customer-body reading-body">
   <a className="skip-link" href="#main">Skip to content</a>
-  <header className="site-header privacy-header wrap"><Link className="brand" href="/"><img src="/assets/studio-mark.svg" width="36" height="36" alt="" /><span>Foundkeep</span></Link><Link className="text-link" href="/">Back to Foundkeep</Link></header>
+  <header className="site-header privacy-header wrap"><Link className="brand" href="/"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="36" height="36" alt="" /><span>Foundkeep</span></Link><Link className="text-link" href="/">Back to Foundkeep</Link></header>
   <main className="privacy-document" id="main">
     <h1>Terms of use.</h1>
     <p className="updated">Updated 12 September 2026</p>

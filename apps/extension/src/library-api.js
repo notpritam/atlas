@@ -11,6 +11,8 @@ export function libraryOperation(operation, args = {}) {
     }
     return {method:'GET',path:'/api/mobile/captures?'+query};
   }
+  if (operation === 'collections') return {method:'GET',path:'/api/collections'};
+  if (operation === 'submit-collection') return {method:'POST',path:`/api/collections/${id(args.id)}/entries`,body:args.value};
   if (operation === 'organization') return {method:'GET',path:'/api/organization'};
   if (operation === 'detail') return {method:'GET',path:`/api/mobile/captures/${id(args.id)}`};
   if (operation === 'preview') return {method:'GET',path:`/api/mobile/captures/${id(args.id)}/preview`,image:true};

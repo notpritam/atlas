@@ -11,7 +11,7 @@
     "test": "bun test",
     "release": "node deploy/release-extension.mjs",
     "release:publish": "node deploy/release-extension.mjs --publish",
-    "test:extension": "node --test tests/extension-ui.mjs tests/extension-smoke.mjs tests/extension-action.mjs tests/extension-cloud.mjs tests/extension-db.mjs tests/extension-extractor.mjs tests/extension-preferences.mjs tests/extension-policy.mjs tests/extension-store.mjs tests/bookmark-import.mjs tests/library-api.mjs tests/extension-library.mjs",
+    "test:extension": "node --test tests/extension-ui.mjs tests/extension-smoke.mjs tests/extension-action.mjs tests/extension-cloud.mjs tests/extension-db.mjs tests/extension-extractor.mjs tests/extension-preferences.mjs tests/extension-policy.mjs tests/extension-store.mjs tests/bookmark-import.mjs tests/library-api.mjs tests/extension-library.mjs tests/extension-environments.mjs tests/extension-environments-browser.mjs tests/extension-collections.mjs",
     "store:pack": "bash deploy/pack-store.sh",
     "store:verify": "node --test tests/extension-store.mjs",
     "store:assets": "node scripts/render-store-assets.mjs",
@@ -23,7 +23,9 @@
     "mobile:start": "npm --workspace @foundkeep/mobile run start",
     "mobile:test": "npm --workspace @foundkeep/mobile run test",
     "mobile:typecheck": "npm --workspace @foundkeep/mobile run typecheck",
-    "mobile:prebuild": "npm --workspace @foundkeep/mobile run prebuild"
+    "mobile:prebuild": "npm --workspace @foundkeep/mobile run prebuild",
+    "extension:build:dev": "node deploy/build-extension.mjs --environment dev",
+    "extension:build:prod": "node deploy/build-extension.mjs --environment prod"
   },
   "devDependencies": {
     "crx3": "^2.0.0",

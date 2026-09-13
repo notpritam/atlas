@@ -1,4 +1,5 @@
 // Shared presentation helpers. Captured text is always inserted with textContent.
+import { PRODUCT_NAME, CUSTOMER_ORIGIN } from "./product.js";
 export const $ = (id) => document.getElementById(id);
 export const title = (c) =>
   c.summary ||
@@ -57,6 +58,9 @@ const paths = {
 export const icon = (name) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.note}</svg>`;
 export function hydrateIcons(root = document) {
+  for (const el of root.querySelectorAll('[data-product-name]')) el.textContent = PRODUCT_NAME;
+  for (const el of root.querySelectorAll('[data-product-path]')) el.href = CUSTOMER_ORIGIN + el.dataset.productPath;
+  if (root === document) document.title = document.title.replace(/^Foundkeep(?: Dev)?/, PRODUCT_NAME);
   for (const el of root.querySelectorAll("[data-icon]"))
     el.innerHTML = icon(el.dataset.icon);
 }

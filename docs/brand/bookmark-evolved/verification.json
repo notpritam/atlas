@@ -1,0 +1,77 @@
+{
+  "checkedAt": "2026-09-13T06:09:00.072Z",
+  "renderedChecks": [
+    "homepage desktop/mobile",
+    "authenticated dashboard",
+    "collapsed sidebar",
+    "mobile dashboard",
+    "packaged SVG identity",
+    "three web manifest exports"
+  ],
+  "backend": "disposable temporary database; no dev account changes",
+  "assetChecks": [
+    {
+      "file": "apps/mobile/assets/images/icon.png",
+      "size": 1024,
+      "opaque": true,
+      "corner": 255,
+      "center": 255
+    },
+    {
+      "file": "apps/mobile/assets/images/mark.png",
+      "size": 512,
+      "opaque": false,
+      "corner": 0,
+      "center": 255
+    },
+    {
+      "file": "apps/mobile/assets/images/splash-icon.png",
+      "size": 1024,
+      "opaque": false,
+      "corner": 0,
+      "center": 255
+    },
+    {
+      "file": "apps/web/assets/apple-touch-icon.png",
+      "size": 180,
+      "opaque": true,
+      "corner": 255,
+      "center": 255
+    },
+    {
+      "file": "apps/web/assets/mark-maskable-512.png",
+      "size": 512,
+      "opaque": true,
+      "corner": 255,
+      "center": 255
+    },
+    {
+      "file": "apps/extension/icons/icon16.png",
+      "size": 16,
+      "opaque": false,
+      "corner": 1,
+      "center": 255
+    },
+    {
+      "file": "apps/extension/icons/icon32.png",
+      "size": 32,
+      "opaque": false,
+      "corner": 0,
+      "center": 255
+    },
+    {
+      "file": "apps/extension/icons/icon48.png",
+      "size": 48,
+      "opaque": false,
+      "corner": 0,
+      "center": 255
+    },
+    {
+      "file": "apps/extension/icons/icon128.png",
+      "size": 128,
+      "opaque": false,
+      "corner": 0,
+      "center": 255
+    }
+  ]
+}

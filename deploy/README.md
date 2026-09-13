@@ -43,7 +43,7 @@ The backend serves `apps/web` for non-API paths. Foundkeep proxies to `127.0.0.1
 
 Version 1.5 clients request the old GitHub repository path and `atlas-extension.crx`. GitHub repository redirects plus the retained asset name carry them into the Foundkeep 1.6 update. Do not remove the compatibility asset.
 
-Automatic release runs on extension changes pushed to `main`. CI runs backend, extension, landing, and customer flows, builds the CRX with the existing `EXTENSION_PEM` secret, checks the fixed ID/signature, and publishes `ext-v<version>`.
+Extension changes pushed to `main` run backend, extension, landing, and customer verification. Publishing is separate: manually dispatch the Release extension workflow only when production promotion is requested. That run builds the CRX with the existing `EXTENSION_PEM` secret, checks the fixed ID/signature, and publishes `ext-v<version>`. Merging dev work does not publish an extension update to production clients.
 
 Manual build and verification on omni:
 
@@ -69,7 +69,7 @@ The local key remains at the gitignored `deploy/keys/atlas-extension.pem`; its f
 4. Install the dual-origin systemd override and restart the backend before enabling the new domain.
 5. Add/validate the shared Caddy blocks after DNS resolves.
 6. Verify `/`, `/support.html`, `/privacy.html`, `/foundkeep-extension.zip`, `/healthz`, `/signup`, `/login`, and `/dashboard` on `foundkeep.app`.
-7. Wait for the GitHub release workflow, then verify the downloaded CRX, update XML, version, signature, ID, and both artifact aliases.
+7. When production extension promotion is requested, dispatch the GitHub release workflow, then verify the downloaded CRX, update XML, version, signature, ID, and both artifact aliases.
 8. Run `ATLAS_SITE_URL=https://foundkeep.app bun run test:web` and the disposable live customer flow.
 
 See [customer operations](CUSTOMER_LAUNCH.md) for account security, migration behavior, backups, and Chrome Web Store steps.

@@ -34,15 +34,8 @@ manifest.pop("update_url", None)
 outdir = os.path.join(root, "deploy", "dist")
 os.makedirs(outdir, exist_ok=True)
 out = os.path.join(outdir, f"foundkeep-store-{version}.zip")
-include = [
-    "icons/icon16.png", "icons/icon32.png", "icons/icon48.png", "icons/icon128.png",
-    "assets/mark.svg", "assets/fonts/ClarityCity-SemiBold.woff2", "assets/fonts/geist-latin.woff2",
-    "src/library.html", "src/library.js", "src/library.css", "src/library-api.js", "src/import-queue.js", "src/bookmark-import.js",
-    "src/background.js", "src/capture.js", "src/cloud-ui.js", "src/cloud.js", "src/connections.js",
-    "src/dashboard.css", "src/dashboard.html", "src/dashboard.js", "src/db.js", "src/image-formats.js",
-    "src/page-extractor.js", "src/popup.css", "src/popup.html", "src/popup.js", "src/preferences.js",
-    "src/product.js", "src/runtime-policy.js", "src/theme.css", "src/twitter.js", "src/ui.js",
-]
+include = json.load(open(os.path.join(root, "deploy", "extension-files.json")))
+include = [item for item in include if item not in ["manifest.json", "README.md"]]
 with tempfile.TemporaryDirectory() as tmp:
     stage = os.path.join(tmp, "foundkeep")
     os.makedirs(stage)

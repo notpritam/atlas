@@ -212,7 +212,7 @@ test('viewport footer, narrow screen scrolling and reachable email form', async 
 
 test('entering auth from the public landing applies its document CSP', async t => {
   const {page} = await fixture(t, ({path}) => path === '/api/auth/providers' ? {json: {providers: ['google']}}
-    : path === '/api/me' ? {status: 401, json: {error: 'unauthorized'}} : undefined);
+    : path === '/api/auth/session' ? {json: {account: null}} : undefined);
   const inlineHandlerProbe = async () => {
     await page.evaluate(() => {
       delete window.__foundkeepCspProbe;
@@ -278,7 +278,6 @@ test('a deferred export cannot complete after leaving the dashboard and changing
   await page.locator('#export-account').click();
   await page.locator('#confirm-accept').click();
   await started;
-  await page.locator('[data-close="account-dialog"]').click();
   await page.locator('.sidebar-bottom a[href="/support"]').click();
   await page.waitForURL('**/support');
   const second = await register('Audit account B');

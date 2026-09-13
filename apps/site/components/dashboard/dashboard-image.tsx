@@ -1,7 +1,7 @@
 'use client';
 import { previewRatio } from '../../../../packages/shared/src/collection-presentation';
 import { createContext, useContext, useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { Shimmer } from './loading';
 
 /** Each authenticated dashboard owns its queue; image URLs are never globally cached. */
 export class PreviewQueue {
@@ -28,7 +28,6 @@ export class PreviewQueue {
 export const PreviewQueueContext = createContext<PreviewQueue | null>(null);
 export function DashboardImage({ src, alt, mode, width, height, kind = 'Capture' }: { src: string; alt: string; mode: 'card' | 'detail'; width?: number; height?: number; kind?: string }) {
   const queue = useContext(PreviewQueueContext);
-  const reducedMotion = useReducedMotion();
   const holder = useRef<HTMLDivElement>(null);
   const image = useRef<HTMLImageElement>(null);
   const release = useRef<(() => void) | null>(null);
@@ -60,7 +59,7 @@ export function DashboardImage({ src, alt, mode, width, height, kind = 'Capture'
   const ratio = width && height && width > 0 && height > 0 ? `${width}/${height}` : '8/5';
   return <div ref={holder} data-local-image={!remote} className={`capture-image-frame ${mode === 'card' ? 'capture-preview-shell' : 'detail-image-frame'}${!isLoaded && !isFailed ? ' is-loading' : ''}`} style={mode === 'card' ? { aspectRatio: previewRatio(width, height) } : !isLoaded ? { aspectRatio: ratio } : undefined} aria-busy={!isLoaded && !isFailed}>
     {isFailed ? <div className="image-unavailable capture-preview-placeholder"><span>{kind}</span><p>Preview unavailable</p>{mode === 'detail' ? <button type="button" className="subtle-button" onClick={() => setAttempt(value => value + 1)}>Retry image</button> : <small>Open to retry</small>}</div> : <>
-      {!isLoaded ? <div className="capture-image-skeleton" aria-hidden="true">{reducedMotion ? null : <motion.span className="capture-image-shimmer" initial={{ x: '-120%' }} animate={{ x: '320%' }} transition={{ duration: 1.4, ease: 'linear', repeat: Infinity }} />}</div> : null}
+      {!isLoaded ? <div className="capture-image-skeleton" aria-hidden="true"><Shimmer /></div> : null}
       {started ? <img ref={image} key={identity} src={src} alt={alt} className={mode === 'card' ? 'capture-preview' : 'detail-image'} width={width || undefined} height={height || undefined} loading={mode === 'card' && !remote ? 'lazy' : 'eager'} decoding="async" style={{ opacity: isLoaded ? 1 : 0 }} onLoad={() => { setLoaded(identity); finish(); }} onError={() => { setFailed(identity); finish(); }} /> : null}
     </>}
   </div>;

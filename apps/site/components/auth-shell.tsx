@@ -1,10 +1,11 @@
 import type {ReactNode} from 'react';
+import '@/app/customer.css';
 
 export function AuthShell({children, headingId}: {children: ReactNode; headingId?: string}) {
   return <div className="customer-body auth-body auth-app">
     <a className="skip-link" href="#main">Skip to account form</a>
     <header className="account-header">
-      <a className="brand" href="/"><img src="/assets/studio-mark.svg" width={36} height={36} alt=""/><span>Foundkeep</span></a>
+      <a className="brand" href="/"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width={36} height={36} alt=""/><span>Foundkeep</span></a>
       <a className="text-link" href="/#everywhere">Get the app &amp; extension <span aria-hidden="true">↗</span></a>
     </header>
     <main id="main" className="auth-layout">

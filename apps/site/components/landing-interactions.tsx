@@ -5,16 +5,17 @@ import {useAnimate} from 'motion/react-mini';
 import {customerConfig,DEFAULT_CONFIG,extensionMessage,isIphoneBrowser,type CustomerConfig} from '@/lib/platforms';
 import type {Account} from '@/lib/types';
 type Extension={account?:Account;version?:string};
-const Context=createContext<{config:CustomerConfig;extension:Extension|null;account:Account|null;checked:boolean;iphone:boolean}>({config:DEFAULT_CONFIG,extension:null,account:null,checked:false,iphone:false});
+type LandingAccount=Pick<Account,'id'>;
+const Context=createContext<{config:CustomerConfig;extension:Extension|null;account:LandingAccount|null;checked:boolean;iphone:boolean}>({config:DEFAULT_CONFIG,extension:null,account:null,checked:false,iphone:false});
 export function LandingProvider({children}:{children:ReactNode}){
- const [value,setValue]=useState({config:DEFAULT_CONFIG,extension:null as Extension|null,account:null as Account|null,checked:false,iphone:false});
- useEffect(()=>{let current=0,disposed=false;const check=async()=>{
+ const [value,setValue]=useState({config:DEFAULT_CONFIG,extension:null as Extension|null,account:null as LandingAccount|null,checked:false,iphone:false});
+ useEffect(()=>{let current=0,disposed=false,pending:Promise<void>|null=null;const check=async()=>{
   const seq=++current;
   const config=await customerConfig();
   if(disposed||seq!==current)return;
   const ids=[...new Set(config.extensionIds)];
   const available=new Map<string,Extension>();
-  let remaining=ids.length,account:Account|null=null,accountChecked=false;
+  let remaining=ids.length,account:LandingAccount|null=null,accountChecked=false;
   const publish=()=>{
    if(disposed||seq!==current)return;
    setValue(previous=>{
@@ -26,18 +27,22 @@ export function LandingProvider({children}:{children:ReactNode}){
   };
   // Publish each positive response immediately. A silent legacy installation
   // must not delay the current extension or the independent website session.
-  void fetch('/api/me',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(8000)})
+  const session=fetch('/api/auth/session',{credentials:'same-origin',cache:'no-store',signal:AbortSignal.timeout(8000)})
    .then(r=>r.ok?r.json():null).catch(()=>null).then(me=>{account=me?.account||null;accountChecked=true;publish();});
-  for(const id of ids)void extensionMessage<Extension>({kind:'atlas-ping'},id)
-   .then(extension=>{available.set(id,extension);},()=>{}).finally(()=>{remaining--;publish();});
+  const extensions=ids.map(id=>extensionMessage<Extension>({kind:'atlas-ping'},id)
+   .then(extension=>{available.set(id,extension);},()=>{}).finally(()=>{remaining--;publish();}));
   publish();
+  await Promise.all([session,...extensions]);
  };
- const recheck=()=>{if(document.visibilityState==='hidden')return;let pending=false;try{const t=Number(sessionStorage.getItem('foundkeep-install-return'));pending=t>Date.now()-1800000;sessionStorage.removeItem('foundkeep-install-return');}catch{}if(pending&&!(globalThis as any).chrome?.runtime?.sendMessage){location.reload();return;}void check();};
- void check();window.addEventListener('focus',recheck);window.addEventListener('pageshow',recheck);document.addEventListener('visibilitychange',recheck);return()=>{disposed=true;current++;window.removeEventListener('focus',recheck);window.removeEventListener('pageshow',recheck);document.removeEventListener('visibilitychange',recheck);};},[]);
+ // Returning to the tab can fire these three events together. Share the pending
+ // check to avoid overlapping session and extension requests.
+ const startCheck=()=>{if(!pending)pending=check().finally(()=>{pending=null;});};
+ const recheck=()=>{if(document.visibilityState==='hidden')return;let returning=false;try{const t=Number(sessionStorage.getItem('foundkeep-install-return'));returning=t>Date.now()-1800000;sessionStorage.removeItem('foundkeep-install-return');}catch{}if(returning&&!(globalThis as any).chrome?.runtime?.sendMessage){location.reload();return;}startCheck();};
+ startCheck();window.addEventListener('focus',recheck);window.addEventListener('pageshow',recheck);document.addEventListener('visibilitychange',recheck);return()=>{disposed=true;current++;window.removeEventListener('focus',recheck);window.removeEventListener('pageshow',recheck);document.removeEventListener('visibilitychange',recheck);};},[]);
  return <Context.Provider value={value}>{children}</Context.Provider>;
 }
 const Arrow=()=> <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M4 12h16m-6-6 6 6-6 6"/></svg>;
-export function ExtensionLink({className='text-link',quiet=false}:{className?:string;quiet?:boolean}){const {config,extension,account}=useContext(Context);const connected=!!account&&extension?.account?.id===account.id;const href=extension?`/dashboard${connected?'':'?panel=devices'}`:config.storeUrl;return <a className={className} data-extension-install href={href} target={extension?undefined:'_blank'} rel={extension?undefined:'noopener noreferrer'} onClick={()=>{if(!extension)try{sessionStorage.setItem('foundkeep-install-return',String(Date.now()));}catch{}}}><span data-extension-label>{extension?connected?'Open library':extension.account?'Review connection':'Connect browser':quiet?'Add to Chrome':'Add to Chrome'}</span>{!quiet&&<Arrow/>}</a>;}
+export function ExtensionLink({className='text-link',quiet=false}:{className?:string;quiet?:boolean}){const {config,extension,account}=useContext(Context);const connected=!!account&&extension?.account?.id===account.id;const href=extension?connected?'/dashboard':'/dashboard/apps':config.storeUrl;return <a className={className} data-extension-install href={href} target={extension?undefined:'_blank'} rel={extension?undefined:'noopener noreferrer'} onClick={()=>{if(!extension)try{sessionStorage.setItem('foundkeep-install-return',String(Date.now()));}catch{}}}><span data-extension-label>{extension?connected?'Open library':extension.account?'Review connection':'Connect browser':quiet?'Add to Chrome':'Add to Chrome'}</span>{!quiet&&<Arrow/>}</a>;}
 export function ExtensionNote(){const {extension,account,checked}=useContext(Context);return <span className="download-note" role="status">{extension?account&&extension.account?.id===account.id?'Extension installed · Connected to your account.':'Extension installed · Connect your account to sync.':checked?'Chrome Web Store · Version 1.0.0 · Automatic updates':'Checking this browser…'}</span>;}
 export function IphoneLink({className='text-link'}:{className?:string}){const {config}=useContext(Context);return <a className={className} data-iphone-install href={config.iphone.url}><span data-iphone-label>{config.iphone.distribution==='private-beta'?'Request iPhone beta':config.iphone.label}</span></a>;}
 export function IphoneBadge(){const {config}=useContext(Context);return <span className="beta-badge" data-iphone-badge>{config.iphone.badge}</span>;}
@@ -60,7 +65,7 @@ export function LandingHeader(){
   desktop.addEventListener('change',resize);
   return()=>{document.removeEventListener('keydown',key);document.removeEventListener('pointerdown',outside);document.removeEventListener('focusin',outside);desktop.removeEventListener('change',resize);};
  },[open]);
- return <header className="site-header"><Link className="brand" href="/" aria-label="Foundkeep home"><img src="/assets/studio-mark.svg" width="32" height="32" alt=""/><span>Foundkeep</span></Link><nav className="desktop-nav" aria-label="Primary"><a href="#capture">How it works</a><a href="#library">Your collection</a><a href="#everywhere">Get Foundkeep</a></nav><div className="header-actions"><a className="login-link" href={account?'/dashboard':'/login'}>{account?'My library':'Log in'}</a><a className="button button-white button-small" href={account?'/dashboard':'/signup'}>{account?'Open library':'Start collecting'}<Arrow/></a><button className="menu-toggle" ref={toggle} type="button" aria-label={open?'Close navigation':'Open navigation'} aria-expanded={open} aria-controls="mobile-nav" onClick={()=>setOpen(v=>!v)}><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-menu"/></svg></button></div><nav ref={nav} id="mobile-nav" className="mobile-nav" aria-label="Mobile navigation" hidden={!open} onClick={()=>setOpen(false)}><a href="#capture">How it works</a><a href="#library">Your collection</a><a href="#everywhere">Get Foundkeep</a><a href={account?'/dashboard':'/login'}>{account?'My library':'Log in'}</a></nav></header>;
+ return <header className="site-header"><Link className="brand" href="/" aria-label="Foundkeep home"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="32" height="32" alt="" aria-hidden="true"/><span>Foundkeep</span></Link><nav className="desktop-nav" aria-label="Primary"><a href="#capture">How it works</a><a href="#library">Your collection</a><a href="#everywhere">Get Foundkeep</a></nav><div className="header-actions"><a className="login-link" href={account?'/dashboard':'/login'}>{account?'My library':'Log in'}</a><a className="button button-white button-small" href={account?'/dashboard':'/signup'}>{account?'Open library':'Start collecting'}<Arrow/></a><button className="menu-toggle" ref={toggle} type="button" aria-label={open?'Close navigation':'Open navigation'} aria-expanded={open} aria-controls="mobile-nav" onClick={()=>setOpen(v=>!v)}><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-menu"/></svg></button></div><nav ref={nav} id="mobile-nav" className="mobile-nav" aria-label="Mobile navigation" hidden={!open} onClick={()=>setOpen(false)}><a href="#capture">How it works</a><a href="#library">Your collection</a><a href="#everywhere">Get Foundkeep</a><a href={account?'/dashboard':'/login'}>{account?'My library':'Log in'}</a></nav></header>;
 }
 export function Reveal({children,className}:{children:ReactNode;className?:string}){
  const [scope,animate]=useAnimate();

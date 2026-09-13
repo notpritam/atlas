@@ -32,9 +32,9 @@ test('search stays expanded and large-text changes keep the measured bounds', ()
 import { createRequire } from 'node:module';
 import { createDockMotion, dockSpring } from '../components/dockMotion.ts';
 
-// RN Web ships the Animated JS implementation, so exercise real interpolation
-// and spring frames without loading the native view renderer into Node.
-const Animated = createRequire(import.meta.url)('react-native-web/dist/cjs/exports/Animated');
+// Exercise the real spring implementation. The public Animated export switches
+// to an instant mock under NODE_ENV=test (including Bun), hiding every frame.
+const Animated = createRequire(import.meta.url)('react-native-web/dist/cjs/vendor/react-native/Animated/AnimatedImplementation');
 globalThis.requestAnimationFrame = callback => setTimeout(() => callback(performance.now()), 16) as unknown as number;
 globalThis.cancelAnimationFrame = handle => clearTimeout(handle);
 const value = (node: unknown): number => (node as { __getValue(): number }).__getValue();

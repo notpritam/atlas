@@ -6,7 +6,7 @@ let db: ReturnType<typeof openDb>; let id: string;
 beforeEach(() => { db=openDb(':memory:'); id=crypto.randomUUID(); db.query("INSERT INTO customer_accounts(id,email,name,password_hash,recovery_hash,created_at) VALUES(?,?,'Billing','','',0)").run(id,id+'@example.com'); });
 afterEach(() => db.close());
 test('Free includes imports and MCP; either verified subscription grants Pro until expiry', () => {
-  expect(accountPlan(db,id).features).toEqual({imports:true,mcp:true,managedProcessing:false});
+  expect(accountPlan(db,id).features).toEqual({imports:true,mcp:true,managedProcessing:false,groupCollections:false});
   const active={status:'active',expiresAt:Date.now()+60_000,renews:true,sandbox:false};
   writeSubscription(db,id,'stripe',active,200); writeSubscription(db,id,'revenuecat',active,200);
   writeSubscription(db,id,'stripe',{...active,status:'inactive'},300);

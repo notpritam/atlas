@@ -4,6 +4,16 @@
 
 ## Build and package
 
+### Existing development environment
+
+Use **https://dev.foundkeep.app** for user testing. Its system services are `foundkeep-site-dev.service` (site on `8891`) and `foundkeep-backend-dev.service` (backend on `8890`). The dev database and existing accounts live under `/home/pritam/.local/share/foundkeep-dev`; preserve them during deployments.
+
+For dev builds set `FOUNDKEEP_BACKEND_URL=http://127.0.0.1:8890`, `NEXT_PUBLIC_PADDLE_ENV=sandbox`, and load `NEXT_PUBLIC_PADDLE_CLIENT_TOKEN` from `/home/pritam/.config/foundkeep/paddle.dev.client-token.txt` without logging its value. Backend payment secrets are in a separate environment file and must not be passed to the website build.
+
+Package into a new directory under `/home/pritam/.local/share/foundkeep-site-dev/releases`. Verify the standalone server before atomically changing `/home/pritam/.local/share/foundkeep-site-dev/current`, then restart `foundkeep-site-dev.service`. Web-only deployments do not require restarting the backend. Retain the prior release for rollback. User-facing testing should use this existing dev environment instead of an additional preview deployment.
+
+### Production build
+
 From a checkout with installed workspace dependencies:
 
 ```sh
@@ -22,7 +32,7 @@ The package contains traced runtime dependencies, static chunks and dereferenced
 Use a separate Bun backend and empty data directory for mutating browser tests. Allow the exact test Next origin in `ATLAS_CUSTOMER_ORIGIN`. Build with that test backend address before starting the standalone server. The tests refuse production account mutations except the existing explicit opt-in customer-flow harness.
 
 ```sh
-FOUNDKEEP_WEB_TEST_URL=http://127.0.0.1:18791 CHROMIUM_PATH=/path/to/chromium node --test tests/next-web.mjs tests/next-auth.mjs
+FOUNDKEEP_WEB_TEST_URL=http://127.0.0.1:18791 CHROMIUM_PATH=/path/to/chromium node --test tests/next-web.mjs tests/next-auth.mjs tests/next-home-audit.mjs
 BASE_URL=http://127.0.0.1:18791 CHROMIUM_PATH=/path/to/chromium node tests/next-dashboard.mjs
 FOUNDKEEP_NEXT_WEB=1 ATLAS_CUSTOMER_SITE_URL=http://127.0.0.1:18791 CHROMIUM_PATH=/path/to/chromium node --test tests/customer-flow.mjs
 bun test --timeout 120000

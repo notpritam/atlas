@@ -30,7 +30,7 @@ export function CaptureDemo(){const [saved,setSaved]=useState(false);const saveR
               </div>
               <div className="demo-destination">
                 <div className="demo-library-heading">
-                  <img src="/assets/studio-mark.svg" width="25" height="25" alt="" /><strong>Your collection</strong><span id="demoCount">{saved ? '1 item' : '0 items'}</span>
+                  <img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="25" height="25" alt="" aria-hidden="true" /><strong>Your collection</strong><span id="demoCount">{saved ? '1 item' : '0 items'}</span>
                 </div>
                 <div className="demo-empty" id="demoEmpty" hidden={saved}>
                   <div className="empty-bookmark">

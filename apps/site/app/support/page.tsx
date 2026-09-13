@@ -1,3 +1,4 @@
+import '../customer.css';
 import Link from 'next/link';
 import type {Metadata} from 'next';
 import {BetaAccess} from '@/components/iphone-access';
@@ -6,7 +7,7 @@ export default function Page(){return <div className="customer-body reading-body
 
   <a className="skip-link" href="#main">Skip to content</a>
   <header className="site-header privacy-header wrap">
-    <Link className="brand" href="/"><img src="/assets/studio-mark.svg" width="36" height="36" alt="" /><span>Foundkeep</span></Link>
+    <Link className="brand" href="/"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="36" height="36" alt="" /><span>Foundkeep</span></Link>
     <nav className="support-header-nav" aria-label="Support navigation"><a href="/dashboard">Open library</a><Link className="text-link" href="/">Back to Foundkeep</Link></nav>
   </header>
 

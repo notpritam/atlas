@@ -43,6 +43,9 @@ export function createApp(db: Database): Hono<Env> {
     c.header("Referrer-Policy", c.req.path.startsWith("/api/auth/oauth/") || c.req.path === "/auth.html" ? "no-referrer" : "strict-origin-when-cross-origin");
     c.header("X-Frame-Options", "SAMEORIGIN");
     c.header("Strict-Transport-Security", "max-age=31536000");
+    if (["/customer-config.json", "/extension-policy.json", "/foundkeep-extension.zip", "/atlas-extension.zip"].includes(c.req.path) || /^\/ext\/[^/]+\.zip$/.test(c.req.path)) {
+      c.header("Cache-Control", "no-store");
+    }
     if (["/auth.html", "/dashboard.html", "/open.html"].includes(c.req.path)) {
       c.header("Content-Security-Policy", "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; object-src 'none'");
       c.header("Cache-Control", "no-store");

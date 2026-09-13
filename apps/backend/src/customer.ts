@@ -1,3 +1,4 @@
+import {registerCustomerCollections} from './customer-collections';
 import {registerCustomerProcessing,createProcessingService} from './customer-processing.ts';
 import {registerAgentAccess} from './customer-agent-access.ts';
 import {registerCustomerMcp} from './customer-mcp.ts';
@@ -445,6 +446,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
   registerCustomerProcessing(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerAgentAccess(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerCustomerMcp(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
+  registerCustomerCollections(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) }, c => { try { return auth(c); } catch(error) { if(error instanceof CustomerError && error.status===401)return null; throw error; } });
 
   app.post("/mobile/register", async (c) => {
     publicRate(c, "mobile-register");
@@ -628,6 +630,18 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
     }
     deleteCookie(c, cookieName, cookieOptions);
     return c.json({ ok: true });
+  });
+
+  // Public pages need only the identity of a website session. Anonymous visits
+  // are expected here; /me keeps its existing authentication requirement.
+  app.get("/auth/session", (c) => {
+    try {
+      const { account: owner } = auth(c, true);
+      return c.json({ account: { id: owner.id } });
+    } catch (error) {
+      if (error instanceof CustomerError && error.status === 401) return c.json({ account: null });
+      throw error;
+    }
   });
 
   app.get("/me", (c) => {

@@ -83,6 +83,30 @@ test("recent order uses collection arrival time and persists the saving platform
 });
 
 describe("customer account security", () => {
+  test("public session discovery treats missing or expired cookies as signed out without exposing private account data", async () => {
+    for (const cookie of [undefined, "__Host-atlas_session=invalid", `__Host-atlas_session=${"x".repeat(43)}`]) {
+      const response = await request("/auth/session", "GET", undefined, cookie);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ account: null });
+      expect(response.headers.get("cache-control")).toBe("private, no-store");
+    }
+    const owner = await register();
+    const read = () => request("/auth/session", "GET", undefined, owner.cookie);
+    expect(await (await read()).json()).toEqual({ account: { id: owner.account.id } });
+    const device = await connect(owner.cookie);
+    expect((await request("/auth/session", "GET", undefined, device.bearer)).status).toBe(403);
+    const switched = await app.request(`${ORIGIN}/api/auth/session`, { headers: { cookie: owner.cookie, "X-Atlas-Account": "different-account" } });
+    expect(switched.status).toBe(409);
+    db.query("UPDATE customer_sessions SET expires_at=0 WHERE account_id=?").run(owner.account.id);
+    expect(await (await read()).json()).toEqual({ account: null });
+    expect((await request("/me", "GET", undefined, owner.cookie)).status).toBe(401);
+    const renewed = await request("/auth/login", "POST", { email: owner.email, password: PASSWORD });
+    const cookie = renewed.headers.get("set-cookie")!.split(";")[0]!;
+    await request("/auth/logout", "POST", {}, cookie);
+    expect(await (await request("/auth/session", "GET", undefined, cookie)).json()).toEqual({ account: null });
+    expect((await request("/me")).status).toBe(401);
+  });
+
   test("article preview DTOs use an owned same-origin endpoint and ignore caller-selected URLs", async () => {
     const owner = await register();
     const other = await register();

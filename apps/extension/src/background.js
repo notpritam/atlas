@@ -1,3 +1,4 @@
+import { PRODUCT_NAME } from "./product.js";
 import { trustedLibrarySender } from "./library-api.js";
 import { startBookmarkImport, resumeBookmarkImport, cancelBookmarkImport, importProgress } from "./import-queue.js";
 import { drainQueue, saveCapture } from "./capture.js";
@@ -278,7 +279,7 @@ async function reconcileContextMenus(preferences) {
   if (!state.contextMenus) return;
   for (const menu of MENUS) {
     const key = capturePreferenceKey(menu.id);
-    if (state.capture[key]) chrome.contextMenus.create(menu);
+    if (state.capture[key]) chrome.contextMenus.create({ ...menu, title: menu.title.replaceAll("Foundkeep", PRODUCT_NAME) });
   }
 }
 

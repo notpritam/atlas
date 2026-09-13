@@ -1,3 +1,4 @@
+import {bindCollections} from './collections-ui.js';
 import * as db from "./db.js";
 import { $, title, domain, ago, icon, hydrateIcons, message } from "./ui.js";
 import { bindConnections } from "./connections.js";
@@ -234,3 +235,5 @@ async function init() {
 }
 
 init();
+
+const sharedCollections=bindCollections(document.getElementById('popup-collections'),{getAccountId:()=>cloudState?.account?.id,getSource:async()=>{const [tab]=await chrome.tabs.query({active:true,currentWindow:true});return {title:tab?.title||'',url:tab?.url||''};}});

@@ -6,7 +6,7 @@
 .customer-body.dashboard-body .compact-library-header .search-field { flex:1; min-width:100px; width:auto; }
 .customer-body.dashboard-body .compact-library-header .button { min-height:44px; padding:10px 15px; font-size:12px; }
 .customer-body.dashboard-body .compact-library-header .refresh-button { width:44px; min-width:44px; padding:11px; }
-.customer-body.dashboard-body .compact-library-header .refresh-button svg { display:block; width:20px; height:20px; }
+.customer-body.dashboard-body .compact-library-header .refresh-button svg { display:block; width:20px; height:20px; stroke-width:2; }
 .customer-body.dashboard-body .collection-workspace { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:24px; flex:1; }
 .customer-body.dashboard-body.has-capture-panel .collection-workspace { grid-template-columns:minmax(0,1fr) minmax(380px,460px); }
 .customer-body.dashboard-body .collection { min-width:0; }
@@ -94,8 +94,7 @@
 .customer-body.dashboard-body .detail-image-frame { margin-top:24px; border:1px solid var(--line); border-radius:12px; }
 .customer-body.dashboard-body .detail-image-frame .detail-image { margin:0; border:0; border-radius:0; width:100%; height:auto; }
 .customer-body.dashboard-body .capture-image-skeleton { position:absolute; inset:0; overflow:hidden; background:var(--sky); }
-.customer-body.dashboard-body .capture-image-shimmer { position:absolute; top:0; bottom:0; left:0; width:45%; background:linear-gradient(90deg,transparent,#ffffffa8,transparent); }
-@media (prefers-reduced-motion:reduce) { .customer-body.dashboard-body .capture-image-frame img { transition:none; } .customer-body.dashboard-body .capture-image-shimmer { display:none; } }
+@media (prefers-reduced-motion:reduce) { .customer-body.dashboard-body .capture-image-frame img { transition:none; } }
 
 /* Variable-height cards, with a deliberate gutter in both directions. */
 .customer-body.dashboard-body .capture-preview-shell .capture-preview { width:100%; height:100%; object-fit:cover; object-position:top; }

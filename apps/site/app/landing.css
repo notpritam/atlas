@@ -39,10 +39,16 @@ html:has(.landing-body) {
   display: none !important;
 }
 .landing-body a {
+  display: inline-flex;
+  align-items: center;
+  min-width: 48px;
+  min-height: 48px;
   color: inherit;
   text-underline-offset: 4px;
 }
 .landing-body button,.landing-body a,.landing-body summary {
+  min-width: 48px;
+  min-height: 48px;
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
 }
@@ -162,7 +168,7 @@ html:has(.landing-body) {
   background: #044f7aba;
 }
 .landing-body .button-small {
-  min-height: 39px;
+  min-height: 48px;
   padding: 10px 18px;
   font-size: 12px;
 }
@@ -293,8 +299,8 @@ html:has(.landing-body) {
   display: none;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
   border: 1px solid #ffffff55;
   background: #075d8980;
   border-radius: 50%;
@@ -549,7 +555,7 @@ html:has(.landing-body) {
 }
 .landing-body .demo-save {
   font-size: 11px;
-  min-height: 39px;
+  min-height: 48px;
   padding: 10px 14px;
 }
 .landing-body .demo-destination {
@@ -874,7 +880,7 @@ html:has(.landing-body) {
   gap: 7px;
   align-items: center;
   width: fit-content;
-  min-height: 36px;
+  min-height: 48px;
 }
 .landing-body .interface-disclosure summary::-webkit-details-marker {
   display: none;
@@ -1931,7 +1937,7 @@ html:has(.landing-body) {
     margin-top: 25px;
   }
   .landing-body .hero-actions .button {
-    min-height: 44px;
+    min-height: 48px;
     padding: 12px 15px;
     font-size: 12px;
     gap: 7px;
@@ -2396,7 +2402,7 @@ html:has(.landing-body) {
 }
 
 .landing-body .hero-device-actions { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:10px; margin-top:14px; }
-.landing-body .hero-device-actions .button { font-size:13px; min-height:44px; padding:11px 18px; }
+.landing-body .hero-device-actions .button { font-size:13px; min-height:48px; padding:11px 18px; }
 .landing-body .hero-device-actions svg { width:18px; height:18px; }
 @media (max-width:540px) {
   .landing-body .hero-device-actions { gap:8px; margin-top:10px; }

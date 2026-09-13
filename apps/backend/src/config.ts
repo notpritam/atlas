@@ -22,6 +22,16 @@ function customerOrigins() {
 
 const configuredCustomerOrigins = customerOrigins();
 
+function customerExtensionIds() {
+  // An explicit environment allowlist replaces the production defaults. Adding
+  // the defaults here would let production extensions claim dev credentials.
+  const value = process.env.ATLAS_CUSTOMER_EXTENSION_IDS;
+  if (value === undefined) return ['cficnecbdbiddngllpfbacabgbcjinmk', 'mjfcgmboaijfcaanepdipbgmipnccnpn'];
+  const ids = [...new Set(value.split(',').map(id => id.trim()).filter(Boolean))];
+  if (!ids.length || ids.some(id => !/^[a-p]{32}$/.test(id))) throw new Error('ATLAS_CUSTOMER_EXTENSION_IDS must contain valid extension IDs.');
+  return ids;
+}
+
 /** Runtime configuration, all overridable via env for the systemd unit on omni. */
 export const config = {
   port: Number(process.env.ATLAS_PORT ?? 8787),
@@ -31,11 +41,7 @@ export const config = {
   customerOrigins: configuredCustomerOrigins,
   /** Primary origin retained as a compatibility accessor for URLs and secure-cookie mode. */
   customerOrigin: configuredCustomerOrigins[0]!,
-  customerExtensionIds: [...new Set([
-    "cficnecbdbiddngllpfbacabgbcjinmk",
-    "mjfcgmboaijfcaanepdipbgmipnccnpn",
-    ...(process.env.ATLAS_CUSTOMER_EXTENSION_IDS ?? "").split(",").map(value => value.trim()).filter(value => /^[a-p]{32}$/.test(value)),
-  ])],
+  customerExtensionIds: customerExtensionIds(),
   /** Reverse proxy owns public TLS; bind the backend to loopback by default. */
   hostname: process.env.ATLAS_HOST ?? "127.0.0.1",
   /** Where the SQLite db + blobs live. Defaults to apps/backend/data. */

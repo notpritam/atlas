@@ -1,8 +1,8 @@
 name: Release extension
 
-# Publishes a signed .crx + update manifest to GitHub Releases whenever the
-# extension changes on main (or on manual dispatch). Chrome auto-updates from
-# the release's stable `latest/download` asset URLs.
+# Verify extension changes on main. Publishing the production .crx and update
+# manifest requires an explicit manual dispatch; a merge must not promote dev
+# work to installed production clients through the stable release URLs.
 on:
   push:
     branches: [main]
@@ -30,7 +30,7 @@ jobs:
       - run: bun install --frozen-lockfile --ignore-scripts
 
       - name: Require the existing extension signing key
-        if: env.HAS_KEY != 'true'
+        if: github.event_name == 'workflow_dispatch' && env.HAS_KEY != 'true'
         run: |
           echo "The EXTENSION_PEM secret is required to publish Foundkeep updates."
           exit 1
@@ -54,7 +54,7 @@ jobs:
         run: echo "version=$(node -p "require('./apps/extension/manifest.json').version")" >> "$GITHUB_OUTPUT"
 
       - name: Build signed crx + update manifest
-        if: env.HAS_KEY == 'true'
+        if: github.event_name == 'workflow_dispatch' && env.HAS_KEY == 'true'
         env:
           EXTENSION_PEM_B64: ${{ secrets.EXTENSION_PEM }}
         run: |
@@ -62,7 +62,7 @@ jobs:
           node deploy/verify-release.mjs
 
       - name: Publish GitHub Release
-        if: env.HAS_KEY == 'true'
+        if: github.event_name == 'workflow_dispatch' && env.HAS_KEY == 'true'
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ext-v${{ steps.v.outputs.version }}

@@ -13,7 +13,7 @@ export function accountPlan(db: Database, accountId: string, now = Date.now()) {
     active:row.status === 'active' && row.expires_at>now }));
   const pro = subscriptions.some(item => item.active);
   return { plan: pro ? 'pro' as const : 'free' as const, pro, subscriptions,
-    features:{ imports:true,mcp:true,managedProcessing:pro },
+    features:{ imports:true,mcp:true,managedProcessing:pro, groupCollections:pro },
     limits:{ monthlyProcessing:pro ? 500 : 0, maxCaptures:10_000, maxBytes:pro ? 2*1024**3 : 200*1024**2 },
     price:{ currency:'USD',monthly:5 } };
 }

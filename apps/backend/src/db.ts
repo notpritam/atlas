@@ -496,6 +496,45 @@ const MIGRATIONS: string[] = [
        SELECT 'paddle',OLD.paddle_id,CAST(strftime('%s','now') AS INTEGER)*1000 WHERE OLD.paddle_id IS NOT NULL;
    END;`,
 
+  // Deliberate sharing lives separately from private library organization.
+  `CREATE TABLE customer_collections (
+    id TEXT PRIMARY KEY, owner_id TEXT NOT NULL REFERENCES customer_accounts(id) ON DELETE CASCADE,
+    slug TEXT NOT NULL UNIQUE, title TEXT NOT NULL, description TEXT NOT NULL DEFAULT '',
+    tags TEXT NOT NULL DEFAULT '[]', rules TEXT NOT NULL DEFAULT '',
+    kind TEXT NOT NULL CHECK(kind IN ('personal','group')),
+    visibility TEXT NOT NULL CHECK(visibility IN ('private','public')),
+    submission_policy TEXT NOT NULL CHECK(submission_policy IN ('owner','members','anyone')),
+    require_approval INTEGER NOT NULL DEFAULT 1,
+    created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+   );
+   CREATE INDEX customer_collections_owner ON customer_collections(owner_id,updated_at DESC);
+   CREATE INDEX customer_collections_public ON customer_collections(visibility,updated_at DESC);
+   CREATE TABLE customer_collection_members (
+    collection_id TEXT NOT NULL REFERENCES customer_collections(id) ON DELETE CASCADE,
+    account_id TEXT NOT NULL REFERENCES customer_accounts(id) ON DELETE CASCADE,
+    role TEXT NOT NULL CHECK(role IN ('viewer','contributor','moderator')),
+    accepted INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL,
+    PRIMARY KEY(collection_id,account_id)
+   );
+   CREATE INDEX customer_collection_members_account ON customer_collection_members(account_id,accepted);
+   CREATE TABLE customer_collection_follows (
+    collection_id TEXT NOT NULL REFERENCES customer_collections(id) ON DELETE CASCADE,
+    account_id TEXT NOT NULL REFERENCES customer_accounts(id) ON DELETE CASCADE,
+    created_at INTEGER NOT NULL, PRIMARY KEY(collection_id,account_id)
+   );
+   CREATE INDEX customer_collection_follows_account ON customer_collection_follows(account_id);
+   CREATE TABLE customer_collection_entries (
+    id TEXT PRIMARY KEY, collection_id TEXT NOT NULL REFERENCES customer_collections(id) ON DELETE CASCADE,
+    contributor_id TEXT NOT NULL REFERENCES customer_accounts(id) ON DELETE CASCADE,
+    capture_id TEXT REFERENCES customer_captures(id) ON DELETE CASCADE,
+    client_id TEXT NOT NULL, title TEXT NOT NULL, url TEXT, body TEXT NOT NULL DEFAULT '',
+    tags TEXT NOT NULL DEFAULT '[]', share_image INTEGER NOT NULL DEFAULT 0,
+    status TEXT NOT NULL CHECK(status IN ('pending','approved','rejected')),
+    created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL,
+    UNIQUE(contributor_id,client_id)
+   );
+   CREATE INDEX customer_collection_entries_collection ON customer_collection_entries(collection_id,status,created_at DESC,id);
+   CREATE INDEX customer_collection_entries_capture ON customer_collection_entries(capture_id);`,
 ];
 
 export const DATABASE_SCHEMA_VERSION = MIGRATIONS.length;

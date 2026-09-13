@@ -15,11 +15,14 @@ export function CheckoutClient() {
     if (!token || !environment || !ptxn) { setError(true); return; }
     let paddle: Paddle | undefined;
     let cancelled = false;
+    let completed = false;
     initializePaddle({
       token,
       environment,
       eventCallback: (event) => {
-        if (event.name === CheckoutEventNames.CHECKOUT_COMPLETED) router.replace('/dashboard?billing=success');
+        if (cancelled) return;
+        if (event.name === CheckoutEventNames.CHECKOUT_COMPLETED) { completed = true; router.replace('/dashboard/plans?billing=success'); }
+        if (!completed && event.name === CheckoutEventNames.CHECKOUT_CLOSED) router.replace('/dashboard/plans?billing=cancelled');
       },
     })
       .then((instance) => {
@@ -39,8 +42,8 @@ export function CheckoutClient() {
     return (
       <main className="route-error">
         <h1>Couldn’t open checkout.</h1>
-        <p>We weren’t able to start your checkout. Your card has not been charged. Please try again from your dashboard.</p>
-        <a href="/dashboard">Back to dashboard</a>
+        <p>We weren’t able to start your checkout. Please check your plan before trying again.</p>
+        <a href="/dashboard/plans">Back to plans</a>
       </main>
     );
   }

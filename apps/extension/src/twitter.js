@@ -3,6 +3,10 @@
 // text and permalink) to Foundkeep as a highlight. Self-contained content script — all
 // network goes through the background worker, so no token lives in the page.
 
+const PRODUCT_NAME = chrome.runtime.getManifest().action.default_title;
+// Keep dev outside the marker used by already-installed production releases.
+const BUTTON_ATTRIBUTE = PRODUCT_NAME === "Foundkeep Dev" ? "data-foundkeep-dev" : "data-atlas";
+const OWN_BUTTON = `[${BUTTON_ATTRIBUTE}="${chrome.runtime.id}"]`;
 const MARK_SVG = `<svg width="19" height="19" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="7" x2="6.5" y2="17"/><line x1="12" y1="7" x2="17.5" y2="17"/><line x1="6.5" y1="17" x2="17.5" y2="17"/></g><g fill="currentColor"><circle cx="12" cy="6.4" r="2.5"/><circle cx="6.2" cy="17.2" r="2"/><circle cx="17.8" cy="17.2" r="2"/></g></svg>`;
 const CHECK_SVG = `<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 const IDLE = "rgb(113, 118, 123)";
@@ -39,7 +43,8 @@ function setState(btn, state) {
     btn.style.background = "rgba(198,59,35,0.12)";
     btn.style.opacity = "1";
     btn.innerHTML = CHECK_SVG;
-    btn.title = "Saved to Foundkeep";
+    btn.title = `Saved to ${PRODUCT_NAME}`;
+    btn.setAttribute("aria-label", btn.title);
   } else if (state === "error") {
     btn.style.color = "#f4212e";
     btn.style.opacity = "1";
@@ -57,13 +62,14 @@ function reset(btn) {
   btn.style.color = IDLE;
   btn.style.background = "transparent";
   btn.style.opacity = "1";
-  btn.innerHTML = MARK_SVG;
-  btn.title = "Save to Foundkeep";
+  btn.innerHTML = MARK_SVG + (PRODUCT_NAME === "Foundkeep Dev" ? '<small style="font-size:9px;margin-left:2px">Dev</small>' : "");
+  btn.title = `Save to ${PRODUCT_NAME}`;
+  btn.setAttribute("aria-label", btn.title);
 }
 
 function makeButton() {
   const wrap = document.createElement("div");
-  wrap.setAttribute("data-atlas", "1");
+  wrap.setAttribute(BUTTON_ATTRIBUTE, chrome.runtime.id);
   wrap.style.cssText = "display:flex;align-items:center;";
 
   const btn = document.createElement("button");
@@ -72,6 +78,7 @@ function makeButton() {
     "display:inline-flex;align-items:center;justify-content:center;width:34.75px;height:34.75px;padding:0;margin:0;border:0;background:transparent;border-radius:9999px;cursor:pointer;color:" +
     IDLE +
     ";transition:color .2s,background .2s,opacity .2s;";
+  if (PRODUCT_NAME === "Foundkeep Dev") btn.style.width = "52px";
   reset(btn);
 
   btn.addEventListener("mouseenter", () => {
@@ -114,7 +121,7 @@ function inject() {
     'article[data-testid="tweet"] div[role="group"]',
   );
   for (const g of groups) {
-    if (g.querySelector("[data-atlas]")) continue;
+    if (g.querySelector(OWN_BUTTON)) continue;
     // Only the action bar (it has the reply button); skip metric-only groups.
     if (!g.querySelector('[data-testid="reply"]')) continue;
     g.appendChild(makeButton());
@@ -137,7 +144,7 @@ function refreshFeature() {
   chrome.runtime.sendMessage({ kind: "feature-status", feature: "tweet" }, (result) => {
     if (chrome.runtime.lastError) return;
     featureEnabled = result?.enabled !== false;
-    if (!featureEnabled) document.querySelectorAll("[data-atlas]").forEach((node) => node.remove());
+    if (!featureEnabled) document.querySelectorAll(OWN_BUTTON).forEach((node) => node.remove());
     observer.disconnect();
     if (featureEnabled) {
       observer.observe(document.body, { childList: true, subtree: true });

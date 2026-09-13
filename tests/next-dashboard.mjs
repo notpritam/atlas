@@ -25,7 +25,7 @@ try {
   const document = await context.request.get(base + '/dashboard');
   assert.match(await document.text(), /Dashboard QA/); record('Initial HTML contains the authenticated account');
   await page.goto(base + '/dashboard'); await page.locator('#new-note:not([disabled])').waitFor();
-  await page.locator('#hide-setup').click();
+  assert.equal(await page.locator('#onboarding').count(), 0);
   let failNote = true;
   const noteWrites = [];
   await page.route('**/api/captures', async route => {
@@ -66,16 +66,17 @@ try {
   await page.locator('[data-type="note"]').click(); await page.waitForFunction(() => document.querySelectorAll('.capture-card').length === 1); assert.match(page.url(), /type=note/);
   await page.locator('.capture-open').click(); await page.locator('.expand-capture').click(); await page.waitForURL('**/dashboard/saved/**'); assert.equal(new URL(page.url()).searchParams.get('type'), 'note');
   await page.locator('.reading-back').click(); await page.waitForURL('**/dashboard?type=note'); await page.locator('[data-type=""]').click(); record('Search, filters, Back and expanded-reader return preserve URL state');
-  await page.locator('#open-account').click(); await page.locator('#account-dialog').waitFor({ state: 'visible' }); await page.locator('#preference-form[data-ready="true"]').waitFor();
+  await page.locator('#open-account').click(); await page.waitForURL('**/dashboard/settings'); await page.getByRole('link', { name: 'Browser capture', exact: true }).click(); await page.locator('#preference-form[data-ready="true"]').waitFor();
   await page.locator('[data-preference="capture.note"]').uncheck(); await page.locator('#save-preferences').click(); await page.locator('#preference-message').filter({ hasText: 'Saved.' }).waitFor();
-  await page.locator('[data-close="account-dialog"]').click(); assert.equal(await page.locator('#new-note').isDisabled(), true);
-  await page.locator('#open-account').click(); await page.locator('[data-preference="capture.note"]').check(); await page.locator('#save-preferences').click(); await page.locator('#preference-message').filter({ hasText: 'Saved.' }).waitFor();
+  await page.locator('#all-captures').click(); await page.waitForURL(base + '/dashboard'); await page.locator('#new-note').waitFor(); assert.equal(await page.locator('#new-note').isDisabled(), true);
+  await page.locator('#open-account').click(); await page.getByRole('link', { name: 'Browser capture', exact: true }).click(); await page.locator('#preference-form[data-ready="true"]').waitFor(); await page.locator('[data-preference="capture.note"]').check(); await page.locator('#save-preferences').click(); await page.locator('#preference-message').filter({ hasText: 'Saved.' }).waitFor();
+  await page.getByRole('link', { name: 'Account', exact: true }).click();
   await page.locator('#export-account').click(); const download = page.waitForEvent('download'); await page.locator('#confirm-accept').click(); assert.match((await download).suggestedFilename(), /^foundkeep-export-.*\.json$/);
   await page.locator('#current-password').fill(password); cleanupPassword = 'Dashboard-QA-Rotated-924710'; await page.locator('#new-password').fill(cleanupPassword); await page.locator('#change-password').click(); await page.locator('#confirm-accept').click();
   await page.locator('#password-recovery-dialog').waitFor({ state: 'visible' }); assert.equal(await page.locator('#finish-password-recovery').isDisabled(), true);
   await page.keyboard.press('Escape'); assert.equal(await page.locator('#password-recovery-dialog').isVisible(), true);
   await page.locator('#password-recovery-saved').check(); await page.locator('#finish-password-recovery').click(); assert.equal(await page.locator('#password-recovery-code').textContent(), '');
-  await page.locator('#logout').click(); await page.locator('#confirm-cancel').click(); await page.locator('[data-close="account-dialog"]').click(); record('Preferences, confirmed export/logout and recovery acknowledgement work');
+  await page.locator('#logout').click(); await page.locator('#confirm-cancel').click(); await page.locator('#all-captures').click(); await page.waitForURL(base + '/dashboard'); record('Preferences, confirmed export/logout and recovery acknowledgement work');
   for (const width of [1440, 390, 320]) {
     await page.setViewportSize({ width, height: 1000 }); await page.evaluate(() => document.fonts.ready);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Overflow at ${width}`);

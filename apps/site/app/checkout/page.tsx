@@ -1,3 +1,4 @@
+import '../customer.css';
 import { Suspense } from 'react';
 import type { Metadata } from 'next';
 import { CheckoutClient } from './checkout-client';

@@ -1,5 +1,7 @@
+import {bindCollections} from './collections-ui.js';
 import { $,icon,hydrateIcons,domain,ago,sourceUrl,openDialog,wireDialog } from './ui.js';
 import { parseBookmarkHtml,flattenBookmarkTree,IMPORT_MAX_BYTES } from './bookmark-import.js';
+import { CUSTOMER_ORIGIN } from './product.js';
 
 let accountId=null,organization={folders:[],tags:[]},rows=[],cursor=null,type='',epoch=0,detail=null,preview=null;
 let refreshTimer,searchTimer,mode='list';const images=new Map();let imageQueue=[],imageWorkers=0;
@@ -55,7 +57,7 @@ async function refresh(){
   try{
     const state=await chrome.runtime.sendMessage({kind:'cloud-status'});if(!state?.ok)throw new Error(state?.error||'Could not load the connection.');
     const next=state.account?.id||null;
-    if(next!==accountId){epoch++;images.clear();rows=[];preview=null;detail=null;$('detail').hidden=true;document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());}
+    if(next!==accountId){sharedCollections.reset();epoch++;images.clear();rows=[];preview=null;detail=null;$('detail').hidden=true;document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());}
     accountId=next;const connected=!!accountId&&state.status!=='reconnect';
     $('accountLabel').textContent=state.account?`${state.account.name||'Your collection'} · ${state.status==='reconnect'?'Reconnect this browser':'Connected'}`:'Your own little corner of the internet';
     $('connect').hidden=connected;$('collection').hidden=!connected||!$('detail').hidden;
@@ -71,11 +73,12 @@ async function openSave(id){
   catch(error){notice(error.message);}
 }
 function showEditor(save=null){
+  sharedCollections.reset();
   detail=save;renderOrganization();$('collection').hidden=true;$('detail').hidden=false;
   $('detailKind').textContent=save?`${save.type} · ${ago(save.createdAt)}`:'A new note';
   $('editTitle').value=save?.sourceTitle||'';$('editNote').value=save?.noteText||'';$('editFolder').value=save?.folderId||'';$('editTags').value=(save?.userTags||[]).join(', ');
   $('saveEdit').textContent=save?'Save changes':'Save note';$('deleteSave').hidden=!save;$('expand').hidden=!save;
-  if(save)$('expand').href='https://foundkeep.app/dashboard/saved/'+encodeURIComponent(save.id);
+  if(save)$('expand').href=CUSTOMER_ORIGIN+'/dashboard/saved/'+encodeURIComponent(save.id);
   const origin=sourceUrl(save?.sourceUrl);$('origin').hidden=!origin;if(origin)$('origin').href=origin;
   $('content').textContent=save?.articleText||save?.selectionText||save?.summary||'';$('provenance').replaceChildren();
   for(const item of save?.importOrigins||[]){const paragraph=document.createElement('p');paragraph.textContent=`Imported from ${item.source}${item.folderPath?.length?' · '+item.folderPath.join(' / '):''}${item.addedAt?' · Bookmarked '+new Date(item.addedAt).toLocaleDateString():''}`;$('provenance').append(paragraph);}
@@ -151,3 +154,5 @@ chrome.runtime.onMessage.addListener(message=>{
 window.addEventListener('focus',()=>void refresh());
 document.addEventListener('keydown',event=>{if(event.key==='/'&&!['INPUT','TEXTAREA','SELECT'].includes(document.activeElement?.tagName)&&!document.querySelector('dialog[open]')){event.preventDefault();$('q').focus();}});
 void chrome.storage.local.get('foundkeepLibraryView').then(value=>{mode=value.foundkeepLibraryView==='gallery'?'gallery':'list';}).then(refresh);
+
+const sharedCollections=bindCollections(document.getElementById('library-collections'),{getAccountId:()=>accountId,getSource:async()=>detail||{title:document.getElementById('editTitle').value}});

@@ -2,8 +2,27 @@ import Link from 'next/link';
 import type {Metadata} from 'next';
 import {LandingProvider,LandingHeader,HeroActions,ExtensionLink,ExtensionNote,IphoneLink,IphoneBadge,IphoneAvailability,PlatformGrid,Reveal} from '@/components/landing-interactions';
 import {CaptureDemo} from '@/components/capture-demo';
-export const metadata:Metadata={alternates:{canonical:'/'}};
+import './landing.css';
+
+const title='Foundkeep — A place for the things worth keeping';
+const description='Keep links, highlights, photos and files in one private collection. Save from your browser, iPhone or the web, then find your good ideas again.';
+const url='https://foundkeep.app/';
+const preview={url:'https://foundkeep.app/assets/foundkeep-scenic-social.png',width:1200,height:630,alt:'Foundkeep — Found it? Keep it. A private collection for your good finds.'};
+export const metadata:Metadata={
+ alternates:{canonical:url},description,robots:{index:true,follow:true},
+ openGraph:{type:'website',siteName:'Foundkeep',url,title,description,images:[preview]},
+ twitter:{card:'summary_large_image',title,description,images:[preview]},
+};
+const structuredData={
+ '@context':'https://schema.org',
+ '@graph':[
+  {'@type':'Organization','@id':`${url}#organization`,name:'Foundkeep',url,logo:'https://foundkeep.app/assets/mark-512.png?v=bookmark-evolved-1'},
+  {'@type':'WebSite','@id':`${url}#website`,name:'Foundkeep',url,description,publisher:{'@id':`${url}#organization`}},
+  {'@type':'SoftwareApplication',name:'Foundkeep',url,description,applicationCategory:'ProductivityApplication',operatingSystem:'Web, Chrome, iOS',publisher:{'@id':`${url}#organization`}},
+ ],
+};
 export default function Home(){return <LandingProvider><div className="landing-body">
+    <script type="application/ld+json" dangerouslySetInnerHTML={{__html:JSON.stringify(structuredData).replace(/</g,'\\u003c')}}/>
     <a className="skip-link" href="#main">Skip to content</a>
     <svg className="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
       <defs>
@@ -89,7 +108,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
         <section className="hero" aria-labelledby="hero-heading">
           <div className="architecture hero-scenery">
             <picture className="scenery"><source type="image/webp" srcSet="\n                  /assets/foundkeep-alpine-800.webp   800w,\n                  /assets/foundkeep-alpine-1600.webp 1600w\n                " sizes="(max-width: 540px) 1130px, 100vw" />
-              <img src="/assets/foundkeep-alpine-1600.webp" alt="" width="1600" height="1000" /></picture>
+              <img src="/assets/foundkeep-alpine-1600.webp" alt="" aria-hidden="true" width="1600" height="1000" decoding="async" fetchPriority="high" /></picture>
           </div>
           <LandingHeader />
           <div className="hero-copy">
@@ -146,7 +165,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
           </div>
           <div className="collection-preview library-product" aria-label="Illustrative collection showing saved links, images and notes">
             <div className="collection-top">
-              <span className="preview-brand"><img src="/assets/studio-mark.svg" width="27" height="27" alt="" />Your collection</span><span className="preview-search"><svg aria-hidden="true" viewBox="0 0 24 24">
+              <span className="preview-brand"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="27" height="27" alt="" aria-hidden="true" />Your collection</span><span className="preview-search"><svg aria-hidden="true" viewBox="0 0 24 24">
                   <use href="#i-search"></use>
                 </svg>
                 A place for your next good find</span><a href="/dashboard" className="round-link" aria-label="Open your Foundkeep dashboard"><svg aria-hidden="true" viewBox="0 0 24 24">
@@ -155,7 +174,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
             <div className="collection-grid">
               <article className="collection-card photo-card">
                 <div className="collection-photo mountain-photo">
-                  <img src="/assets/foundkeep-alpine-800.webp" width="800" height="500" alt="Alpine mountain peaks under a clear blue sky" />
+                  <img src="/assets/foundkeep-alpine-800.webp" width="800" height="500" alt="Saved travel inspiration: alpine mountain peaks under a clear blue sky" loading="lazy" decoding="async" />
                 </div>
                 <div className="collection-card-body">
                   <span className="item-kind"><svg aria-hidden="true" viewBox="0 0 24 24">
@@ -181,7 +200,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
               </article>
               <article className="collection-card photo-card">
                 <div className="collection-photo">
-                  <img src="/assets/studio-architecture-640.webp" width="640" height="427" alt="Sunlit architecture and an olive tree" />
+                  <img src="/assets/studio-architecture-640.webp" width="640" height="427" alt="Saved architecture inspiration: a sunlit building beside an olive tree" loading="lazy" decoding="async" />
                 </div>
                 <div className="collection-card-body">
                   <span className="item-kind"><svg aria-hidden="true" viewBox="0 0 24 24">
@@ -241,7 +260,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
               </svg>
             </summary>
             <figure>
-              <img src="/assets/extension-library.png" width="1440" height="1050" alt="Actual Foundkeep browser library with search, type filters and a sample collection" />
+              <img src="/assets/extension-library.png" width="1440" height="1050" alt="Foundkeep browser library showing search, saved links, images, notes and filters for each capture type" loading="lazy" decoding="async" />
               <figcaption>
                 Actual browser extension interface · sample collection
               </figcaption>
@@ -270,7 +289,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
                   </div>
                   <div className="mini-lines"><i></i><i></i><i></i></div>
                   <div className="mini-capture">
-                    <img src="/assets/studio-mark.svg" width="27" height="27" alt="" /><strong>Save page</strong><span><svg aria-hidden="true" viewBox="0 0 24 24">
+                    <img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="27" height="27" alt="" aria-hidden="true" /><strong>Save page</strong><span><svg aria-hidden="true" viewBox="0 0 24 24">
                         <use href="#i-plus"></use></svg></span>
                   </div>
                 </div>
@@ -308,7 +327,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
                         </svg>
                       </div>
                       <div className="foundkeep-share">
-                        <img src="/assets/studio-mark.svg" width="38" height="38" alt="" /><span>Foundkeep</span>
+                        <img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="38" height="38" alt="" aria-hidden="true" /><span>Foundkeep</span>
                       </div>
                       <div>
                         <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -338,7 +357,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
               <div className="platform-art sky web-art" aria-hidden="true">
                 <div className="web-window">
                   <div className="web-window-header">
-                    <img src="/assets/studio-mark.svg" width="22" height="22" alt="" /><strong>All your finds.</strong><span><svg aria-hidden="true" viewBox="0 0 24 24">
+                    <img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="22" height="22" alt="" aria-hidden="true" /><strong>All your finds.</strong><span><svg aria-hidden="true" viewBox="0 0 24 24">
                         <use href="#i-search"></use></svg></span>
                   </div>
                   <div className="web-mini-grid">
@@ -631,7 +650,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
 
         <section className="closing-banner wrap" aria-labelledby="closing-heading">
           <picture className="scenery"><source type="image/webp" srcSet="\n                /assets/foundkeep-coastal-800.webp   800w,\n                /assets/foundkeep-coastal-1600.webp 1600w\n              " sizes="100vw" />
-            <img src="/assets/foundkeep-coastal-1600.webp" alt="" width="1600" height="1000" /></picture>
+            <img src="/assets/foundkeep-coastal-1600.webp" alt="" aria-hidden="true" width="1600" height="1000" decoding="async" loading="lazy" /></picture>
           <div>
             <h2 id="closing-heading">Keep a little wonder.</h2>
             <p>
@@ -646,10 +665,10 @@ export default function Home(){return <LandingProvider><div className="landing-b
       </main>
       <footer className="site-footer wrap">
         <picture className="scenery"><source type="image/webp" srcSet="\n              /assets/foundkeep-alpine-800.webp   800w,\n              /assets/foundkeep-alpine-1600.webp 1600w\n            " sizes="100vw" />
-          <img src="/assets/foundkeep-alpine-1600.webp" alt="" width="1600" height="1000" /></picture>
+          <img src="/assets/foundkeep-alpine-1600.webp" alt="" aria-hidden="true" width="1600" height="1000" decoding="async" loading="lazy" /></picture>
         <div className="footer-main">
           <div>
-            <a className="brand" href="#top"><img src="/assets/studio-mark.svg" width="32" height="32" alt="" /><span>Foundkeep</span></a>
+            <a className="brand" href="#top"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="32" height="32" alt="" aria-hidden="true" /><span>Foundkeep</span></a>
             <p>A place for the things worth keeping.</p>
           </div>
           <nav aria-label="Product">

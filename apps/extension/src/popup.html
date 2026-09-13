@@ -6,12 +6,13 @@
     <title>Foundkeep — Capture</title>
     <link rel="stylesheet" href="theme.css" />
     <link rel="stylesheet" href="popup.css" />
+    <link rel="stylesheet" href="collections.css" />
   </head>
   <body>
     <div id="view-main" class="popup-view">
       <header class="popup-head">
         <a class="brand" href="#" id="brandLibrary" aria-label="Open Foundkeep library">
-          <img src="../assets/mark.svg" alt="" /><span>Foundkeep</span>
+          <img src="../assets/mark.svg" alt="" /><span data-product-name>Foundkeep</span>
         </a>
         <span class="storage" id="storageState"><i></i>Saved locally</span>
       </header>
@@ -46,6 +47,8 @@
           </div>
           <p id="saveFeedback" class="statusline" role="status"></p>
         </section>
+
+        <div id="popup-collections"></div>
 
         <section id="recentSection" class="recent-section" aria-labelledby="recentHeading">
           <div class="section-heading"><h2 id="recentHeading">Recently saved</h2><span id="savedCount"></span></div>

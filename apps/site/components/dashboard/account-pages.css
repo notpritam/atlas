@@ -1,0 +1,165 @@
+/* Account pages extend Foundkeep's scenic web system: quiet white surfaces,
+   azure actions, sky for Pro, and real account usage above the plan comparison. */
+.customer-body.dashboard-body .library-nav a { display:flex; align-items:center; gap:12px; width:100%; text-align:left; min-height:45px; padding:11px; color:var(--muted); background:transparent; border-radius:12px; font-size:13px; text-decoration:none; }
+.customer-body.dashboard-body .library-nav a:hover { background:var(--paper); color:var(--ink); }
+.customer-body.dashboard-body .library-nav a.nav-active { background:var(--sky); color:var(--accent); }
+.customer-body.dashboard-body .library-nav a>span { margin-left:auto; font-size:11px; font-variant-numeric:tabular-nums; }
+.customer-body.dashboard-body .library-nav svg { flex-shrink:0; }
+.customer-body.dashboard-body .sidebar-bottom>a.account-button { display:flex; padding:17px 0; color:var(--ink); }
+.customer-body.dashboard-body.has-account-page .library-main { padding-top:42px; }
+.customer-body .account-page { width:100%; max-width:1060px; margin:0 auto; flex:1; min-width:0; padding-bottom:36px; }
+.customer-body .account-page-heading { margin-bottom:32px; }
+.customer-body .account-page-heading h1 { font-size:clamp(30px,3vw,40px); line-height:1.15; margin:0; letter-spacing:-.035em; text-wrap:balance; }
+.customer-body .account-page-heading p { color:var(--muted); max-width:65ch; margin-top:12px; font-size:14px; line-height:1.7; }
+.customer-body .account-page h2 { font-size:23px; line-height:1.3; letter-spacing:-.02em; text-wrap:balance; }
+.customer-body .account-page .settings-section { margin-top:32px; padding-top:28px; }
+.customer-body .account-page .settings-section h3 { font-size:22px; }
+.customer-body .account-page .settings-section>p { max-width:70ch; line-height:1.7; }
+.customer-body .account-page .field-help { line-height:1.65; }
+.customer-body .account-page #password-form { max-width:520px; }
+.customer-body .account-page #password-form .field { margin-block:20px; }
+.customer-body .settings-nav { display:flex; gap:28px; border-bottom:1px solid var(--line); margin-bottom:30px; }
+.customer-body .settings-nav a { display:flex; align-items:center; min-height:48px; padding:12px 0; border-bottom:2px solid transparent; margin-bottom:-1px; color:var(--muted); text-decoration:none; font-size:14px; }
+.customer-body .settings-nav a:hover { color:var(--ink); }
+.customer-body .settings-nav a[aria-current=page] { color:var(--accent); border-color:var(--accent); font-weight:600; }
+.customer-body .settings-nav+.settings-section,.customer-body .settings-nav+.collection-services>.settings-section { border-top:0; padding-top:0; margin-top:0; }
+.customer-body .account-identity { display:flex; align-items:center; gap:16px; padding-block:8px; }
+.customer-body .account-identity .account-avatar { width:56px; height:56px; flex-shrink:0; font-size:22px; }
+.customer-body .account-identity>div { min-width:0; }
+.customer-body .account-identity h2 { font-size:21px; overflow-wrap:anywhere; }
+.customer-body .account-identity .account-email { margin:5px 0 0; overflow-wrap:anywhere; font-size:13px; }
+.customer-body .account-identity>a { margin-left:auto; flex-shrink:0; font-size:13px; }
+.customer-body .account-page .preference-grid { gap:0 28px; }
+.customer-body .account-page .preference-toggle { min-height:74px; }
+.customer-body .account-page .device-list>li>div { min-width:0; overflow-wrap:anywhere; }
+.customer-body .apps-setup .device-option { background:var(--surface); }
+.customer-body .apps-setup .iphone-option { background:#ecf9e9; border-color:#c8e6c3; }
+.customer-body .apps-setup .device-option-heading { flex-wrap:wrap; }
+.customer-body .apps-setup .device-option-heading h3 { font-size:21px; }
+.customer-body .apps-setup .device-option-heading .device-badge { margin-left:0; }
+.customer-body .account-page-note { display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:24px 0; margin-top:30px; border-top:1px solid var(--line); font-size:14px; }
+.customer-body .account-page-note p { color:var(--muted); }
+.customer-body .processing-plan-note { background:var(--sky); border-radius:12px; padding:16px 20px; margin:20px 0; font-size:13px; }
+.customer-body .billing-notice { padding:18px 22px; background:var(--sky); border:1px solid var(--line); border-radius:14px; color:var(--ink); font-size:14px; line-height:1.7; margin-bottom:24px; }
+.customer-body .plan-overview { padding:26px 28px; border:1px solid var(--line); border-radius:20px; background:var(--surface); }
+.customer-body .plan-overview-heading { display:flex; align-items:center; justify-content:space-between; gap:20px; }
+.customer-body .plan-overview-heading p { font-size:13px; color:var(--muted); margin-top:8px; line-height:1.7; }
+.customer-body .plan-overview-heading .button { flex-shrink:0; }
+.customer-body .usage-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); margin-top:26px; }
+.customer-body .usage-meter { padding:0 24px; border-left:1px solid var(--line); min-width:0; }
+.customer-body .usage-meter:first-child { border:0; padding-left:0; }
+.customer-body .usage-meter:last-child { padding-right:0; }
+.customer-body .usage-meter h3 { font-family:Geist,sans-serif; font-size:12px; color:var(--muted); font-weight:500; margin:0 0 10px; }
+.customer-body .usage-value { font-size:17px; font-weight:500; letter-spacing:-.025em; font-variant-numeric:tabular-nums; }
+.customer-body .usage-track { height:6px; overflow:hidden; border-radius:8px; background:var(--sky); margin:16px 0 10px; }
+.customer-body .usage-track>span { display:block; height:100%; background:var(--accent); border-radius:inherit; }
+.customer-body .usage-track.near-limit>span { background:#a04b1b; }
+.customer-body .usage-meter .field-help { font-size:11px; margin:0; }
+.customer-body .plan-management { display:flex; align-items:center; flex-wrap:wrap; gap:12px 24px; }
+.customer-body .plan-management:not(:empty) { border-top:1px solid var(--line); margin-top:22px; padding-top:18px; }
+.customer-body .plan-management .text-link { font-size:13px; min-height:32px; display:inline-flex; align-items:center; }
+.customer-body .plan-options { margin-top:44px; }
+.customer-body .plan-options-heading { margin-bottom:22px; }
+.customer-body .plan-options-heading h2 { font-size:32px; line-height:1.2; letter-spacing:-.025em; text-wrap:balance; }
+.customer-body .plan-options-heading p { color:var(--muted); font-size:14px; margin-top:12px; line-height:1.7; }
+.customer-body .plan-grid { display:grid; grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr); gap:22px; align-items:stretch; }
+.customer-body .plan-card { display:flex; flex-direction:column; min-width:0; padding:28px; border:1px solid var(--line); border-radius:20px; background:var(--surface); }
+.customer-body .plan-card.pro-plan { background:var(--sky); border-color:#b8d5e7; box-shadow:0 12px 28px rgb(8 108 168 / 6%); }
+.customer-body .plan-card-heading { display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+.customer-body .plan-card-heading h3 { font-size:26px; letter-spacing:-.025em; }
+.customer-body .current-plan-label { padding:5px 10px; border-radius:999px; background:#e2f4dd; color:#31582a; font-size:11px; font-weight:500; }
+.customer-body .plan-extra-label { color:#fff; background:var(--accent); padding:6px 10px; border-radius:999px; font-size:11px; line-height:1.5; }
+.customer-body .plan-description { font-size:13px; color:var(--muted); margin-top:10px; line-height:1.65; }
+.customer-body .plan-price { font-family:'Clarity City',Geist,sans-serif; font-size:48px; line-height:1.1; letter-spacing:-.035em; margin:26px 0 10px; font-variant-numeric:tabular-nums; }
+.customer-body .plan-price span { font-family:Geist,sans-serif; font-size:14px; color:var(--muted); letter-spacing:0; }
+.customer-body .plan-price-note { font-size:11px; color:var(--muted); line-height:1.6; }
+.customer-body .plan-capacity { font-size:12px; line-height:1.8; margin-top:18px; color:var(--muted); }
+.customer-body .plan-capacity strong { color:var(--ink); font-weight:600; }
+.customer-body .plan-capacity>span { margin-inline:5px; }
+.customer-body .plan-includes { margin-top:22px; font-size:12px; color:var(--accent); font-weight:600; }
+.customer-body .plan-benefits { padding:22px 0; margin:22px 0 0; list-style:none; border-top:1px solid var(--line); display:grid; gap:20px; }
+.customer-body .plan-benefits li { display:flex; align-items:flex-start; gap:10px; font-size:13px; line-height:1.65; }
+.customer-body .plan-benefits strong { display:block; color:var(--ink); font-size:14px; font-weight:600; }
+.customer-body .plan-benefit-description { display:block; color:var(--muted); margin-top:5px; font-size:13px; }
+.customer-body .plan-benefits svg,.customer-body .plan-current-state svg { width:18px; height:18px; flex-shrink:0; color:var(--accent); margin-top:1px; }
+.customer-body .pro-plan .plan-benefits { border:0; margin-top:18px; padding-top:0; }
+.customer-body .pro-plan .plan-price { color:var(--accent); }
+.customer-body .pro-plan .plan-benefit-description,.customer-body .pro-plan .plan-capacity { color:#456373; }
+.customer-body .plan-boundary { margin:0 0 24px; padding-top:18px; border-top:1px solid var(--line); font-size:12px; color:var(--muted); line-height:1.75; }
+.customer-body .plan-control-note { margin:0 0 24px; padding-top:18px; border-top:1px solid #b8d5e7; font-size:12px; line-height:1.75; color:#456373; }
+.customer-body .plan-control-note strong { color:var(--ink); font-weight:600; }
+.customer-body .plan-control-note p { margin-top:5px; }
+.customer-body .pro-plan .plan-description,.customer-body .pro-plan .plan-price-note,.customer-body .pro-plan .plan-price span,.customer-body .pro-plan .field-help { color:#456373; }
+.customer-body .plan-card-action { margin-top:auto; padding-top:12px; }
+.customer-body .plan-card-action .button { min-height:48px; font-size:13px; }
+.customer-body .plan-card-action .field-help { font-size:12px; margin:12px 0 0; }
+.customer-body .plan-agent-link { display:flex; align-items:center; justify-content:center; gap:8px; margin-top:12px; min-height:36px; font-size:13px; }
+.customer-body .plan-current-state { display:flex; align-items:center; justify-content:center; min-height:48px; gap:9px; font-size:13px; border:1px solid var(--line); border-radius:12px; }
+.customer-body .plan-footnote { font-size:11px; color:var(--muted); line-height:1.8; max-width:85ch; margin:20px auto 0; text-align:center; }
+.customer-body .plan-roadmap { margin-top:44px; padding:28px; border:1px solid var(--line); border-radius:20px; background:var(--surface); }
+.customer-body .plan-roadmap-heading { display:flex; align-items:center; flex-wrap:wrap; gap:12px 20px; justify-content:space-between; }
+.customer-body .plan-roadmap-label { font-size:12px; font-weight:500; color:var(--accent); }
+.customer-body .plan-roadmap-description { margin-top:12px; font-size:13px; line-height:1.7; color:var(--muted); max-width:70ch; }
+.customer-body .plan-media-list { margin:24px 0 0; }
+.customer-body .plan-media-list>div { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.3fr) auto; gap:12px; padding:17px 0; border-top:1px solid var(--line); font-size:14px; line-height:1.5; align-items:center; }
+.customer-body .plan-media-list dt { font-weight:600; }
+.customer-body .plan-media-list dd { margin:0; color:var(--muted); }
+.customer-body .plan-media-list .plan-media-status { font-size:12px; }
+.customer-body .plan-roadmap-footnote { margin-top:18px; color:var(--muted); font-size:12px; line-height:1.7; max-width:75ch; }
+.customer-body .plan-details { margin-top:42px; }
+.customer-body .plan-details h2 { margin-bottom:20px; }
+.customer-body .plan-details details { border-bottom:1px solid var(--line); }
+.customer-body .plan-details summary { cursor:pointer; padding:18px 0; font-size:14px; font-weight:500; }
+.customer-body .plan-details details p { font-size:13px; color:var(--muted); line-height:1.8; max-width:75ch; padding:0 0 22px; }
+.customer-body .plan-loading { padding:32px; background:var(--surface); border:1px solid var(--line); border-radius:20px; }
+.customer-body .plan-loading p,.customer-body .plan-loading button { margin-top:16px; }
+.customer-body .account-page :is(a,button,input,textarea,select,summary):focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
+.customer-body .account-page input,.customer-body .account-page textarea { caret-color:var(--accent); }
+.customer-body .account-page ::selection { background:var(--sky); color:var(--ink); }
+@media (max-width:1100px) {
+  .customer-body .plan-card { padding:24px; }
+  .customer-body .usage-meter { padding-inline:16px; }
+  .customer-body .usage-value { font-size:15px; }
+}
+@media (max-width:760px) {
+  .customer-body.dashboard-body .library-nav { gap:4px; justify-content:space-between; }
+  .customer-body.dashboard-body .library-nav a { width:auto; justify-content:center; padding:10px 8px; gap:6px; min-height:46px; font-size:11px; border-radius:10px 10px 0 0; }
+  .customer-body.dashboard-body .library-nav a.nav-active { border-bottom:2px solid var(--accent); }
+  .customer-body.dashboard-body .library-nav a>span { display:none; }
+  .customer-body.dashboard-body .library-nav svg { width:15px; height:15px; }
+  .customer-body.dashboard-body .sidebar-bottom>a.account-button { padding:0; }
+  .customer-body.dashboard-body.has-account-page .library-main { padding-top:28px; }
+  .customer-body .account-page-heading { margin-bottom:26px; }
+  .customer-body .account-page-heading p { font-size:13px; }
+  .customer-body .settings-nav { gap:22px; }
+  .customer-body .settings-nav a { font-size:12px; }
+  .customer-body .account-identity { flex-wrap:wrap; }
+  .customer-body .account-identity>a { margin-left:0; }
+  .customer-body .plan-overview { padding:22px; }
+  .customer-body .plan-overview-heading { align-items:flex-start; flex-wrap:wrap; gap:14px; }
+  .customer-body .usage-grid { grid-template-columns:1fr; gap:22px; }
+  .customer-body .usage-meter,.customer-body .usage-meter:first-child { border:0; padding:0; }
+  .customer-body .usage-meter+.usage-meter { padding-top:20px; border-top:1px solid var(--line); }
+  .customer-body .usage-value { font-size:18px; }
+  .customer-body .plan-grid { grid-template-columns:1fr; gap:18px; }
+  .customer-body .plan-options-heading h2 { font-size:27px; }
+  .customer-body .plan-roadmap { padding:24px; }
+  .customer-body .plan-media-list>div { grid-template-columns:minmax(0,1fr) auto; gap:4px 16px; }
+  .customer-body .plan-media-list dt { grid-column:1; }
+  .customer-body .plan-media-list dd { grid-column:1; font-size:13px; }
+  .customer-body .plan-media-list .plan-media-status { grid-column:2; grid-row:1 / 3; }
+  .customer-body .plan-options { margin-top:34px; }
+  .customer-body .plan-card { padding:24px; }
+  .customer-body .plan-card-heading h3 { font-size:25px; }
+  .customer-body .plan-price { font-size:44px; }
+  .customer-body .plan-footnote { text-align:left; }
+  .customer-body .apps-setup .device-option { padding:22px; }
+  .customer-body .account-page .service-form { max-width:100%; }
+}
+@media (max-width:400px) {
+  .customer-body.dashboard-body .library-sidebar { padding-inline:14px; }
+  .customer-body.dashboard-body .library-nav a { padding-inline:7px; font-size:10px; }
+  .customer-body.dashboard-body .library-nav svg { display:none; }
+  .customer-body .settings-nav { gap:18px; }
+  .customer-body .plan-card,.customer-body .plan-overview,.customer-body .plan-roadmap { padding:20px; }
+}

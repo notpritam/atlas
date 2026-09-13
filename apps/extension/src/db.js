@@ -3,7 +3,7 @@
 // Shared by the background worker
 // and the dashboard (both run in the extension context, same origin => same DB).
 
-const DB_NAME = "atlas";
+import { LOCAL_DATABASE_NAME as DB_NAME } from "./product.js";
 const DB_VERSION = 2;
 const STORE = "captures";
 

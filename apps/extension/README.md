@@ -4,6 +4,15 @@ Keep readable page copies, screenshots, highlights, links, images, and notes wit
 
 ## Install or update
 
+There are separate development and production builds. Both can be installed in the same browser:
+
+| Build | Destination | Local data |
+| --- | --- | --- |
+| **Foundkeep Dev** | https://dev.foundkeep.app | Separate extension identity, credentials, queue, and `atlas-dev` IndexedDB |
+| **Foundkeep** | https://foundkeep.app | Existing production identity and `atlas` IndexedDB retained |
+
+Download [Foundkeep Dev](https://dev.foundkeep.app/ext/foundkeep-extension-dev.zip) for dev testing, or use the production Chrome Web Store installation. Each website connects only its corresponding extension. The dev build has no production auto-update feed. Keyboard shortcuts may need separate assignments when both are installed; choose the extension by name at `chrome://extensions/shortcuts`.
+
 1. Extract the extension ZIP into a folder you can keep, or use this `apps/extension` directory.
 2. Open the extensions page in Chrome, Edge, Brave, Opera, or Vivaldi, enable **Developer mode**, choose **Load unpacked**, and select the folder containing `manifest.json`. Chrome and Brave accept `chrome://extensions`; Edge uses `edge://extensions`.
 3. Pin Foundkeep from the browser’s extensions menu.
@@ -48,6 +57,8 @@ You can also use Foundkeep without an account. Disconnected captures stay local 
 The customer extension has no browser-control integration and does not request the debugger permission. This package supports Chromium browsers. Firefox and Safari builds are not currently shipped.
 
 ## Development checks
+
+Run `bun run extension:build:dev` or `bun run extension:build:prod` from the repository root. Each command writes an unpacked folder, a ZIP, and its matching `customer-config.json` under `deploy/dist/extensions/dev` or `deploy/dist/extensions/prod`. Neither command edits the source identity or publishes a release. `apps/extension` remains the production source. See [environment deployment](../../docs/extension-configuration-and-updates.md#separate-development-and-production) for server configuration.
 
 From the repository root:
 
