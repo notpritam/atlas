@@ -65,7 +65,16 @@ Files: `docs/beta/`, install/onboarding page/config, extension packaging artifac
 
 - [x] Inspect EAS/Apple/Google access without exposing credentials; reuse canonical app identities and production-beta profiles. Record unavailable account access or review requirements.
 - [x] Build separate dev/production extensions and verify pairing, capture/sync, MCP mutations and graph. Publish environment-correct ZIPs in their matching releases.
-- [ ] Finish signed iOS/Android artifact distribution and installed-device checks. iOS build20 is uploaded but tester availability is pending; Android native retry requires the Mac host to reconnect. Verify production origins and identities, then publish only verified TestFlight/Play test or APK links.
+- [ ] Finish signed iOS/Android artifact distribution and installed-device checks. Signed production Android version5 passed identity/signature/runtime/original-byte verification and is being transferred for hosting. iOS build20 is uploaded and ready for internal testing; a new signed candidate is required to deliver later native fixes. External review contact/tester access remains pending. Verify production origins and identities, then publish only verified TestFlight/Play test or APK links.
 - [x] Provide one beta start page with browser install, agent setup, example tasks, processing controls and feedback. Mobile install links remain explicitly pending until verified.
 - [x] Back up and verify permanent dev, then promote tested production web/backend/static releases for friends. Preserve both environments' accounts/data/config and retain rollback releases. Do not seed production or publish publicly to stores.
 - [x] Record tests, real URLs, supported parsing coverage and outstanding external gates. Production Pro credentials remain unconfigured; do not substitute dev sandbox credentials. Keep the goal open until all required work is achieved and apply the goal-blocking policy only at an external impasse.
+
+## Task 6 — Actual remote media preservation
+
+The latest launch request expands Task 4 beyond metadata. Freeze visual work. Build a bounded public-media extractor/downloader with SSRF-safe requests, isolated executable configuration, file/time/size limits, accurate metadata and explicit unavailable results. Support public YouTube, Instagram and X video URLs plus direct video files. Never read browser cookies, private credentials, local files or arbitrary downloader plugins/config. No shell interpolation or user-supplied executable arguments.
+
+- [ ] Implement and test the downloader boundary and runtime installation contract independently of production state.
+- [ ] Integrate durable downloads with existing owner-scoped saved files, processing consent/modes/credit ledger, storage accounting and cancellation/edit/delete races. Preserve original source and expose actual download evidence in web/mobile readers. Provider unavailability must be explicit; do not manufacture transcripts or AI results.
+- [ ] Test actual bytes end to end on supported public samples and fixture-controlled failures, then verify dev before promoting to production. Record precisely which platforms/samples succeeded or refused access.
+- [ ] Verify the final friends journey for web/extension, Android, iOS and MCP with shipped versions; publish the production beta start page with only verified install links.
