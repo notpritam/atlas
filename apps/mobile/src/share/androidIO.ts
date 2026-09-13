@@ -24,6 +24,14 @@ export async function copySharedPayload(uri: string, sourceSize: number, target:
   }
   return copyIncomingFile(sourceSize, target, limit, fileCopy);
 }
+export async function commitAtomicWrite(value: string, write: (value: string) => void, move: () => Promise<void>): Promise<void> {
+  write(value);
+  await move();
+}
+export async function prepareLocalUpload(file: { bytes(): Promise<Uint8Array<ArrayBuffer>> }, declaredMime: unknown, wait: <T>(promise: Promise<T>) => Promise<T>): Promise<{ body: Uint8Array<ArrayBuffer>; contentType: string }> {
+  const contentType = typeof declaredMime === 'string' && declaredMime ? declaredMime : 'application/octet-stream';
+  return { body: await wait(file.bytes()), contentType };
+}
 export class TransferTimeoutError extends Error {
   constructor() { super('The transfer took too long. Please try again.'); this.name = 'TransferTimeoutError'; }
 }

@@ -23,6 +23,25 @@ test('content-provider payloads use the bounded native stream adapter instead of
  const bytes=await copySharedPayload?.('content://media/external/images/media/20',11_455,target,50_000,async()=>{fileCopies++;},async(uri,limit)=>{nativeCopies++;assert.equal(uri,'content://media/external/images/media/20');assert.equal(limit,50_000);target.exists=true;target.size=11_455;return 11_455;});
  assert.equal(bytes,11_455);assert.equal(fileCopies,0);assert.equal(nativeCopies,1);
 });
+test('durable records do not resolve before their atomic rename completes',async()=>{
+ const commitAtomicWrite=(androidIO as unknown as {commitAtomicWrite?: (value:string,write:(value:string)=>void,move:()=>Promise<void>)=>Promise<void>}).commitAtomicWrite;
+ assert.equal(typeof commitAtomicWrite,'function');
+ let release!:()=>void;let written='';let completed=false;
+ const move=new Promise<void>(resolve=>{release=resolve;});
+ const pending=commitAtomicWrite?.('record',value=>{written=value;},()=>move).then(()=>{completed=true;});
+ await Promise.resolve();assert.equal(written,'record');assert.equal(completed,false);
+ release();await pending;assert.equal(completed,true);
+});
+test('extensionless payload bytes preserve the declared MIME header',async()=>{
+ const prepareLocalUpload=(androidIO as unknown as {prepareLocalUpload?: (file:{type:string|null;bytes:()=>Promise<Uint8Array>},declaredMime:unknown,wait:<T>(promise:Promise<T>)=>Promise<T>)=>Promise<{body:Uint8Array;contentType:string}>}).prepareLocalUpload;
+ assert.equal(typeof prepareLocalUpload,'function');
+ let release!:(bytes:Uint8Array)=>void;let completed=false;
+ const bytes=new Promise<Uint8Array>(resolve=>{release=resolve;});
+ const pending=prepareLocalUpload?.({type:null,bytes:()=>bytes},'image/png',promise=>promise).then(value=>{completed=true;return value;});
+ await Promise.resolve();assert.equal(completed,false);
+ release(new Uint8Array([137,80,78,71]));
+ const upload=await pending;assert.equal(upload?.contentType,'image/png');assert.deepEqual(upload?.body,new Uint8Array([137,80,78,71]));
+});
 test('upload response parsing retains folder errors and consumes UTF-8 chunks',async()=>{
  const bytes=new TextEncoder().encode('{"error":"folder_not_found"}');let read=false;
  const result=await withTransferTimeout(100,async(signal,wait)=>consumeUploadResponse({status:404,body:{getReader:()=>({read:async()=>read?{done:true,value:undefined}:(read=true,{done:false,value:bytes}),cancel:async()=>{},releaseLock:()=>{}})}},signal,wait));

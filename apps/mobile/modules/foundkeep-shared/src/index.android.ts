@@ -1,5 +1,5 @@
 import AndroidShares from './androidShares.ts';
-import { copySharedPayload, localFileName, withTransferTimeout, consumeUploadResponse, saveDownloadedBody } from '../../../src/share/androidIO.ts';
+import { commitAtomicWrite, copySharedPayload, localFileName, prepareLocalUpload, withTransferTimeout, consumeUploadResponse, saveDownloadedBody } from '../../../src/share/androidIO.ts';
 import * as SecureStore from 'expo-secure-store';
 import { File, Directory, Paths } from 'expo-file-system';
 import { fetch } from 'expo/fetch';
@@ -18,7 +18,7 @@ function ensure() { for (const directory of [root, queue, payloads, exportDirect
 function recordFile(id: string) { if (!/^[a-f0-9-]{36}$/i.test(id)) throw new Error('Invalid queue ID'); return new File(queue, `${id}.json`); }
 function payload(path: string) { if (!/^[a-f0-9-]{36}$/i.test(path)) throw new Error('Invalid payload'); return new File(payloads, path); }
 function removeFile(file: File) { if (file.exists) file.delete(); }
-function atomic(file: File, value: string) { const temp = new File(file.uri + '.tmp'); temp.write(value); temp.move(file, { overwrite: true }); }
+async function atomic(file: File, value: string) { const temp = new File(file.uri + '.tmp'); await commitAtomicWrite(value, next => temp.write(next), () => temp.move(file, { overwrite: true })); }
 function base64url(value: string) {
   const bytes = new TextEncoder().encode(value); let binary = '';
   for (const byte of bytes) binary += String.fromCharCode(byte);
@@ -46,7 +46,7 @@ const runtime = createAndroidRuntime({
     }
     return records;
   },
-  async save(record) { ensure(); atomic(recordFile(record.id), JSON.stringify(record)); },
+  async save(record) { ensure(); await atomic(recordFile(record.id), JSON.stringify(record)); },
   async remove(record) { removeFile(recordFile(record.id)); if (record.payloadPath) removeFile(payload(record.payloadPath)); },
   async removePayload(path) { removeFile(payload(path)); },
   async copy(uri, id, limit) {
@@ -58,13 +58,15 @@ const runtime = createAndroidRuntime({
     } catch (error) { removeFile(target); throw error; }
   },
   async policy() { ensure(); const file = new File(root, 'policy.json'); return file.exists ? file.text() : null; },
-  async setPolicy(value) { ensure(); atomic(new File(root,'policy.json'), value); },
+  async setPolicy(value) { ensure(); await atomic(new File(root,'policy.json'), value); },
   async upload(record, token, timeout) {
     const metadata = JSON.stringify({ ...record.metadata, clientId: record.clientId });
     return withTransferTimeout(timeout*1000, async (signal, wait) => {
-      const response = await wait(record.payloadPath
-        ? request('/api/mobile/captures/file', token, signal, { method:'POST', headers:{ 'content-type': String(record.metadata.declaredMime || 'application/octet-stream'), 'X-Foundkeep-Capture': base64url(metadata) }, body: payload(record.payloadPath) })
-        : request('/api/captures', token, signal, { method:'POST', headers:{ 'content-type':'application/json' }, body: metadata }));
+      let response;
+      if (record.payloadPath) {
+        const upload = await prepareLocalUpload(payload(record.payloadPath), record.metadata.declaredMime, wait);
+        response = await wait(request('/api/mobile/captures/file', token, signal, { method:'POST', headers:{ 'content-type': upload.contentType, 'X-Foundkeep-Capture': base64url(metadata) }, body: upload.body }));
+      } else response = await wait(request('/api/captures', token, signal, { method:'POST', headers:{ 'content-type':'application/json' }, body: metadata }));
       return consumeUploadResponse(response, signal, wait);
     });
   },
