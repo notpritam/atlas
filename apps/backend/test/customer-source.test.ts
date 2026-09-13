@@ -15,3 +15,20 @@ test('private DNS answers and redirects to local addresses never reach the trans
  const redirect=createSourceFetcher({resolve:async()=>[{address:'1.1.1.1',family:4}],transport:async()=>({status:302,headers:new Headers({location:'http://169.254.169.254/latest/meta-data/'}),body:(async function*(){})(),cancel(){}})});
  await expect(redirect('https://example.com')).rejects.toThrow('unsupported address');
 });
+
+test('social metadata is useful context without pretending to be a full post or transcript',()=>{
+ const result=extractSource('<html><head><meta property="og:title" content="A lesson on agents"><meta property="og:description" content="Three ways to organize an agent library"><meta property="og:image" content="https://i.ytimg.com/vi/abc/hqdefault.jpg"></head><body><main><p>Sign in to confirm you are not a bot</p></main></body></html>','https://www.youtube.com/watch?v=abc');
+ expect(result).toMatchObject({platform:'youtube',contentKind:'video',extractionStatus:'metadata-only',transcriptStatus:'unavailable'});expect(result.text).toContain('Three ways');expect(result.text).not.toContain('Sign in');expect(result.notice).toContain('transcript');
+ const post=extractSource('<meta name="twitter:title" content="Alex on X"><meta name="twitter:description" content="A useful tweet about reading habits">','https://x.com/alex/status/123');expect(post).toMatchObject({platform:'x',contentKind:'post',extractionStatus:'metadata-only'});expect(post.text).toContain('reading habits');
+ const instagram=extractSource('<meta property="og:description" content="A reel about capturing ideas">','https://www.instagram.com/reel/123/');expect(instagram).toMatchObject({platform:'instagram',contentKind:'video',transcriptStatus:'unavailable'});
+});
+test('JSON-LD article and social bodies are extracted as data, bounded and never executed',()=>{
+ const body='This article explains how to keep references connected and useful.';
+ const article=extractSource('<html><head><script type="application/ld+json">'+JSON.stringify({'@graph':[{'@type':'Organization',name:'Noise'},{'@type':'Article',headline:'Connected references',articleBody:body,author:{name:'Mira'},datePublished:'2026-09-01'}]})+'</script></head><body><main>Enable JavaScript</main></body></html>','https://example.com/articles/connected');
+ expect(article).toMatchObject({title:'Connected references',text:body,author:'Mira',extractionStatus:'readable',contentKind:'article'});
+ const video=extractSource('<script type="application/ld+json">'+JSON.stringify({'@type':'VideoObject',name:'Saved videos',description:'A short guide',transcript:'First save an idea. Then connect it to another reference.'})+'</script>','https://www.youtube.com/watch?v=abc');expect(video).toMatchObject({extractionStatus:'readable',transcriptStatus:'available'});expect(video.text).toContain('Then connect');
+});
+test('gated shells are unavailable and similar-looking hosts are not trusted platforms',()=>{
+ expect(extractSource('<html><body><main><h1>Log in to continue</h1><p>Please enable JavaScript</p></main></body></html>','https://instagram.com/p/1')).toMatchObject({text:'',extractionStatus:'unavailable'});
+ expect(extractSource('<article><p>An independent article.</p></article>','https://youtube.com.example.org/article').platform).toBe('web');
+});

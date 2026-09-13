@@ -535,6 +535,11 @@ const MIGRATIONS: string[] = [
    );
    CREATE INDEX customer_collection_entries_collection ON customer_collection_entries(collection_id,status,created_at DESC,id);
    CREATE INDEX customer_collection_entries_capture ON customer_collection_entries(capture_id);`,
+  // Timing and user budgets remain independent from processing consent.
+  `ALTER TABLE customer_automation ADD COLUMN mode TEXT NOT NULL DEFAULT 'instant';
+   ALTER TABLE customer_automation ADD COLUMN interval_hours INTEGER NOT NULL DEFAULT 24;
+   ALTER TABLE customer_automation ADD COLUMN monthly_limit INTEGER NOT NULL DEFAULT 500;
+   ALTER TABLE customer_automation ADD COLUMN next_run_at INTEGER;`,
 ];
 
 export const DATABASE_SCHEMA_VERSION = MIGRATIONS.length;

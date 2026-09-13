@@ -1,3 +1,4 @@
+import {customerNativeUrl} from './customer-native.ts';
 import type { Database } from 'bun:sqlite';
 import type { Context, Hono } from 'hono';
 import { getCookie, setCookie, deleteCookie } from 'hono/cookie';
@@ -11,7 +12,7 @@ type Deps = {
   jsonBody(c:C,max?:number):Promise<Record<string,unknown>>; verifyPassword(password:string,stored:string):Promise<boolean>;
   publicRate(c:C,action:string,email?:string):void;
 };
-type Flow = {id:string;issuer:string;provider:OAuthProvider;client:'web'|'ios';intent:'sign-in'|'delete';device_name:string;account_id:string|null;credential_id:string|null;credential_kind:'session'|'connection'|null;client_challenge:string;server_verifier:string;browser_hash:string|null;stage:string;code_hash:string|null;identity_json:string|null;expires_at:number};
+type Flow = {id:string;issuer:string;provider:OAuthProvider;client:'web'|'ios'|'android';intent:'sign-in'|'delete';device_name:string;account_id:string|null;credential_id:string|null;credential_kind:'session'|'connection'|null;client_challenge:string;server_verifier:string;browser_hash:string|null;stage:string;code_hash:string|null;identity_json:string|null;expires_at:number};
 const digest=(s:string)=>createHash('sha256').update(s).digest('hex');
 const secret=()=>randomBytes(32).toString('base64url');
 const validSecret=(x:unknown):x is string=>typeof x==='string'&&/^[A-Za-z0-9_-]{43}$/.test(x);
@@ -42,7 +43,7 @@ export function registerCustomerOAuth(app:Hono<CustomerEnv>,db:Database,gateway:
     const credential=db.query(`SELECT id FROM ${table} WHERE id=? AND account_id=? AND expires_at>?`).get(f.credential_id,f.account_id,Date.now());
     if(!credential||!d.account(f.account_id!))throw invalid();
   }
-  const destination=(f:Flow)=>f.client==='ios'?'foundkeep://oauth/complete':d.origin+'/auth.html';
+  const destination=(f:Flow)=>f.client!=='web'?customerNativeUrl('oauth/complete',d.origin):d.origin+'/auth.html';
   function identityIsActive(issuer:string,subject:string){
     if(db.query('SELECT subject FROM customer_auth_cleanup WHERE issuer=? AND subject=?').get(issuer,subject)||
       db.query('SELECT subject FROM customer_auth_tombstones WHERE issuer=? AND subject=? AND expires_at>?').get(issuer,subject,Date.now())){
@@ -52,20 +53,20 @@ export function registerCustomerOAuth(app:Hono<CustomerEnv>,db:Database,gateway:
   app.get('/auth/providers',c=>c.json({providers:available(c.req.query('client'))}));
   app.post('/auth/oauth/start',async c=>{
     d.publicRate(c,'oauth-start');const b=await d.jsonBody(c);
-    if(!isProvider(b.provider)||!['web','ios'].includes(String(b.client))||!validSecret(b.codeChallenge)||!['sign-in','delete'].includes(String(b.intent||'sign-in')))throw new OAuthError('invalid_oauth_request','Choose a supported sign-in method.');
+    if(!isProvider(b.provider)||!['web','ios','android'].includes(String(b.client))||!validSecret(b.codeChallenge)||!['sign-in','delete'].includes(String(b.intent||'sign-in')))throw new OAuthError('invalid_oauth_request','Choose a supported sign-in method.');
     if(b.client==='web'){
       d.website(c);
       if(c.req.header('origin')!==d.origin)throw new OAuthError('canonical_origin_required','Open foundkeep.app to sign in.',400);
     }
     if(!available(b.client).includes(b.provider))throw new OAuthError('provider_unavailable','This sign-in method is not enabled yet.',503);
     const intent=b.intent==='delete'?'delete':'sign-in';const current=intent==='delete'?d.auth(c):null;
-    if(current&&((b.client==='ios')!==(current.kind==='connection')))throw invalid();
+    if(current&&((b.client!=='web')!==(current.kind==='connection')))throw invalid();
     db.query('DELETE FROM customer_oauth_flows WHERE expires_at<=?').run(Date.now());
     db.query('DELETE FROM customer_auth_proofs WHERE expires_at<=?').run(Date.now());
     db.query('DELETE FROM customer_auth_tombstones WHERE expires_at<=?').run(Date.now());
     if((db.query('SELECT COUNT(*) n FROM customer_oauth_flows').get()as {n:number}).n>=1000)throw new OAuthError('oauth_busy','Sign-in is busy. Try again shortly.',503);
     const id=randomBytes(16).toString('hex');const cookie=b.client==='web'?secret():null;
-    const deviceName=typeof b.deviceName==='string'?b.deviceName.trim().slice(0,72):'iPhone';
+    const deviceName=typeof b.deviceName==='string'?b.deviceName.trim().slice(0,72):b.client==='android'?'Android':'iPhone';
     db.query(`INSERT INTO customer_oauth_flows(id,issuer,provider,client,intent,device_name,account_id,credential_id,credential_kind,client_challenge,server_verifier,browser_hash,stage,expires_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
       .run(id,gateway.issuer,b.provider,String(b.client),intent,deviceName||'iPhone',current?.account.id||null,current?.credentialId||null,current?.kind||null,b.codeChallenge,secret(),cookie?digest(cookie):null,'created',Date.now()+600_000);
     if(cookie)setCookie(c,cookieName(id),cookie,cookieOptions);

@@ -3,6 +3,7 @@ import { relative } from "node:path";
 import { Hono } from "hono";
 import { serveStatic } from "hono/bun";
 import { cors } from "hono/cors";
+import {customerNativeIdentity} from "./customer-native.ts";
 import { config } from "./config.ts";
 import { authMiddleware, type Env } from "./auth.ts";
 import {
@@ -65,11 +66,17 @@ export function createApp(db: Database): Hono<Env> {
       applinks: {
         apps: [],
         details: [{
-          appIDs: [`${teamId}.app.foundkeep.ios`],
+          appIDs: [`${teamId}.${customerNativeIdentity().iosBundleId}`],
           components: [{ "/": "/open", comment: "Open an allowlisted destination in Foundkeep for iPhone." }],
         }],
       },
     });
+  });
+
+  app.get("/.well-known/assetlinks.json", (c) => {
+    const fingerprints=[...new Set((process.env.ATLAS_ANDROID_SHA256_CERT_FINGERPRINTS||'').split(',').map(value=>value.trim().toUpperCase()).filter(value=>/^(?:[A-F0-9]{2}:){31}[A-F0-9]{2}$/.test(value)))];
+    c.header('Cache-Control','public, max-age=3600');
+    return c.json(fingerprints.length?[{relation:['delegate_permission/common.handle_all_urls'],target:{namespace:'android_app',package_name:customerNativeIdentity().androidPackage,sha256_cert_fingerprints:fingerprints}}]:[]);
   });
 
   app.get("/open", (c) => {

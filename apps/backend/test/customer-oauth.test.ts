@@ -174,3 +174,9 @@ test('an old social identity must verify again before another subject can join i
  identity={...identity,subject:original};expect((await social()).data.account.id).toBe(first.data.account.id);
  identity={...identity,subject:other};expect((await social('apple')).data.account.id).toBe(first.data.account.id);
 });
+
+test('Android OAuth uses a native handoff, PKCE, and a mobile-scoped connection',async()=>{
+ const flow=await begin('android');const callback=await req('/auth/oauth/callback/'+flow.flow+'?code=android-code',undefined,flow.cookie);expect(callback.status).toBe(302);const location=new URL(callback.headers.get('location')!);expect(location.protocol).toBe('foundkeep:');expect(location.hostname).toBe('oauth');
+ const exchanged=await req('/auth/oauth/exchange',{flow:flow.flow,code:location.searchParams.get('code'),verifier:flow.verifier});expect(exchanged.status).toBe(200);const data=await exchanged.json() as any;expect(data.connection.clientKind).toBe('mobile');expect((await req('/mobile/me',undefined,undefined,data.token)).status).toBe(200);
+ const target=new Hono().route('/api',customerRoutes(db,{...gateway,providers:['google']}));expect(await(await target.request(origin+'/api/auth/providers?client=android')).json()).toEqual({providers:['google']});
+});

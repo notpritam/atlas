@@ -1,3 +1,4 @@
+import {customerNativeUrl} from './customer-native.ts';
 import type { Database } from 'bun:sqlite';
 
 const EXPO_PUSH_URL = 'https://exp.host/--/api/v2/push/send';
@@ -36,7 +37,7 @@ export async function deliverCaptureNotification(
       ? 'Your saved item is ready.'
       : 'Your item was saved. Some details could not be processed.',
     sound: 'default',
-    data: { url: `foundkeep://capture/${capture.captureId}` },
+    data: { url: customerNativeUrl('capture/'+capture.captureId) },
   }));
   try {
     const response = await fetcher(EXPO_PUSH_URL, {

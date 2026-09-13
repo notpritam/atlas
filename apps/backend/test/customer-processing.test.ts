@@ -71,3 +71,37 @@ test('automatic processing rotates through accounts beyond one bounded scan',asy
  await s.tick();await s.tick();
  expect(s.details(owner,capture)).not.toBeNull();
 });
+
+test('scheduled processing waits for its boundary and changing the interval never runs early',async()=>{
+ let clock=Date.now();writeSubscription(db,owner,'revenuecat',{status:'active',expiresAt:clock+48*3600_000,renews:true,sandbox:false});const s=createProcessingService(db,{ai:{available:true,model:'test',organize:async()=>result},now:()=>clock});
+ s.configure(owner,{enabled:true,consentVersion:CONSENT_VERSION,mode:'scheduled',intervalHours:1});
+ db.query('UPDATE customer_captures SET created_at=? WHERE id=?').run(clock,capture);
+ expect(s.settings(owner).nextRunAt).toBe(clock+3600_000);await s.tick();expect(s.details(owner,capture)).toBeNull();
+ clock+=1800_000;s.configure(owner,{intervalHours:6});const boundary=clock+6*3600_000;
+ clock=boundary-1;await s.tick();expect(s.details(owner,capture)).toBeNull();clock=boundary;await s.tick();expect(s.details(owner,capture)).not.toBeNull();
+ expect(s.settings(owner).nextRunAt).toBe(boundary+6*3600_000);
+});
+test('manual mode only runs explicitly requested saves and a custom cap bounds reservations',async()=>{
+ const s=service();s.configure(owner,{enabled:true,consentVersion:CONSENT_VERSION,mode:'manual',monthlyLimit:1});db.query('UPDATE customer_captures SET created_at=? WHERE id=?').run(Date.now()+1,capture);
+ await s.tick();expect(s.settings(owner).usage.reserved).toBe(0);expect(s.details(owner,capture)).toBeNull();
+ s.enqueue(owner,capture,'manual');await s.tick();expect(s.settings(owner).usage).toMatchObject({used:1,reserved:0,monthlyLimit:1});
+ db.query("UPDATE customer_captures SET note_text='A new version' WHERE id=?").run(capture);expect(()=>s.enqueue(owner,capture,'manual')).toThrow('monthly');
+});
+test('pause during provider work releases reservations and resume applies exactly one result',async()=>{
+ let started!:()=>void,finish!:(value:typeof result)=>void,calls=0;const entered=new Promise<void>(r=>started=r);
+ const s=service(()=>{calls++;if(calls===1){started();return new Promise(r=>finish=r);}return Promise.resolve(result);});enable(s);s.enqueue(owner,capture,'manual');const running=s.tick();await entered;
+ s.configure(owner,{mode:'paused'});expect(s.settings(owner).usage).toMatchObject({reserved:0,used:0});expect(()=>s.enqueue(owner,capture,'manual')).toThrow('paused');finish(result);await running;
+ expect(s.details(owner,capture)).toBeNull();s.configure(owner,{mode:'manual'});await s.tick();await s.tick();expect(s.settings(owner).usage).toMatchObject({reserved:0,used:1});expect(calls).toBe(2);
+});
+test('lowering the cap during a provider call prevents charging beyond the new cap',async()=>{
+ let started!:()=>void,finish!:(value:typeof result)=>void;const entered=new Promise<void>(r=>started=r);const s=service(()=>{started();return new Promise(r=>finish=r);});enable(s);s.enqueue(owner,capture,'manual');const running=s.tick();await entered;s.configure(owner,{monthlyLimit:0});finish(result);await running;
+ expect(s.details(owner,capture)).toBeNull();expect(s.settings(owner).usage).toMatchObject({reserved:0,used:0});expect(()=>s.enqueue(owner,capture,'manual')).toThrow('monthly');
+});
+test('invalid modes, intervals and caps are rejected and two workers cannot double-claim',async()=>{
+ const s=service();enable(s);for(const value of [{mode:'fast'},{intervalHours:2},{monthlyLimit:501},{monthlyLimit:-1},{monthlyLimit:1.1}])expect(()=>s.configure(owner,value)).toThrow();
+ let started!:()=>void,finish!:(value:typeof result)=>void;const entered=new Promise<void>(r=>started=r);let calls=0;const first=service(()=>{calls++;started();return new Promise(r=>finish=r);}),second=service(async()=>{calls++;return result;});first.enqueue(owner,capture,'manual');const running=first.tick();await entered;await second.tick();finish(result);await running;expect(calls).toBe(1);expect(first.settings(owner).usage.used).toBe(1);
+});
+
+test('unreadable public links do not use a credit or ask the model to invent contents',async()=>{
+ let calls=0;const s=createProcessingService(db,{ai:{available:true,model:'test',organize:async()=>{calls++;return result;}},source:async url=>({url,requestedUrl:url,fetchedAt:Date.now(),contentHash:'test',text:'',title:null,description:null,imageUrl:null,author:null,publishedAt:null,siteName:null,extractionStatus:'unavailable'})});enable(s);s.configure(owner,{fetchLinks:true});db.query("UPDATE customer_captures SET note_text=NULL,source_url='https://example.com/private' WHERE id=?").run(capture);s.enqueue(owner,capture,'manual');await s.tick();expect(calls).toBe(0);expect(s.settings(owner).usage).toMatchObject({used:0,reserved:0});
+});

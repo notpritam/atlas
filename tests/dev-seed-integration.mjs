@@ -17,6 +17,8 @@ test('dev seed reruns preserve edits, deleted entries, moderation and unfollows'
   t.after(()=>request('/auth/logout','POST',{}));return request;
  }
  const curator=await client('curator'),contributor=await client('contributor'),privateId=state.collections['demo-private-scratchpad'],agentId=state.collections['demo-agent-toolkit'],designId=state.collections['demo-design-that-works'];
+ const initialGraph=await curator('/graph');assert.equal(initialGraph.edges.filter(edge=>edge.kind==='agent').length,9);assert.ok(initialGraph.nodes.some(node=>node.kind==='tag'));assert.equal((await curator('/agents')).agents.length,0);
+ const removedGraphId=Object.values(state.graph.saves)[0];await curator('/captures/'+removedGraphId,'DELETE');
  await curator('/collections/'+privateId,'PATCH',{title:'A tester renamed this private collection'});
  const privateEntries=(await curator('/collections/'+privateId)).entries;
  for(const entry of privateEntries)await curator(`/collections/${privateId}/entries/${entry.id}`,'DELETE');
@@ -26,4 +28,5 @@ test('dev seed reruns preserve edits, deleted entries, moderation and unfollows'
  const privateAfter=await curator('/collections/'+privateId);assert.equal(privateAfter.collection.title,'A tester renamed this private collection');assert.equal(privateAfter.entries.length,0);
  assert.equal((await curator('/collections/'+agentId)).entries.find(entry=>entry.id===state.pendingEntry).status,'rejected');
  assert.equal((await contributor('/collections/'+designId)).collection.following,false);
+ const finalGraph=await curator('/graph');assert.ok(!finalGraph.nodes.some(node=>node.saveId===removedGraphId));assert.equal((await curator('/agents')).agents.length,0);
 });

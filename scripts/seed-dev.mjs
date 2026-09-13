@@ -5,6 +5,7 @@ import {homedir} from 'node:os';
 import path from 'node:path';
 import {fileURLToPath,pathToFileURL} from 'node:url';
 import {demoCollections} from './fixtures/dev-collections.mjs';
+import {seedDemoGraph} from './seed-dev-graph.mjs';
 
 function canonicalDestination(input) {
  let existing=path.isAbsolute(input)?input:process.cwd()+'/'+input;const suffix=[];
@@ -83,7 +84,8 @@ export async function seedDemo({origin='https://dev.foundkeep.app',stateDir=path
    const result=await curator('/captures','POST',{clientId,type:'note',sourceTitle:'FoundKeep demo',noteText:note,capturedAt:Date.now(),processingOptions:{ocr:false,summaries:false,tags:false}});
    state.captures[clientId]=result.capture.id;await persist();
   }
-  const report={origin,seededAt:new Date().toISOString(),createdCollections,createdEntries,publicPages,privateCollection:'/dashboard/collections/'+state.collections['demo-private-scratchpad'],starterNotes:Object.keys(state.captures).length,preservedRemovals,credentialsFile:stateFile};
+  const graphSaves=await seedDemoGraph({state,persist,curator,origin});
+  const report={origin,graphSaves,seededAt:new Date().toISOString(),createdCollections,createdEntries,publicPages,privateCollection:'/dashboard/collections/'+state.collections['demo-private-scratchpad'],starterNotes:Object.keys(state.captures).length,preservedRemovals,credentialsFile:stateFile};
   await writeFile(path.join(stateDir,'report.json'),JSON.stringify(report,null,2)+'\n',{mode:0o600});
   return report;
  } finally {

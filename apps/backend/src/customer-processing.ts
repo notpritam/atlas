@@ -13,8 +13,8 @@ export const CONSENT_VERSION='2026-09-12';
 const LEASE_MS=180_000;
 const FAILURE='Processing could not finish. Your original is safe.';
 type Save={id:string;account_id:string;type:string;source_title:string|null;source_url:string|null;note_text:string|null;selection_text:string|null;article_text:string|null;ocr_text:string|null;blob_data:Uint8Array|null;blob_mime:string|null;file_path:string|null;file_mime:string|null;file_bytes:number;summary:string|null;category:string|null;tags:string;storage_bytes:number;status:string;enrich_attempts:number;created_at:number;provenance_json:string|null};
-type Job={id:string;account_id:string;capture_id:string;source_hash:string;status:string;attempts:number;cycle:string;credit:number;lease_token:string|null};
-type SettingsRow={enabled:number;fetch_links:number;images:number;consent_version:string|null;enabled_at:number};
+type Job={id:string;account_id:string;capture_id:string;source_hash:string;status:string;attempts:number;cycle:string;credit:number;lease_token:string|null;reason:string};
+type SettingsRow={enabled:number;fetch_links:number;images:number;consent_version:string|null;enabled_at:number;mode:'instant'|'scheduled'|'manual'|'paused';interval_hours:number;monthly_limit:number;next_run_at:number|null};
 type Options={ai?:{available:boolean;model:string;organize(input:AiInput):Promise<AiResult>};source?:(url:string)=>Promise<SourceSnapshot>;now?:()=>number;globalMaxBytes?:number;dailyAttempts?:number;media?:(save:Save)=>Promise<MediaResult>};
 const bytes=(value:unknown)=>Buffer.byteLength(typeof value==='string'?value:JSON.stringify(value),'utf8');
 function fingerprint(row:Save){return createHash('sha256').update(JSON.stringify([row.type,row.source_title,row.source_url,row.note_text,row.selection_text,row.article_text,row.ocr_text,row.file_path,row.file_bytes,row.blob_mime])).update(row.blob_data||new Uint8Array()).digest('hex');}
@@ -30,20 +30,31 @@ export function createProcessingService(db:Database,options:Options={}){
  function settings(owner:string){
   const row=prefs(owner),plan=accountPlan(db,owner,now()),cycle=new Date(now()).toISOString().slice(0,7);
   const usage=db.query('SELECT used,reserved FROM customer_processing_usage WHERE account_id=? AND cycle=?').get(owner,cycle) as {used:number;reserved:number}|null;
-  return {available:ai.available,enabled:!!row?.enabled,fetchLinks:!!row?.fetch_links,images:!!row?.images,consentVersion:CONSENT_VERSION,provider:'OpenAI',model:ai.model,pro:plan.pro,
-   usage:{cycle,used:usage?.used||0,reserved:usage?.reserved||0,limit:plan.limits.monthlyProcessing},
+  return {available:ai.available,enabled:!!row?.enabled,fetchLinks:!!row?.fetch_links,images:!!row?.images,consentVersion:CONSENT_VERSION,provider:'OpenAI',model:ai.model,pro:plan.pro,mode:row?.mode||'instant',intervalHours:row?.interval_hours||24,monthlyLimit:row?.monthly_limit??plan.limits.monthlyProcessing,nextRunAt:row?.enabled&&row.mode==='scheduled'?row.next_run_at:null,
+   usage:{cycle,used:usage?.used||0,reserved:usage?.reserved||0,limit:plan.limits.monthlyProcessing,monthlyLimit:Math.min(row?.monthly_limit??plan.limits.monthlyProcessing,plan.limits.monthlyProcessing)},
    activity:db.query('SELECT id,capture_id AS captureId,status,attempts,error,created_at AS createdAt,updated_at AS updatedAt FROM customer_processing_jobs WHERE account_id=? ORDER BY created_at DESC LIMIT 30').all(owner)};
  }
  function configure(owner:string,value:Record<string,unknown>){
-  for(const key of Object.keys(value))if(!['enabled','fetchLinks','images','consentVersion'].includes(key))moduleFail(400,'invalid_preferences','Unknown processing preference.');
+  for(const key of Object.keys(value))if(!['enabled','fetchLinks','images','consentVersion','mode','intervalHours','monthlyLimit'].includes(key))moduleFail(400,'invalid_preferences','Unknown processing preference.');
   for(const key of ['enabled','fetchLinks','images'])if(value[key]!==undefined&&typeof value[key]!=='boolean')moduleFail(400,'invalid_preferences','Use true or false for processing preferences.');
-  const previous=prefs(owner);const enabled=value.enabled===undefined?!!previous?.enabled:!!value.enabled;
-  if(enabled&&value.consentVersion!==CONSENT_VERSION&&previous?.consent_version!==CONSENT_VERSION)moduleFail(400,'consent_required','Confirm that selected content can be sent to OpenAI for organization.');
+  if(value.mode!==undefined&&!['instant','scheduled','manual','paused'].includes(value.mode as string))moduleFail(400,'invalid_preferences','Choose instant, scheduled, manual, or paused processing.');
+  if(value.intervalHours!==undefined&&![1,6,24].includes(value.intervalHours as number))moduleFail(400,'invalid_preferences','Choose a schedule of 1, 6, or 24 hours.');
+  if(value.monthlyLimit!==undefined&&(!Number.isInteger(value.monthlyLimit)||Number(value.monthlyLimit)<0||Number(value.monthlyLimit)>500))moduleFail(400,'invalid_preferences','Choose a whole-number monthly cap from 0 to 500 credits.');
   db.transaction(()=>{
-   db.query(`INSERT INTO customer_automation(account_id,enabled,fetch_links,images,consent_version,enabled_at,updated_at) VALUES(?,?,?,?,?,?,?)
-     ON CONFLICT(account_id) DO UPDATE SET enabled=excluded.enabled,fetch_links=excluded.fetch_links,images=excluded.images,consent_version=excluded.consent_version,enabled_at=excluded.enabled_at,updated_at=excluded.updated_at`)
-    .run(owner,Number(enabled),Number(value.fetchLinks??!!previous?.fetch_links),Number(value.images??!!previous?.images),enabled?CONSENT_VERSION:previous?.consent_version||null,enabled&&!previous?.enabled?now():previous?.enabled_at||now(),now());
-   if(!enabled || previous?.fetch_links && value.fetchLinks===false || previous?.images && value.images===false){const jobs=db.query("SELECT * FROM customer_processing_jobs WHERE account_id=? AND status IN ('pending','running')").all(owner) as Job[];for(const job of jobs)settle(job,'cancelled',null);}
+   const previous=prefs(owner),enabled=value.enabled===undefined?!!previous?.enabled:!!value.enabled;
+   if(enabled&&value.consentVersion!==CONSENT_VERSION&&previous?.consent_version!==CONSENT_VERSION)moduleFail(400,'consent_required','Confirm that selected content can be sent to OpenAI for organization.');
+   const mode=String(value.mode??previous?.mode??'instant'),interval=Number(value.intervalHours??previous?.interval_hours??24),limit=Number(value.monthlyLimit??previous?.monthly_limit??500);
+   const resetSchedule=enabled&&(!previous?.enabled||previous.mode!==mode||previous.interval_hours!==interval);
+   const nextRun=enabled&&mode==='scheduled'?(resetSchedule?now()+interval*3600_000:previous?.next_run_at??now()+interval*3600_000):null;
+   db.query(`INSERT INTO customer_automation(account_id,enabled,fetch_links,images,consent_version,enabled_at,updated_at,mode,interval_hours,monthly_limit,next_run_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)
+     ON CONFLICT(account_id) DO UPDATE SET enabled=excluded.enabled,fetch_links=excluded.fetch_links,images=excluded.images,consent_version=excluded.consent_version,enabled_at=excluded.enabled_at,updated_at=excluded.updated_at,mode=excluded.mode,interval_hours=excluded.interval_hours,monthly_limit=excluded.monthly_limit,next_run_at=excluded.next_run_at`)
+    .run(owner,Number(enabled),Number(value.fetchLinks??!!previous?.fetch_links),Number(value.images??!!previous?.images),enabled?CONSENT_VERSION:previous?.consent_version||null,enabled&&!previous?.enabled?now():previous?.enabled_at??now(),now(),mode,interval,limit,nextRun);
+   const withdrawn=!enabled||!!previous?.fetch_links&&value.fetchLinks===false||!!previous?.images&&value.images===false;
+   const jobs=db.query("SELECT * FROM customer_processing_jobs WHERE account_id=? AND status IN ('pending','running','paused')").all(owner) as Job[];
+   for(const job of jobs){
+    if(withdrawn)settle(job,'cancelled',null);
+    else if(mode==='paused'||limit<(previous?.monthly_limit??500)||job.reason==='new-save'&&(mode==='manual'||resetSchedule&&mode==='scheduled'))settle(job,'paused',null);
+   }
   }).immediate();return settings(owner);
  }
  function enqueue(owner:string,id:string,reason:'manual'|'new-save'|'agent'){
@@ -51,13 +62,15 @@ export function createProcessingService(db:Database,options:Options={}){
    const row=getSave(owner,id);if(!row)moduleFail(404,'not_found','Saved item not found.');
    if(!accountPlan(db,owner,now()).pro)moduleFail(403,'pro_required','Pro is required for managed processing.');
    const preference=prefs(owner);if(!preference?.enabled||preference.consent_version!==CONSENT_VERSION)moduleFail(409,'consent_required','Enable managed processing before sending content to OpenAI.');
+   if(preference.mode==='paused')moduleFail(409,'processing_paused','Processing is paused. Resume it in settings first.');
    if(!ai.available)moduleFail(503,'processing_unavailable','Managed processing is not configured yet.');
    if(row.status!=='done' && !(row.status==='failed' && row.enrich_attempts>=3))moduleFail(409,'capture_busy','This item is still being saved. Try again shortly.');
    const sourceHash=fingerprint(row);let existing=db.query('SELECT * FROM customer_processing_jobs WHERE account_id=? AND capture_id=? AND source_hash=?').get(owner,id,sourceHash) as Job|null;
-   if(existing&&!['failed','cancelled'].includes(existing.status))return {id:existing.id,status:existing.status};
+   if(existing&&!['failed','cancelled','paused'].includes(existing.status))return {id:existing.id,status:existing.status};
    const cycle=new Date(now()).toISOString().slice(0,7);
    db.query('INSERT OR IGNORE INTO customer_processing_usage(account_id,cycle) VALUES(?,?)').run(owner,cycle);
-   const reserved=db.query('UPDATE customer_processing_usage SET reserved=reserved+1 WHERE account_id=? AND cycle=? AND used+reserved<500').run(owner,cycle);
+   const limit=Math.min(preference.monthly_limit,accountPlan(db,owner,now()).limits.monthlyProcessing);
+   const reserved=db.query('UPDATE customer_processing_usage SET reserved=reserved+1 WHERE account_id=? AND cycle=? AND used+reserved<?').run(owner,cycle,limit);
    if(!reserved.changes)moduleFail(429,'processing_quota','Your monthly processing allowance is full.');
    const jobId=existing?.id||randomUUID();
    if(existing)db.query("UPDATE customer_processing_jobs SET status='pending',attempts=0,credit=1,cycle=?,error=NULL,updated_at=? WHERE id=?").run(cycle,now(),jobId);
@@ -73,14 +86,21 @@ export function createProcessingService(db:Database,options:Options={}){
  async function tick(){
   if(running||!ai.available)return 0;running=true;
   try{
-   // Only new saves after consent are automatic. Historical libraries require explicit requests.
-   const owners=db.query('SELECT account_id,enabled_at FROM customer_automation WHERE enabled=1 AND consent_version=? AND account_id>? ORDER BY account_id LIMIT 100').all(CONSENT_VERSION,lastOwner) as {account_id:string;enabled_at:number}[];
+   // Each owner decision is atomic, including the schedule boundary and reservations.
+   const owners=db.query("SELECT account_id FROM customer_automation WHERE enabled=1 AND consent_version=? AND mode<>'paused' AND account_id>? ORDER BY account_id LIMIT 100").all(CONSENT_VERSION,lastOwner) as {account_id:string}[];
    lastOwner=owners.length===100?owners.at(-1)!.account_id:'';
-   for(const owner of owners){if(!accountPlan(db,owner.account_id,now()).pro)continue;
+   for(const owner of owners)db.transaction(()=>{
+    if(!accountPlan(db,owner.account_id,now()).pro)return;
+    const preference=prefs(owner.account_id)!;
+    const automatic=preference.mode==='instant'||preference.mode==='scheduled'&&(preference.next_run_at??Infinity)<=now();
+    const held=db.query("SELECT capture_id,reason FROM customer_processing_jobs WHERE account_id=? AND status='paused' ORDER BY created_at LIMIT 20").all(owner.account_id) as {capture_id:string;reason:'manual'|'agent'|'new-save'}[];
+    for(const job of held)if(job.reason!=='new-save'||automatic){try{enqueue(owner.account_id,job.capture_id,job.reason);}catch{break;}}
+    if(!automatic)return;
     const saves=db.query(`SELECT id FROM customer_captures c WHERE account_id=? AND created_at>=? AND (status='done' OR (status='failed' AND enrich_attempts>=3))
-      AND NOT EXISTS(SELECT 1 FROM customer_processing_jobs j WHERE j.capture_id=c.id) ORDER BY created_at LIMIT 10`).all(owner.account_id,owner.enabled_at) as {id:string}[];
+      AND NOT EXISTS(SELECT 1 FROM customer_processing_jobs j WHERE j.capture_id=c.id) ORDER BY created_at LIMIT 20`).all(owner.account_id,preference.enabled_at) as {id:string}[];
     for(const save of saves){try{enqueue(owner.account_id,save.id,'new-save');}catch{break;}}
-   }
+    if(preference.mode==='scheduled')db.query('UPDATE customer_automation SET next_run_at=? WHERE account_id=?').run(now()+preference.interval_hours*3600_000,owner.account_id);
+   }).immediate();
    const job=db.transaction(()=>{
     const stale=db.query("SELECT * FROM customer_processing_jobs WHERE status='running' AND lease_until<? AND attempts>=3").all(now()) as Job[];for(const row of stale)settle(row,'failed',FAILURE);
     const day=new Date(now()).toISOString().slice(0,10);db.query('INSERT OR IGNORE INTO customer_processing_budget(day) VALUES(?)').run(day);
@@ -95,7 +115,7 @@ export function createProcessingService(db:Database,options:Options={}){
    const valid=()=>{
     const current=db.query("SELECT * FROM customer_processing_jobs WHERE id=? AND status='running' AND lease_token=?").get(job.id,job.lease_token) as Job|null;
     const row=getSave(job.account_id,job.capture_id),preference=prefs(job.account_id);
-    return current&&row&&preference?.enabled&&preference.consent_version===CONSENT_VERSION&&accountPlan(db,job.account_id,now()).pro&&fingerprint(row)===job.source_hash?{row,preference}:null;
+    return current&&row&&preference?.enabled&&preference.mode!=='paused'&&preference.consent_version===CONSENT_VERSION&&accountPlan(db,job.account_id,now()).pro&&fingerprint(row)===job.source_hash?{row,preference}:null;
    };
    try{
     const initial=valid();if(!initial){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
@@ -105,8 +125,12 @@ export function createProcessingService(db:Database,options:Options={}){
     const media=await (options.media||processCustomerMedia)(row);
     const candidates=db.query('SELECT id,source_title AS title,summary FROM customer_captures WHERE account_id=? AND id<>? ORDER BY created_at DESC LIMIT 40').all(job.account_id,row.id) as {id:string;title:string|null;summary:string|null}[];
     const input:AiInput={title:row.source_title||source?.title||row.type,url:row.source_url,text:[row.note_text,row.selection_text,row.article_text||source?.text,row.ocr_text,media.text].filter(Boolean).join('\n\n'),candidates:candidates.map(value=>({id:value.id,title:value.title||'',summary:value.summary||''}))};
+    if(source?.extractionStatus)input.sourceEvidence={status:source.extractionStatus,notice:source.notice||null,transcript:source.transcriptStatus||null};
     if(preference.images){if(media.image)input.image=media.image;else if(row.blob_data&&row.blob_data.byteLength<=4*1024*1024&&row.blob_mime)input.image={mime:row.blob_mime,base64:Buffer.from(row.blob_data).toString('base64')};}
     if(!valid()){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
+    if(!input.text.trim()&&!input.image&&(!row.source_title||source?.extractionStatus==='unavailable')){
+     db.transaction(()=>settle(job,'failed','No readable content was available. Add page text with the extension or a note, then retry.')).immediate();return 1;
+    }
     const result=validateAiResult(await ai.organize(input),candidates.map(value=>value.id));
     db.transaction(()=>{
      const current=valid();if(!current){settle(job,'cancelled',null);return;}
