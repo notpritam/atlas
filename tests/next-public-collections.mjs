@@ -89,6 +89,13 @@ test('public editorial collection searches all pages, switches layout, shares, a
   if(width<=390){const contribute=page.getByRole('link',{name:'Log in to contribute',exact:true});assert.equal(await contribute.count(),1);assert.ok(await contribute.evaluate(el=>Boolean(el.closest('.collection-profile'))));}
   for(const name of ['Grid view','List view','Search','Share collection']){const bounds=await page.getByRole('button',{name,exact:true}).boundingBox();const minimum=width<=760?44:32;assert.ok(bounds.height>=minimum&&bounds.width>=minimum,`${name} target at ${width}`);}
  }
+ // A wide tablet is still a touch device: independent source actions retain their target size.
+ const touchContext=await browser.newContext({viewport:{width:1024,height:900},hasTouch:true,reducedMotion:'reduce'});
+ const touchPage=await touchContext.newPage();await touchPage.goto(base+path);
+ assert.equal(await touchPage.evaluate(()=>matchMedia('(pointer:coarse)').matches),true);
+ const sourceTarget=touchPage.locator('.shared-entry-source').first();await sourceTarget.waitFor();
+ const sourceBounds=await sourceTarget.boundingBox();assert.ok(sourceBounds.width>=44&&sourceBounds.height>=44,'Wide touch source links have 44px targets');
+ await touchContext.close();
  // The mobile contribution action opens the real form and focuses its first field.
  const signed=await owner.newPage();await signed.setViewportSize({width:390,height:1000});await signed.goto(base+path);await signed.getByRole('button',{name:'Add a find',exact:true}).click();
  const form=signed.getByRole('form',{name:'Add to collection'});assert.ok(await form.getByLabel('Title',{exact:true}).evaluate(el=>el===document.activeElement));

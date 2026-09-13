@@ -69,6 +69,24 @@ test('compact appearance control, beta downloads, and dark account surfaces stay
  await dashboard.getByRole('button',{name:'Open account menu',exact:true}).click();
  const sidebarToggle=dashboard.getByRole('button',{name:'Switch to light mode',exact:true}),sidebarBounds=await sidebarToggle.boundingBox();
  assert.ok(sidebarBounds&&sidebarBounds.width===36&&sidebarBounds.height===36,'Sidebar uses the shared 36px compact theme button');
+ // Long saved text must keep both desktop and mobile reader navigation reachable.
+ const saved=await account.request.post(base+'/api/captures',{headers:{Origin:base},data:{clientId:crypto.randomUUID(),type:'note',noteText:'A long saved reference keeps its navigation available while you read.\n\n'.repeat(100),processingOptions:{ocr:false,summaries:false,tags:false}}});
+ assert.equal(saved.status(),201);const capture=(await saved.json()).capture;
+ await dashboard.goto(base+'/dashboard/saved/'+capture.id);await dashboard.locator('.reader-content .detail-section p').waitFor();
+ for(const width of [1440,390]){
+  await dashboard.setViewportSize({width,height:500});
+  await dashboard.evaluate(()=>window.scrollTo({top:805,behavior:'instant'}));
+  const position=await dashboard.locator('.capture-reading-view .reader-toolbar').evaluate(el=>({top:el.getBoundingClientRect().top,scroll:window.scrollY}));
+  assert.ok(position.scroll>=800,'Fixture requires meaningful document scrolling');
+  const expectedTop=0;
+  assert.ok(Math.abs(position.top-expectedTop)<=1,`Reader toolbar stays reachable at ${width}px: top=${position.top}`);
+  if(width<=760){const menu=await dashboard.locator('#open-sidebar').boundingBox(),back=await dashboard.getByRole('button',{name:'Back to library',exact:true}).boundingBox(),toolbar=await dashboard.locator('.reader-toolbar').boundingBox();assert.ok(menu.y>=0&&menu.y+menu.height<=toolbar.y+toolbar.height,'Mobile hamburger stays within the reader row');assert.ok(menu.x+menu.width<=back.x,'Hamburger and back targets do not overlap');assert.ok(toolbar.height<=60,'Saved mobile navigation occupies one compact row');}
+ }
+ await dashboard.setViewportSize({width:1440,height:1100});
+ const sharing=dashboard.getByRole('button',{name:'Add to a collection',exact:true});await sharing.click();
+ const closeSharing=dashboard.getByRole('button',{name:'Close collection sharing',exact:true});await closeSharing.hover();
+ const sharingContrast=await computedContrast(dashboard,'.capture-collection-share > .button','.capture-collection-share > .button');
+ assert.ok(sharingContrast.ratio>=4.5,`Dark sharing hover contrast is ${sharingContrast.ratio.toFixed(2)}:1`);
  await dashboard.goto(base+'/dashboard/settings');
  const choices=dashboard.getByRole('group',{name:'Appearance',exact:true});
  await choices.waitFor();

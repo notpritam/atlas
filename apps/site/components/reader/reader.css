@@ -35,6 +35,7 @@ html body .reader-surface .detail-origin dt{font-size:11px;text-transform:none;l
 html body .reader-surface .detail-origin dd{font-size:12px;line-height:1.7}
 html body .reader-surface .capture-collection-share{margin-top:22px;padding-top:18px;border-top:1px solid var(--fk-line)}
 html body .reader-surface .capture-collection-share>.button{width:100%;min-height:36px;border-radius:7px;font-size:12px;padding:9px 10px;border-color:var(--fk-line);color:var(--fk-ink)}
+html body .reader-surface .capture-collection-share>.button:hover{background:var(--fk-soft);color:var(--fk-ink)}
 html body .reader-surface .capture-collection-share :is(p,label){font-size:12px}
 html body .reader-surface .capture-collection-share .entry-form{padding:12px;margin-top:16px;border-radius:8px}
 html body .reader-surface .detail-file{margin:20px 0;background:var(--fk-soft);padding:14px;border-radius:8px}
@@ -43,7 +44,7 @@ html body .reader-surface .detail-file .button{min-height:36px;font-size:12px;pa
 html body .reader-surface .detail-image-frame{margin-top:0;border-radius:8px;background:var(--fk-soft)}
 html body .reader-surface .detail-media{max-height:70dvh;border-radius:8px}
 html body .reader-surface .detail-processing{background:var(--fk-soft);padding:12px;border-radius:7px;font-size:12px}
-html body .customer-body.dashboard-body .capture-reading-view{width:100%;max-width:none;margin-top:0;border-radius:12px;align-self:stretch}
+html body .customer-body.dashboard-body .capture-reading-view{width:100%;max-width:none;margin-top:0;border-radius:12px;align-self:stretch;overflow:visible}
 html body .customer-body.dashboard-body .reader-surface .detail-body{padding:0}
 html body .customer-body.dashboard-body .reader-surface .detail-body>p,
 html body .customer-body.dashboard-body .reader-surface .detail-body>h2,
@@ -76,11 +77,13 @@ html body .social-collections .shared-entry-source svg{width:16px;height:16px}
  html body .reader-surface .reader-toolbar{padding:6px 12px;min-height:56px}
  html body .reader-surface :is(.reader-prose,.detail-section p){font-size:14px;line-height:1.85}
  html body .customer-body.dashboard-body .capture-reading-view{border:0;border-radius:0}
- html body .customer-body.dashboard-body.saved-reading-page .library-main{padding:0}
+ html body .customer-body.dashboard-body.saved-reading-page .sidebar-mobile-header{position:sticky;top:0;z-index:6;width:64px;height:56px;padding:4px 8px}
+ html body .customer-body.dashboard-body.saved-reading-page .capture-reading-view .reader-toolbar{top:0;min-height:56px;padding:5px 12px 5px 68px}
+ html body .customer-body.dashboard-body.saved-reading-page .library-main{padding:0;margin-top:-56px}
  html body .customer-body.dashboard-body.saved-reading-page .library-footer{padding-inline:16px}
- html body .social-collections .shared-entry-source{width:44px;height:44px;min-height:44px}
 }
 @media(max-width:760px),(pointer:coarse){
+ html body .social-collections .shared-entry-source{width:44px;min-width:44px;height:44px;min-height:44px}
  html body .reader-icon-button{width:44px;height:44px;min-height:44px;flex-basis:44px}
  html body .reader-surface .capture-collection-share>.button,
  html body .reader-surface .detail-file .button,

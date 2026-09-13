@@ -67,7 +67,7 @@ html body .collection-editorial .public-find .collection-tags>span{background:va
 html body .collection-editorial .collection-find-search :is(input,select,.button){border-radius:8px}
 html body .theme-toggle{width:36px;height:36px;flex-basis:36px;border-radius:8px}
 html body .theme-toggle>svg{width:18px;height:18px}
-html body .customer-body.dashboard-body .sidebar-account-menu .theme-toggle{width:36px;min-width:36px;height:36px;border-radius:8px}
+html body .customer-body.dashboard-body .sidebar-account-menu .theme-toggle{width:36px;min-width:36px;height:36px;min-height:36px;border-radius:8px}
 @media(min-width:761px) and (pointer:fine){
  html body .customer-body.dashboard-body .library-shell{grid-template-columns:244px minmax(0,1fr)}
  html body .customer-body.dashboard-body .library-shell:has(.library-sidebar[data-collapsed=true]){grid-template-columns:72px minmax(0,1fr)}
@@ -90,7 +90,7 @@ html body .customer-body.dashboard-body .sidebar-account-menu .theme-toggle{widt
 }
 @media(max-width:760px),(pointer:coarse){
  html body .theme-toggle{width:48px;height:48px;flex-basis:48px}
- html body .customer-body.dashboard-body .sidebar-account-menu .theme-toggle{width:48px;min-width:48px;height:48px}
+ html body .customer-body.dashboard-body .sidebar-account-menu .theme-toggle{width:48px;min-width:48px;height:48px;min-height:48px}
  html body .customer-body.dashboard-body .type-filters button,
  html body .collection-editorial .collection-topic-filters a{min-height:44px}
  html body .collection-editorial .collection-view-control button{width:44px;height:44px;min-height:44px}
