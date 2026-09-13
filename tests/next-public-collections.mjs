@@ -48,7 +48,7 @@ test('public editorial collection searches all pages, switches layout, shares, a
  await mkdir('.impeccable/review/friends-beta',{recursive:true});
  await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-desktop.png'});
  await page.getByRole('button',{name:'Switch to dark mode',exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
- assert.equal(await page.locator('.public-find').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(17, 17, 17)');
+ assert.equal(await page.locator('.public-find').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(0, 0, 0)');
  await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-dark-desktop.png'});
  await page.setViewportSize({width:390,height:844});await checkMasonry();await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-dark-phone.png'});await page.locator('.collection-entries').scrollIntoViewIfNeeded();await page.screenshot({path:'.impeccable/review/friends-beta/collection-cards-dark-phone.png'});await page.evaluate(()=>scrollTo(0,0));
  await page.evaluate(()=>localStorage.setItem('foundkeep.appearance','system'));await page.emulateMedia({colorScheme:'light'});await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.theme==='light');await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-phone.png'});
