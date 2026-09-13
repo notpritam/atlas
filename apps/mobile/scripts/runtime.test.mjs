@@ -1,7 +1,11 @@
 import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { createFingerprintAsync } from '@expo/fingerprint';
+
+const require = createRequire(import.meta.url);
+const expoRequire = createRequire(require.resolve('expo/package.json'));
+const { createFingerprintAsync } = expoRequire('@expo/fingerprint');
 
 const projectRoot = fileURLToPath(new URL('..', import.meta.url));
 

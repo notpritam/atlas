@@ -5,6 +5,15 @@
   "type": "module",
   "license": "UNLICENSED",
   "main": "index.js",
+  "expo": {
+    "autolinking": {
+      "android": {
+        "buildFromSource": [
+          "expo-sharing"
+        ]
+      }
+    }
+  },
   "scripts": {
     "start": "expo start --dev-client",
     "ios": "expo run:ios",

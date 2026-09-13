@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 test('Foundkeep mobile config pins the release identity and safe OTA runtime', async () => {
   const app = JSON.parse(await readFile(new URL('../app.json', import.meta.url), 'utf8')).expo;
+  const mobilePackage = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
   assert.equal(app.name, 'Foundkeep');
   assert.equal(app.slug, 'foundkeep');
   assert.equal(app.version, '1.0.0');
@@ -31,6 +32,7 @@ test('Foundkeep mobile config pins the release identity and safe OTA runtime', a
   assert.ok(app.plugins.includes('expo-router'));
   assert.ok(app.plugins.includes('expo-updates'));
   assert.ok(app.plugins.includes('expo-notifications'));
+  assert.deepEqual(mobilePackage.expo?.autolinking?.android?.buildFromSource, ['expo-sharing']);
   assert.doesNotMatch(JSON.stringify(app), /token|password|secret/i);
 });
 
