@@ -1,5 +1,5 @@
 :root{--fk-paper:#fafafa;--fk-surface:#fff;--fk-ink:#202020;--fk-muted:#686868;--fk-line:#e4e4e4;--fk-control:#929292;--fk-accent:#1672b8;--fk-accent-hover:#105a92;--fk-on-accent:#fff;--fk-sky:#f1f1f1;--fk-mint:#f1f3f1;--fk-soft:#f2f2f2;--fk-graph:#fafafa;color-scheme:light}
-:root[data-theme=dark]{--fk-paper:#000;--fk-surface:#000;--fk-ink:#ededed;--fk-muted:#a0a0a0;--fk-line:#292929;--fk-control:#727272;--fk-accent:#71b7ee;--fk-accent-hover:#a1d2f5;--fk-on-accent:#081823;--fk-sky:#1c1c1c;--fk-mint:#191b19;--fk-soft:#1c1c1c;--fk-graph:#000;color-scheme:dark}
+:root[data-theme=dark]{--fk-paper:#08090a;--fk-surface:#0f1011;--fk-ink:#f7f8f8;--fk-muted:#8a8f98;--fk-line:#23252a;--fk-control:#3a3d44;--fk-accent:#71b7ee;--fk-accent-hover:#a1d2f5;--fk-on-accent:#081823;--fk-sky:#16181c;--fk-mint:#141518;--fk-soft:#1a1c20;--fk-graph:#0f1011;color-scheme:dark}
 html body{background:var(--fk-paper);color:var(--fk-ink)}
 html .customer-body,html .social-collections{--paper:var(--fk-paper);--surface:var(--fk-surface);--ink:var(--fk-ink);--muted:var(--fk-muted);--line:var(--fk-line);--control-line:var(--fk-control);--accent:var(--fk-accent);--accent-hover:var(--fk-accent-hover);--sky:var(--fk-sky);--mint:var(--fk-mint);--panel:var(--fk-surface);color-scheme:inherit}
 .theme-toggle{display:grid;place-items:center;width:48px;height:48px;flex:0 0 48px;padding:0;border:1px solid var(--fk-line);border-radius:10px;background:var(--fk-surface);color:var(--fk-muted);cursor:pointer}
@@ -22,6 +22,9 @@ html[data-theme=dark] .customer-body.dashboard-body :is(.sidebar-account .accoun
 html[data-theme=dark] .customer-body.dashboard-body :is(.sidebar-nav-link.nav-active,.sidebar-collection-link[aria-current=page],.sidebar-account .account-avatar){background:var(--fk-sky);color:var(--fk-accent);border-color:var(--fk-line)}
 html[data-theme=dark] .customer-body.dashboard-body :is(.sidebar-nav-link,.sidebar-collection-link,.sidebar-icon-button,.sidebar-brand,.sidebar-account .account-button,.sidebar-account-menu a,.sidebar-account-menu button):hover{background:var(--fk-soft)}
 html[data-theme=dark] .customer-body.dashboard-body :is(.sidebar-icon-button,.sidebar-nav-link>svg,.sidebar-collection-link>svg,#nav-count){color:var(--fk-muted)}
+/* Segmented controls: in dark the recessed track is the soft fill, so the selected pill must lift above it (mirrors the raised white pill used in light). */
+html[data-theme=dark] .customer-body.dashboard-body .type-filters button[aria-pressed=true],
+html[data-theme=dark] .collection-editorial :is(.collection-topic-filters a[aria-current=page],.collection-view-control button[aria-pressed=true]){background:#26282d;border-color:#34363c;box-shadow:inset 0 1px 0 #ffffff0d}
 html[data-theme=dark] .customer-body :is(.processing-mode-grid label,.processing-budget,.plan-featured,.agent-capability,.agent-config,.agent-permissions,.entry-form,.collection-rules){background-color:var(--fk-surface);border-color:var(--fk-line);color:var(--fk-ink)}
 html[data-theme=dark] .customer-body .processing-mode-grid label:has(input:checked){background:var(--fk-sky);border-color:var(--fk-accent)}
 html[data-theme=dark] .customer-body .processing-mode-grid label span{color:var(--fk-muted)}

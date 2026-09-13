@@ -2,7 +2,7 @@
 import {createContext,useContext,useEffect,useLayoutEffect,useState,type ReactNode} from 'react';
 export type ThemePreference='light'|'dark'|'system';
 const key='foundkeep.appearance';
-const themeColors={light:'#fafafa',dark:'#000000'} as const;
+const themeColors={light:'#fafafa',dark:'#08090a'} as const;
 const valid=(value:unknown):value is ThemePreference=>value==='light'||value==='dark'||value==='system';
 const ThemeContext=createContext<{preference:ThemePreference;resolved:'light'|'dark';setPreference:(value:ThemePreference)=>void}>({preference:'system',resolved:'light',setPreference:()=>{}});
 export function ThemeProvider({children}:{children:ReactNode}){
