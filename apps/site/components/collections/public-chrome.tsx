@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import type {ReactNode} from 'react';
+import {ThemeControl} from '../appearance/theme';
 import type {SharedCollection} from '@/lib/collections';
 
 export function CollectionIcon({children}:{children:ReactNode}) {return <svg aria-hidden="true" viewBox="0 0 24 24">{children}</svg>;}
@@ -16,7 +17,7 @@ export const collectionIcons={
  list:<><path d="M8 5h13M8 12h13M8 19h13"/><path d="M3 5h.01M3 12h.01M3 19h.01"/></>,
 };
 export function PublicCollectionNav({accountId}:{accountId?:string}) {
- return <header className="public-collection-nav"><Link className="brand" href="/" aria-label="FoundKeep home"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" alt="" width={30} height={30}/><span>FoundKeep</span></Link><nav aria-label="Collection navigation"><Link className="explore-nav-link" href="/collections">Explore collections</Link><Link className="public-nav-account" href={accountId?'/dashboard/collections':'/login'}>{accountId?'My collections':'Log in'}<CollectionIcon>{collectionIcons.arrow}</CollectionIcon></Link></nav></header>;
+ return <header className="public-collection-nav"><Link className="brand" href="/" aria-label="FoundKeep home"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" alt="" width={30} height={30}/><span>FoundKeep</span></Link><nav aria-label="Collection navigation"><ThemeControl compact/><Link className="explore-nav-link" href="/collections">Explore collections</Link><Link className="public-nav-account" href={accountId?'/dashboard/collections':'/login'}>{accountId?'My collections':'Log in'}<CollectionIcon>{collectionIcons.arrow}</CollectionIcon></Link></nav></header>;
 }
 export function collectionTheme(c:Pick<SharedCollection,'title'|'tags'>) {
  const words=[c.title,...c.tags].join(' ').toLowerCase();
@@ -33,6 +34,6 @@ export function CollectionArtwork({collection}:{collection:Pick<SharedCollection
 }
 export function CuratorAvatar({name}:{name:string}) {return <span className="curator-avatar" aria-hidden="true">{name.trim().split(/\s+/).slice(0,2).map(word=>Array.from(word)[0]).join('').toUpperCase()||'F'}</span>;}
 export function PublicCollectionCard({collection:c}:{collection:SharedCollection}) {
- return <Link href={`/collection/${c.slug}`} className="discovery-card" prefetch={false}><CollectionArtwork collection={c}/><div className="discovery-card-content"><div className="discovery-card-topics">{c.tags.slice(0,2).map(tag=><span key={tag}>{tag}</span>)}</div><h2>{c.title}</h2><p>{c.description||'The links, notes, and ideas this curator keeps coming back to.'}</p><footer><span><CuratorAvatar name={c.ownerName}/>{c.ownerName}</span><span>{c.entries} {c.entries===1?'find':'finds'}<CollectionIcon>{collectionIcons.arrow}</CollectionIcon></span></footer></div></Link>;
+ return <Link href={`/collection/${c.slug}`} className="discovery-card capture-card" prefetch={false}><CollectionArtwork collection={c}/><div className="discovery-card-content capture-card-body"><div className="discovery-card-topics">{c.tags.slice(0,2).map(tag=><span key={tag}>{tag}</span>)}</div><h2>{c.title}</h2><p>{c.description||'The links, notes, and ideas this curator keeps coming back to.'}</p><footer><span><CuratorAvatar name={c.ownerName}/>{c.ownerName}</span><span>{c.entries} {c.entries===1?'find':'finds'}<CollectionIcon>{collectionIcons.arrow}</CollectionIcon></span></footer></div></Link>;
 }
 export function PublicCollectionFooter() {return <footer className="public-collection-footer"><Link className="footer-brand" href="/"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width={24} height={24} alt=""/>FoundKeep</Link><span>Good finds, kept together.</span><nav aria-label="Footer"><Link href="/support">Support</Link><Link href="/privacy">Privacy</Link></nav></footer>;}

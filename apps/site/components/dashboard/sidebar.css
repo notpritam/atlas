@@ -47,7 +47,7 @@
 .customer-body.dashboard-body .sidebar-account { position:relative; }
 .customer-body.dashboard-body .sidebar-account .account-button { display:flex; align-items:center; gap:10px; width:100%; min-height:62px; padding:10px; border:0; border-radius:10px; background:#f4f7f8; color:inherit; text-align:left; cursor:pointer; }
 .customer-body.dashboard-body .sidebar-account .account-button:hover { background:#eaf2f5; }
-.customer-body.dashboard-body .sidebar-account .account-avatar { display:grid; place-items:center; width:34px; height:34px; flex-shrink:0; border-radius:50%; background:#e0f0fc; border:1px solid #cde4f2; color:#16547a; font-size:12px; }
+.customer-body.dashboard-body .sidebar-account .account-avatar { display:grid; place-items:center; width:34px; height:34px; flex-shrink:0; border-radius:50%; background:var(--fk-sky); border:1px solid #cde4f2; color:#16547a; font-size:12px; }
 .customer-body.dashboard-body .account-button>.sidebar-account-copy { display:grid; gap:4px; min-width:0; }
 .customer-body.dashboard-body .sidebar-account-copy strong { font-size:13px; font-weight:550; }
 .customer-body.dashboard-body .sidebar-account-copy>span { margin:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; color:var(--sidebar-muted); }

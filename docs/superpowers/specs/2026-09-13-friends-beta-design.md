@@ -1,0 +1,30 @@
+# FoundKeep friends beta
+
+## Goal and acceptance
+
+Launch a friends beta using production APIs at `https://foundkeep.app`, production extension/dashboard and production mobile builds distributed via the existing TestFlight app and Android APK/Google Play beta. Permanent dev is for Pritam only and remains the first verification environment. The P0 journey is connecting a personal MCP agent, creating and updating saved content, organizing it, and seeing its relationships in a mind map. Saved blogs, posts, video links, and files must retain the original and expose accurate parsing status, categories, tags, and related saves. Pro customers control instant, scheduled, manual, or paused managed processing and a monthly credit cap.
+
+Preserve the existing production extension/mobile identities and all dev accounts, data, authentication and Paddle sandbox configuration. Promote tested changes to production for the friends beta; public store rollout remains excluded. Web and mobile share light/dark/system appearance, azure/mint light colors and a deep neutral dark palette. Friend invitations are prepared, not sent by the agent. Credentials remain private on their owning host.
+
+## Milestones
+
+1. MCP creation and revision-guarded detail updates on Free; scoped read/write/file access, quotas, idempotency, revocation and environment-correct endpoint. Existing `link_saves` remains compatible.
+2. Account-scoped graph API and a dashboard Mind map page showing saves, tag nodes, explicit agent/hosted links and an accessible list. Clicking a save reaches its reader. Search/focus, pan/zoom, readable empty states and phone behavior must work; never silently imply the entire library when display is bounded.
+3. Pro scheduling and credit controls; existing explicit consent remains separate. Paused processing must stop new provider calls and prevent in-flight completion from spending credits or overwriting content. Already sent provider requests cannot be recalled. Manual actions and automatic schedules use the same ledger, owner boundaries and limits.
+4. Better source extraction for accessible public blogs and social/video metadata; platform-aware descriptions and accurate availability. Use captured DOM/shared text when available; inaccessible/private/login-gated content stays saved with a clear limitation. Do not invent a transcript or content understanding from a title. No private-platform authentication bypass. Full video/audio understanding needs actual supported extraction/transcription, not preview-only claims.
+5. Native environment profiles and secure parity for Android startup, login and incoming shares. Reuse the existing iOS app/share-extension/group and Android application ID; isolate dev credentials, queues and caches internally. Friends profiles use production APIs with a production-beta channel; Pritam profiles use dev APIs/channel.
+6. Verified production beta artifacts, onboarding and feedback path; verify on permanent dev before production beta promotion, iOS TestFlight and Google Play test distribution when account access allows. Android APK distribution is an additional immediate option. Clearly identify any store review/account requirement while completing independent work.
+
+## Contracts
+
+- MCP `create_save`: stable client ID, supported text/link capture kind, title/source URL and selected/note/article text, optional personal tags and folder. It creates an owner-scoped capture through the normal quotas/change feed with provenance indicating an agent. `update_save`: owned ID, expected revision and explicit title/note/summary/category or organization edits. Preserve omitted fields, originals and existing tags; conflicts require re-read. Tools do not gain public-publication permission.
+- Graph returns bounded owner-only save nodes, tag nodes, explicit links and tag-membership edges; labels and source provenance explain the relationships. Existing `customer_capture_links` is authoritative for agent/hosted links.
+- `/automation` adds `mode: instant|scheduled|manual|paused`, `intervalHours: 1|6|24`, `monthlyLimit` within the plan allowance, and read-only `nextRunAt`. Legacy enabled/disabled requests remain compatible. Default existing enabled accounts remain instant. Consent defaults remain off.
+- Mobile identities remain canonical: scheme `foundkeep`, iOS `app.foundkeep.ios`, extension `app.foundkeep.ios.ShareExtension`, group `group.app.foundkeep.ios`, Android `app.foundkeep.android`. Existing ASC app `6809771188`. Friends API `https://foundkeep.app`, update channel `production-beta`. Pritam API `https://dev.foundkeep.app`, channel `dev`, name `FoundKeep Dev`, service `app.foundkeep.dev.shared`, dev-scoped queue/cache/defaults. No new App Store record.
+
+## Evidence required
+
+Disposable database tests cover MCP create/update/link/conflicts/scopes/quotas, graph ownership, schedules/pauses/credits and source parsing/security. Browser tests cover connection configuration, a real MCP SDK mutation reflected in dashboard/graph, navigation, mobile layout, processing controls and extension/dev isolation. Mobile variants must pass config/type/unit checks and native builds; installed-device/simulator evidence is recorded separately from successful compilation. Store URLs are shared only once real artifacts exist.
+
+## Visual acceptance
+Sticky full-width public navigation; collection finds use dashboard card typography, surfaces, note colors and metadata. Responsive filters and grid/list views preserve moderation/privacy behavior. Mind map uses real canvas nodes and fine edges, force layout, pan/zoom, hover/selected labels and accessible list. Shared web/native light, dark and system appearance.

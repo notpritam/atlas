@@ -63,10 +63,20 @@ export async function seedDemo({origin='https://dev.foundkeep.app',stateDir=path
    if(!collection){const {entries,...fields}=fixture;collection=(await curator('/collections','POST',{...fields,kind:'personal'})).collection;createdCollections++;}
    state.collections[fixture.slug]=collection.id;await persist();
    for(const entry of [...fixture.entries].reverse()){
-    const {key,...fields}=entry,clientId=`fk-demo-v1-${fixture.slug}-${key}`;
+    const {key,image,...fields}=entry,clientId=`fk-demo-v1-${fixture.slug}-${key}`;
     // Recorded fixtures are left alone, including entries a tester moved or removed.
     if(state.entries[clientId])continue;
-    const result=await curator(`/collections/${collection.id}/entries`,'POST',{...fields,clientId});
+    let captureId;
+    if(image){
+     const imageClientId=clientId+'-image';
+     captureId=state.captures[imageClientId];
+     if(!captureId){
+      const bytes=await readFile(new URL('./fixtures/'+image,import.meta.url));
+      const captured=await curator('/captures','POST',{clientId:imageClientId,type:'image',sourceTitle:fields.title,dataUrl:'data:image/webp;base64,'+bytes.toString('base64'),processingOptions:{ocr:false,summaries:false,tags:false}});
+      captureId=captured.capture.id;state.captures[imageClientId]=captureId;await persist();
+     }
+    }
+    const result=await curator(`/collections/${collection.id}/entries`,'POST',{...fields,clientId,...captureId?{captureId,shareImage:true}:{}});
     state.entries[clientId]=result.entry.id;createdEntries++;await persist();
    }
    if(collection.visibility==='public'){

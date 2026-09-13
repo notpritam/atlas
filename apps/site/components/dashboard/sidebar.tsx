@@ -6,18 +6,20 @@ import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 're
 import { flushSync } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useDashboard } from './context';
+import {ThemeControl} from '../appearance/theme';
 import { NavigationPending } from './loading';
 import { gsap, motionAllowed } from './motion';
 import { messageFor } from '../../lib/dashboard';
 import type { CollectionList } from '../../lib/collections';
 import type { Me } from '../../lib/types';
 
-export type AccountSection = 'collections' | 'apps' | 'agents' | 'settings' | 'capture' | 'processing' | 'plans';
+export type AccountSection = 'collections' | 'mind-map' | 'apps' | 'agents' | 'settings' | 'capture' | 'processing' | 'plans';
 const collapsePreference = 'foundkeep.sidebar.collapsed';
 const mobileQuery = '(max-width: 760px)';
 const icons = {
   library: <><rect x="4" y="3" width="16" height="18" rx="2" /><path d="M8 3v18m4-13h4m-4 4h4" /></>,
   collections: <><rect x="3" y="8" width="18" height="13" rx="2" /><path d="M6 8V5h12v3M9 5V2h6v3m-6 10h6" /></>,
+  graph: <><circle cx="5" cy="5" r="2.5"/><circle cx="19" cy="7" r="2.5"/><circle cx="10" cy="19" r="2.5"/><path d="m7.5 5 9 1M6 7.5l3 9m8-7.5-5.5 8"/></>,
   agents: <><rect x="3" y="3" width="7" height="7" rx="2" /><rect x="14" y="14" width="7" height="7" rx="2" /><path d="M10 6h5a3 3 0 0 1 3 3v5M6 10v5a3 3 0 0 0 3 3h5" /></>,
   devices: <><rect x="2" y="3" width="14" height="12" rx="2" /><path d="M5 20h7m-3-5v5" /><rect x="16" y="8" width="6" height="13" rx="1.5" /></>,
   plans: <><rect x="3" y="3" width="18" height="18" rx="3" /><path d="M7 16v-3m5 3V7m5 9v-6" /></>,
@@ -111,7 +113,7 @@ export function Sidebar({ me, section, collectionId, libraryHref = '/dashboard',
         else setMobileOpen(false);
       }
       if (event.key !== 'Tab' || !mobile || !mobileOpen) return;
-      const items = Array.from(ref.current?.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),summary,[tabindex="0"]') || []).filter(el => el.getClientRects().length && !el.closest('[inert]'));
+      const items = Array.from(ref.current?.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),select,summary,[tabindex="0"]') || []).filter(el => el.getClientRects().length && !el.closest('[inert]'));
       const first = items[0], last = items.at(-1);
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
@@ -150,6 +152,7 @@ export function Sidebar({ me, section, collectionId, libraryHref = '/dashboard',
   const primary = [
     { href: libraryHref, id: 'all-captures', label: 'My library', active: !section, icon: icons.library },
     { href: '/dashboard/collections', id: 'open-collections', label: 'Collections', active: section === 'collections' && !collectionId, icon: icons.collections },
+    { href: '/dashboard/mind-map', id: 'open-mind-map', label: 'Mind map', active: section === 'mind-map', icon: icons.graph },
     { href: '/dashboard/agents', id: 'open-agents', label: 'Agents', active: section === 'agents', icon: icons.agents },
   ];
   const manage = [
@@ -180,7 +183,7 @@ export function Sidebar({ me, section, collectionId, libraryHref = '/dashboard',
       </nav></div>
       <div className="sidebar-bottom"><div className="sidebar-plan-summary"><div className="sidebar-plan-title"><strong>{planName}</strong><span>{me.usage.captures.toLocaleString('en-US')} saves</span></div><Link className="sidebar-plan-link" href="/dashboard/plans" onNavigate={close}>{plan.data ? (plan.data.pro ? 'Manage plan' : 'Explore Pro') : 'View plan & usage'}<Icon><path d="M5 12h14m-5-5 5 5-5 5" /></Icon></Link></div>
         <div className="sidebar-account" ref={accountRef}><button ref={accountButtonRef} className="account-button" id="open-account" type="button" aria-label="Open account menu" title={rail ? 'Account menu' : undefined} aria-expanded={accountOpen} aria-controls="sidebar-account-menu" disabled={switching} onClick={() => setAccountOpen(open => !open)}><span className="account-avatar" id="account-avatar" aria-hidden="true">{(me.account.name || me.account.email).slice(0, 1).toUpperCase()}</span><span className="sidebar-account-copy"><strong id="account-name">{me.account.name || me.account.email}</strong><span>{me.account.email}</span></span><Icon><path d="m8 8 4-4 4 4m-8 8 4 4 4-4" /></Icon></button>
-          {accountOpen ? <nav className="sidebar-account-menu" id="sidebar-account-menu" aria-label="Your account"><Link id="sidebar-account-settings" href="/dashboard/settings" onNavigate={close}><Icon>{icons.settings}</Icon>Account &amp; settings</Link><Link href="/dashboard/plans" onNavigate={close}><Icon>{icons.plans}</Icon>Plans &amp; usage</Link><Link id="sidebar-account-privacy" href="/privacy" onNavigate={close}><Icon>{icons.privacy}</Icon>Privacy &amp; data</Link><button id="sidebar-switch-account" type="button" onClick={() => void switchAccount()}><Icon>{icons.switch}</Icon>Switch account</button></nav> : null}
+          {accountOpen ? <nav className="sidebar-account-menu" id="sidebar-account-menu" aria-label="Your account"><Link id="sidebar-account-settings" href="/dashboard/settings" onNavigate={close}><Icon>{icons.settings}</Icon>Account &amp; settings</Link><Link href="/dashboard/plans" onNavigate={close}><Icon>{icons.plans}</Icon>Plans &amp; usage</Link><Link id="sidebar-account-privacy" href="/privacy" onNavigate={close}><Icon>{icons.privacy}</Icon>Privacy &amp; data</Link><ThemeControl compact/><button id="sidebar-switch-account" type="button" onClick={() => void switchAccount()}><Icon>{icons.switch}</Icon>Switch account</button></nav> : null}
         </div>
       </div>
     </aside>

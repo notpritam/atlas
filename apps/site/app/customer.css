@@ -2097,7 +2097,7 @@
 }
 
 /* Foundkeep shared account and private library surfaces. */
-.customer-body { --paper:#f1f4f4; --surface:#fff; --ink:#182b30; --muted:#596a6e; --accent:#086ca8; --accent-hover:#075888; --sky:#e0f0fc; --mint:#d5f8cf; --line:#dfe8e9; --control-line:#708f9a; --panel:#fff; --radius:12px; }
+.customer-body { --paper:var(--fk-paper); --surface:#fff; --ink:var(--fk-ink); --muted:var(--fk-muted); --accent:#086ca8; --accent-hover:#075888; --sky:var(--fk-sky); --mint:var(--fk-mint); --line:var(--fk-line); --control-line:var(--fk-control); --panel:#fff; --radius:12px; }
 .customer-body { scrollbar-color:#91b2be var(--paper); }
 .customer-body { font-size:14px; }
 .customer-body h1,.customer-body h2,.customer-body h3 { font-weight:500; text-wrap:balance; }
@@ -2107,7 +2107,7 @@
 .customer-body :focus-visible { outline:2px solid var(--accent); outline-offset:4px; }
 .customer-body [hidden] { display:none !important; }
 .customer-body input,.customer-body textarea { font:inherit; color:var(--ink); caret-color:var(--accent); }
-.customer-body input:not([type=checkbox]),.customer-body textarea { width:100%; min-width:0; border:1px solid var(--control-line); border-radius:12px; background:#fff; padding:12px 14px; outline-offset:3px; }
+.customer-body input:not([type=checkbox]),.customer-body textarea { width:100%; min-width:0; border:1px solid var(--control-line); border-radius:12px; background:var(--fk-surface); padding:12px 14px; outline-offset:3px; }
 .customer-body input::placeholder,.customer-body textarea::placeholder { color:var(--muted); }
 .customer-body input:focus-visible,.customer-body textarea:focus-visible { outline:2px solid var(--accent); }
 .customer-body input[type=checkbox] { width:19px; height:19px; flex-shrink:0; accent-color:var(--accent); }
@@ -2284,11 +2284,11 @@
 .customer-body .preference-toggle strong,.customer-body .preference-select strong { font-size:11px; font-weight:600; }
 .customer-body .preference-toggle small,.customer-body .preference-select small { margin-top:2px; color:var(--muted); font-size:11px; line-height:1.45; }
 .customer-body .preference-toggle input { appearance:none; position:relative; width:36px; height:20px; flex:0 0 36px; margin:0; padding:2px; border:1px solid var(--control-line); border-radius:20px; background:var(--sky); cursor:pointer; }
-.customer-body .preference-toggle input::after { content:''; display:block; width:14px; height:14px; border-radius:50%; background:#fff; box-shadow:0 1px 2px #28302026; transition:transform .15s; }
+.customer-body .preference-toggle input::after { content:''; display:block; width:14px; height:14px; border-radius:50%; background:var(--fk-surface); box-shadow:0 1px 2px #28302026; transition:transform .15s; }
 .customer-body .preference-toggle input:checked { border-color:var(--accent); background:var(--accent); }
 .customer-body .preference-toggle input:checked::after { transform:translateX(16px); }
 .customer-body .preference-toggle input:focus-visible,.customer-body .preference-select select:focus-visible { outline:2px solid var(--accent); outline-offset:2px; }
-.customer-body .preference-select select { min-width:66px; padding:6px 24px 6px 8px; border:1px solid var(--line); border-radius:5px; background:#fff; color:var(--ink); font-size:11px; }
+.customer-body .preference-select select { min-width:66px; padding:6px 24px 6px 8px; border:1px solid var(--line); border-radius:5px; background:var(--fk-surface); color:var(--ink); font-size:11px; }
 .customer-body .preference-help { padding:12px 15px 0; color:var(--muted); font-size:12px; }
 .customer-body .preference-order { margin:10px 15px 3px; padding:0; list-style:none; counter-reset:preference-order; }
 .customer-body .preference-order li { counter-increment:preference-order; display:flex; align-items:center; justify-content:space-between; gap:10px; min-height:39px; padding:5px 7px 5px 10px; border-top:1px solid #e0e3da; font-size:11px; }
@@ -2383,7 +2383,7 @@
 .customer-body .auth-terms { margin-top:24px; font-size:12px; line-height:1.7; color:var(--muted); text-align:center; }
 .customer-body #recovery-save>.field-help { margin-top:16px; }
 .customer-body .oauth-buttons { margin:30px 0 18px; }
-.customer-body .oauth-provider { position:relative; justify-content:center; gap:14px; min-height:52px; border-color:var(--line); border-radius:14px; background:#fff; }
+.customer-body .oauth-provider { position:relative; justify-content:center; gap:14px; min-height:52px; border-color:var(--line); border-radius:14px; background:var(--fk-surface); }
 .customer-body .oauth-provider:hover { background:var(--sky); border-color:var(--control-line); }
 .customer-body .oauth-provider img { position:absolute; left:18px; width:20px; height:20px; }
 .customer-body .oauth-loading { display:grid; gap:10px; margin:30px 0 18px; }
@@ -2409,8 +2409,8 @@
 @media (prefers-reduced-motion:reduce) { .customer-body *,.customer-body *::before,.customer-body *::after { scroll-behavior:auto !important; animation:none !important; transition:none !important; } }
 
 /* Help and policy pages retain their reading hierarchy inside the same web world. */
-.customer-body.reading-body { background:#fff; }
-.customer-body.reading-body .site-header { background:#fff; }
+.customer-body.reading-body { background:var(--fk-surface); }
+.customer-body.reading-body .site-header { background:var(--fk-surface); }
 .customer-body.reading-body .privacy-document h1,.customer-body.reading-body .support-intro h1 { font-weight:500; }
 .customer-body.reading-body .support-note { background:var(--sky); border-radius:16px; }
 .customer-body.reading-body .support-close { background:var(--sky); color:var(--ink); border-radius:24px; }
@@ -2427,7 +2427,7 @@
 .customer-body .device-option-heading { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
 .customer-body .device-option-heading>svg { width:22px; height:22px; flex-shrink:0; }
 .customer-body .device-option-heading h3 { font-size:24px; margin:0; }
-.customer-body .device-badge { font-size:11px; color:#37535d; background:#e0f0fc; padding:4px 8px; border-radius:7px; }
+.customer-body .device-badge { font-size:11px; color:#37535d; background:var(--fk-sky); padding:4px 8px; border-radius:7px; }
 .customer-body .iphone-option .device-badge { color:#2a522d; background:#d3eace; }
 .customer-body .device-option>p { font-size:13px; color:#42614c; line-height:1.7; margin-top:14px; }
 .customer-body .browser-option>p { color:var(--muted); }
