@@ -6,13 +6,13 @@ The production web and browser-extension beta are available at **https://foundke
 
 - Production dashboard, scoped MCP create/update/organization/links, canvas mind map, public/private collections and moderation controls.
 - Full-width public collections with dashboard-style, natural-height image and note masonry, a compact introduction and inline contribution rules.
-- Shared light/dark appearance. Compact controls use a 48px sun/moon icon button with accessible labels; Settings retains Light/Dark/System.
+- Shared light/dark appearance. Compact controls use a sun/moon icon button with accessible labels; Settings retains Light/Dark/System. The latest dev-only UI refinement uses Inter, pure-black surfaces, denser desktop navigation and full saved readers; [details](../ux/compact-reader.md). Native binaries and production retain their earlier visual release.
 - Production extension ZIP: https://foundkeep.app/foundkeep-extension.zip. Unzip, load its extension folder in Chrome's Developer mode, and connect it through Apps & devices. Existing production local data/identity remain separate from Foundkeep Dev.
 - Private dev demo: https://dev.foundkeep.app/collection/demo-design-that-works. Demo seeding is additive and was not run in production.
 
 ## Verification
 
-The final code review passed at `884120a`; the Android build follow-up passed review at `5fbe3c5`. Backend tests passed 254/254 with 2,215 assertions; mobile tests passed 86/86, plus typechecking. Web covering tests passed, including public masonry, appearance, graph, processing, authentication and public metadata checks.
+The final code review passed at `884120a`; native follow-ups passed scoped review through `76e6ecf`. The latest backend tests passed 255/255 with 2,217 assertions; mobile tests passed 94/94, plus mobile/backend/site typechecking. Installed native checks remain separate release gates. Web covering tests passed, including public masonry, appearance, graph, processing, authentication and public metadata checks.
 
 After production promotion, an actual MCP SDK connected to `https://foundkeep.app/api/mcp` with a temporary scoped token. It created two saves, updated context, linked them, and exposed the relationship in the real canvas graph. Desktop/phone appearance switching, saved-item navigation and token revocation passed. Browser runtime errors: zero.
 
@@ -26,12 +26,14 @@ Live evidence is under `.impeccable/review/friends-beta/live/` and `.impeccable/
 
 | Service | Current release |
 | --- | --- |
-| Production website | `/home/pritam/.local/share/foundkeep-site/releases/20260913-102000-friends-beta` |
-| Production backend/static | `/home/pritam/.local/share/foundkeep-backend/releases/20260913-friends-beta-884120a` |
-| Dev website | `/home/pritam/.local/share/foundkeep-site-dev/releases/20260913-095941-friends-beta` |
+| Production website | `/home/pritam/.local/share/foundkeep-site/releases/20260913-105647-android-share` |
+| Production backend/static | `/home/pritam/.local/share/foundkeep-backend/releases/20260913-native-notes-ab4c082` |
+| Dev website | `/home/pritam/.local/share/foundkeep-site-dev/releases/20260913-115909-compact-reader` |
 | Dev static | `/home/pritam/.local/share/foundkeep-dev-web/releases/20260913-104300-friends-beta` |
 
-The production online backup, before/after records and previous systemd overrides are retained at `/home/pritam/.local/share/foundkeep-production-backups/20260913-101226-friends-beta`. A copy of that database successfully migrated before the real service switch. Previous release directories remain available.
+The latest dev and production online backups are under their respective backup roots at `20260913-111551-native-notes`, before the backend-only native note provenance deployment. The earlier `20260913-105925-android-share` backups retain the `884120a` website/backend release pointers. The `d628178` website adds explicit Android capture provenance and matching web labels, preserving existing extension artifacts and configuration. Both standalone web releases and public health checks passed. A real installed Android text share reached production and rendered “Android” in the deployed web dashboard with zero browser runtime errors. The final `76e6ecf` fix only changes Android runtime code and does not require another backend release.
+
+The earlier production online backup, before/after records and previous systemd overrides are retained at `/home/pritam/.local/share/foundkeep-production-backups/20260913-101226-friends-beta`. A copy of that database successfully migrated before the real service switch. Previous release directories remain available.
 
 The previous production website is `/home/pritam/.local/share/foundkeep-site/releases/20260912-agentic-hydration`; the previous backend is `/home/pritam/.local/share/foundkeep-backend/releases/20260912-billing-9a93b05`. Roll back code using the saved website pointer/backend override and restart only the affected production services. Do not replace the current database with an older backup over new customer writes.
 
@@ -46,13 +48,19 @@ Production extension allowlist includes the existing store ID `cficnecbdbiddngll
 
 Friends builds use production APIs and the `production-beta` OTA channel. Pritam profiles use dev APIs and the `dev` channel. Both retain the canonical iOS app `app.foundkeep.ios`, share extension/group, Android package `app.foundkeep.android` and `foundkeep` scheme. Environment-specific credentials, queues and caches remain isolated. Installing a different realm binary replaces the other binary on the same device.
 
-**iOS:** version 1.0.0, build **20**, was signed, deeply verified and successfully uploaded to existing App Store Connect app **6809771188**. Submission: https://expo.dev/accounts/notpritam/projects/foundkeep/submissions/d9ddc5b3-dcd5-4ed7-929b-fd2d13df6eff. The IPA is 23,815,957 bytes, SHA-256 `f1822edd4e99d5349d5ba8595bfe07e84ffe410b5c8305912d44bd46282bddde`; bundled runtime is `3fe4cb50f983381c10a005f79f00c3d65e01840c`. Canonical identity, production origin, channel and signing passed. The later Android-only autolinking fix does not change iOS native source. This is upload evidence, not a verified tester join link or an installed-device test.
+**iOS:** version 1.0.0, build **20**, was signed, deeply verified and successfully uploaded to existing App Store Connect app **6809771188**. Submission: https://expo.dev/accounts/notpritam/projects/foundkeep/submissions/d9ddc5b3-dcd5-4ed7-929b-fd2d13df6eff. The IPA is 23,815,957 bytes, SHA-256 `f1822edd4e99d5349d5ba8595bfe07e84ffe410b5c8305912d44bd46282bddde`; bundled runtime is `3fe4cb50f983381c10a005f79f00c3d65e01840c`. Canonical identity, production origin, channel and signing passed. The later Android-only autolinking fix does not change iOS native source. Apple API verification at **2026-09-13T10:53:57Z** confirmed build 20 is **VALID**, internally **READY_FOR_BETA_TESTING**, and externally **READY_FOR_BETA_SUBMISSION**. There is no public tester join link; installed iOS simulator checks are underway.
 
 The IPA remains on MacBook Pro Work at `~/.local/share/foundkeep-builds/20260913-friends-ios20/FoundKeep.ipa`. Check processing/group availability in https://appstoreconnect.apple.com/apps/6809771188/testflight/ios. External beta review still needs the owner's real review-contact information; none was invented. No invitations or public store release were sent.
 
-**Android:** the first signed local EAS build reached Gradle but failed because Expo selected a precompiled `expo-sharing` publication while the bridge requires its source Gradle project. `5fbe3c5` enables Android `buildFromSource: ["expo-sharing"]` and repairs a clean-install fingerprint test import. Focused tests, all 86 mobile tests, typechecking and scoped code review passed. The actual native retry is pending: MacBook Pro Work stopped updating its heartbeat and returned repeated HTTP 504 responses before it could run.
+The later `ab4c082` iOS simulator candidate passed native login, Light/Dark/System changes on populated screens, preference/session restoration, native note creation (`ios-app-note`), real Safari share (`ios-share-url`), logout and the signed-out share guard. Production API checks confirmed both saves. Its dedicated QA account and two saves were deleted, and the old session returned 401. This verifies the simulator candidate, not an installed TestFlight build or physical device; signed build 20 remains unchanged and predates the shared native appearance follow-ups. Root independently reconfirmed all original production IDs and counts (4 accounts, 28 captures, 5 connections), with SQLite integrity `ok`, at **2026-09-13T11:38:35Z**.
 
-The isolated Android tree is `/Users/notpritamm/Developer/foundkeep-friends-android-20260913`; existing generated private signing credentials remain on that Mac. Resume its `friends-android` EAS local build after reconnect. Verify the actual APK package, version, production origin, channel, runtime, signature, size and hash, then test startup/login/incoming shares before hosting it. Use the final signing certificate for Android asset links; Play's app-signing certificate is a separate value. No APK, Play beta link or completed native-device journey is claimed yet.
+**Android:** the first signed local EAS build reached Gradle but failed because Expo selected a precompiled `expo-sharing` publication while the bridge requires its source Gradle project. `5fbe3c5` enables Android `buildFromSource: ["expo-sharing"]` and repairs a clean-install fingerprint test import. Focused tests, all 86 mobile tests, typechecking and scoped code review passed. The Mac later recovered, verified through completed file reads and terminal execution. An isolated Linux API 36 emulator build successfully compiled the native bridge; the signed distribution retry awaits installed fixes below.
+
+The isolated Android tree is `/Users/notpritamm/Developer/foundkeep-friends-android-20260913`; existing generated private signing credentials remain on that Mac. Resume its `friends-android` EAS local build after reconnect. Verify the actual APK package, version, production origin, channel, runtime, signature, size and hash, then test startup/login/incoming shares before hosting it. Use the final signing certificate for Android asset links; Play's app-signing certificate is a separate value. No distributable APK or Play beta link is claimed yet.
+
+Installed Android checks use an isolated x86_64, debug-key-signed release variant at `~/.local/share/foundkeep-native-check`; this artifact must not be given to friends. Native production login, secure session restoration, warm text and cold URL shares passed against a disposable QA account. The final native candidate at `76e6ecf` also passes hot light/dark surface, text and icon changes while preserving search focus/value and note drafts. Native notes carry `android-app-note` provenance.
+
+Actual MediaStore PNG, PDF and MP4 shares completed production uploads with matching original filenames, MIME, platform/method and byte hashes, verified at **2026-09-13T11:29:40Z**. Native ContentResolver streaming replaces the unsupported Expo content-URI copy; durable queue renames are awaited, and byte uploads preserve their declared MIME. The temporary Android account and its test data were deleted. Evidence: `~/.local/share/foundkeep-native-check/evidence/media-originals-verification.json`. A signed distribution APK remains a separate gate.
 
 ## Production Pro and parsing limits
 

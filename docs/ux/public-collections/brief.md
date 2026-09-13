@@ -1,8 +1,10 @@
 # Public collections — September 13, 2026
 
-The user requested a more considered public collection experience and a populated permanent dev environment. This extends the approved FoundKeep web palette and typography while preserving account, sharing, moderation, privacy, group, and extension boundaries.
+The user requested a more considered public collection experience and a populated permanent dev environment. The latest direction uses compact controls, Inter typography and true-black dark surfaces while preserving account, sharing, moderation, privacy, group, and extension boundaries. Public browsing is an Operate/Read surface: find a useful save, open its full published context, then optionally visit the original source or contribute.
 
-The introduction pairs title, description, curator identity, real counts, follow/share actions, and a locally authored topic illustration. The default feed is a readable list with provenance, context, and tags; an optional grid supports browsing. Long notes expand with native details. Contribution rules sit beside the desktop feed; mobile puts the contribution action below the introduction with a jump to the rules. Explore uses related topic covers, responsive cards, search, and honest empty states.
+The full-width introduction contains the title, description, curator identity, real counts and follow/share actions. The default feed uses dashboard-style masonry with natural image and note heights; list view is available. Topic and layout controls use neutral rounded rails with inset selected pills. Contribution rules are collapsed below the introduction. Card images, titles and bodies open a complete published-snapshot reader; the separate source icon opens the original website. The dialog preserves keyboard focus, Escape dismissal and mobile scrolling without requesting private capture data. Explore retains responsive cards, search and honest empty states.
+
+Latest density and reader implementation: [compact interface](../compact-reader.md). Prior screenshots below document the earlier iteration; current local evidence is in `.impeccable/review/compact-reader/live/`.
 
 Search and exact topic filtering run across permitted entries before pagination. Anonymous visitors cannot see pending/private entries, counts, or tags. Server-rendered reading and GET search work without JavaScript. Clipboard denial exposes a selectable link. Mutations retain their account guard; refresh preserves loaded pages.
 
