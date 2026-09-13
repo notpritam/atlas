@@ -1,3 +1,7 @@
+import {createRemoteFileSweeper} from './customer-remote-cleanup.ts';
+import {config} from './config.ts';
+import {removeCustomerFile,type StoredCustomerFile} from './customer-files.ts';
+import {preserveRemoteVideo,remoteVideoCandidate,type RemoteDownloader,type Preservation} from './customer-remote-preservation.ts';
 import {processCustomerMedia,type MediaResult} from './customer-media.ts';
 import {createHash,randomUUID} from 'node:crypto';
 import type {Database} from 'bun:sqlite';
@@ -10,12 +14,13 @@ import {createCustomerAi,type AiInput,type AiResult,validateAiResult} from './cu
 import {fetchCustomerSource,type SourceSnapshot} from './customer-source.ts';
 
 export const CONSENT_VERSION='2026-09-12';
-const LEASE_MS=180_000;
+// Covers source (12s), download (120s), staging (30s), decoders (90s) and AI (45s).
+const LEASE_MS=360_000;
 const FAILURE='Processing could not finish. Your original is safe.';
-type Save={id:string;account_id:string;type:string;source_title:string|null;source_url:string|null;note_text:string|null;selection_text:string|null;article_text:string|null;ocr_text:string|null;blob_data:Uint8Array|null;blob_mime:string|null;file_path:string|null;file_mime:string|null;file_bytes:number;summary:string|null;category:string|null;tags:string;storage_bytes:number;status:string;enrich_attempts:number;created_at:number;provenance_json:string|null};
+type Save={id:string;account_id:string;type:string;source_title:string|null;source_url:string|null;note_text:string|null;selection_text:string|null;article_text:string|null;ocr_text:string|null;blob_data:Uint8Array|null;blob_mime:string|null;file_path:string|null;file_mime:string|null;file_bytes:number;summary:string|null;category:string|null;tags:string;storage_bytes:number;status:string;enrich_attempts:number;created_at:number;provenance_json:string|null;updated_at:number};
 type Job={id:string;account_id:string;capture_id:string;source_hash:string;status:string;attempts:number;cycle:string;credit:number;lease_token:string|null;reason:string};
 type SettingsRow={enabled:number;fetch_links:number;images:number;consent_version:string|null;enabled_at:number;mode:'instant'|'scheduled'|'manual'|'paused';interval_hours:number;monthly_limit:number;next_run_at:number|null};
-type Options={ai?:{available:boolean;model:string;organize(input:AiInput):Promise<AiResult>};source?:(url:string)=>Promise<SourceSnapshot>;now?:()=>number;globalMaxBytes?:number;dailyAttempts?:number;media?:(save:Save)=>Promise<MediaResult>};
+type Options={root?:string;remote?:RemoteDownloader;ai?:{available:boolean;model:string;organize(input:AiInput):Promise<AiResult>};source?:(url:string)=>Promise<SourceSnapshot>;now?:()=>number;globalMaxBytes?:number;dailyAttempts?:number;media?:(save:Save)=>Promise<MediaResult>};
 const bytes=(value:unknown)=>Buffer.byteLength(typeof value==='string'?value:JSON.stringify(value),'utf8');
 function fingerprint(row:Save){return createHash('sha256').update(JSON.stringify([row.type,row.source_title,row.source_url,row.note_text,row.selection_text,row.article_text,row.ocr_text,row.file_path,row.file_bytes,row.blob_mime])).update(row.blob_data||new Uint8Array()).digest('hex');}
 const derived=(row:Save)=>bytes(row.summary||'')+bytes(row.category||'')+(row.tags&&row.tags!=='[]'?bytes(row.tags):0);
@@ -87,10 +92,14 @@ export function createProcessingService(db:Database,options:Options={}){
   const row=db.query('SELECT source_hash,model,result_json,source_json,created_at FROM customer_processing_results WHERE account_id=? AND capture_id=?').get(owner,id) as {source_hash:string;model:string;result_json:string;source_json:string|null;created_at:number}|null;
   return row?{derivatives:db.query('SELECT kind,mime,bytes FROM customer_derivatives WHERE account_id=? AND capture_id=?').all(owner,id),sourceHash:row.source_hash,model:row.model,result:JSON.parse(row.result_json),source:row.source_json?JSON.parse(row.source_json):null,processedAt:row.created_at}:null;
  }
+ const remoteCleanup=createRemoteFileSweeper(db,options.root||config.dataDir);
+ let lastCleanup:number|undefined;
  let running=false;let lastOwner='';
  async function tick(){
-  if(running||!ai.available)return 0;running=true;
+  if(running)return 0;running=true;
   try{
+   if(lastCleanup===undefined||now()-lastCleanup>=60_000){remoteCleanup.sweep(now());lastCleanup=now();}
+   if(!ai.available)return 0;
    // Each owner decision is atomic, including the schedule boundary and reservations.
    const owners=db.query("SELECT account_id FROM customer_automation WHERE enabled=1 AND consent_version=? AND mode<>'paused' AND account_id>? ORDER BY account_id LIMIT 100").all(CONSENT_VERSION,lastOwner) as {account_id:string}[];
    lastOwner=owners.length===100?owners.at(-1)!.account_id:'';
@@ -117,59 +126,79 @@ export function createProcessingService(db:Database,options:Options={}){
     if(claim)db.query('UPDATE customer_processing_budget SET attempts=attempts+1 WHERE day=?').run(day);return claim;
    }).immediate();
    if(!job)return 0;
+   const revision=getSave(job.account_id,job.capture_id)?.updated_at;
+   const controller=new AbortController();
+   let staged:StoredCustomerFile|undefined,committed=false;
    const valid=()=>{
-    const current=db.query("SELECT * FROM customer_processing_jobs WHERE id=? AND status='running' AND lease_token=?").get(job.id,job.lease_token) as Job|null;
+    const current=db.query("SELECT * FROM customer_processing_jobs WHERE id=? AND status='running' AND lease_token=? AND lease_until>=?").get(job.id,job.lease_token,now()) as Job|null;
     const row=getSave(job.account_id,job.capture_id),preference=prefs(job.account_id);
-    return current&&row&&preference?.enabled&&preference.mode!=='paused'&&preference.consent_version===CONSENT_VERSION&&accountPlan(db,job.account_id,now()).pro&&fingerprint(row)===job.source_hash?{row,preference}:null;
+    return current&&row&&row.updated_at===revision&&preference?.enabled&&preference.mode!=='paused'&&preference.consent_version===CONSENT_VERSION&&accountPlan(db,job.account_id,now()).pro&&fingerprint(row)===job.source_hash?{row,preference}:null;
    };
+   const cancellation=setInterval(()=>{if(!valid())controller.abort();},1000);
    try{
     const initial=valid();if(!initial){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
     const {row,preference}=initial;let source:SourceSnapshot|null=null;let sourceError:string|null=null;
     if(preference.fetch_links&&row.source_url){try{source=await (options.source||fetchCustomerSource)(row.source_url);}catch{sourceError='The source did not expose readable public content.';}}
     if(!valid()){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
-    const media=await (options.media||processCustomerMedia)(row);
+    let preservation:Preservation|undefined;
+    if(preference.fetch_links&&row.source_url&&!row.file_path&&remoteVideoCandidate(row.source_url,source)){
+     preservation=await preserveRemoteVideo(row.source_url,options.root||config.dataDir,controller.signal,options.remote);
+     staged=preservation.file;
+    }
+    if(!valid()){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
+    const mediaRow=staged?{...row,file_path:staged.relativePath,file_mime:staged.mime,file_bytes:staged.bytes}:row;
+    const media=await (options.media?options.media(mediaRow):processCustomerMedia(mediaRow,options.root||config.dataDir));
+    if(!valid()){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
     const candidates=db.query('SELECT id,source_title AS title,summary FROM customer_captures WHERE account_id=? AND id<>? ORDER BY created_at DESC LIMIT 40').all(job.account_id,row.id) as {id:string;title:string|null;summary:string|null}[];
-    const input:AiInput={title:row.source_title||source?.title||row.type,url:row.source_url,text:[row.note_text,row.selection_text,row.article_text||source?.text,row.ocr_text,media.text].filter(Boolean).join('\n\n'),candidates:candidates.map(value=>({id:value.id,title:value.title||'',summary:value.summary||''}))};
+    const input:AiInput={title:row.source_title||source?.title||row.type,url:row.source_url,text:[row.note_text,row.selection_text,row.article_text||source?.text,row.ocr_text,media.text,preservation?.text].filter(Boolean).join('\n\n'),candidates:candidates.map(value=>({id:value.id,title:value.title||'',summary:value.summary||''}))};
     if(source?.extractionStatus)input.sourceEvidence={status:source.extractionStatus,notice:source.notice||null,transcript:source.transcriptStatus||null};
     else if(row.source_url&&!source)input.sourceEvidence={status:'unavailable',notice:sourceError||'Source fetching is disabled. Only the saved content is available.',transcript:null};
+    if(preservation?.text)input.sourceEvidence={status:preservation.evidence.transcriptStatus==='available'?'readable':'metadata-only',notice:preservation.evidence.notice,transcript:preservation.evidence.transcriptStatus};
     if(preference.images){
      const supportedImage=(image:MediaResult['image'])=>image&&['image/png','image/jpeg','image/webp'].includes(image.mime)&&image.base64.length>0&&image.base64.length<5_600_000;
      if(supportedImage(media.image))input.image=media.image;
      else if(row.blob_data?.byteLength&&row.blob_data.byteLength<=4*1024*1024&&row.blob_mime&&['image/png','image/jpeg','image/webp'].includes(row.blob_mime))input.image={mime:row.blob_mime,base64:Buffer.from(row.blob_data).toString('base64')};
     }
     if(!valid()){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
-    if(!input.text.trim()&&!input.image){
-     db.transaction(()=>settle(job,'failed','No readable content was available. Add page text with the extension or a note, then retry.')).immediate();return 1;
+    const mediaOnly=!input.text.trim()&&!input.image&&!!staged;
+    if(!input.text.trim()&&!input.image&&!staged){
+     db.transaction(()=>settle(job,'failed',(preservation?preservation.evidence.notice+' ':'')+'No readable content was available. Add page text with the extension or a note, then retry.')).immediate();return 1;
     }
-    const result=validateAiResult(await ai.organize(input),candidates.map(value=>value.id));
+    const result=mediaOnly?{summary:row.summary,category:row.category||'Video',tags:JSON.parse(row.tags),relatedIds:[]}:validateAiResult(await ai.organize(input),candidates.map(value=>value.id));
     db.transaction(()=>{
      const current=valid();if(!current){settle(job,'cancelled',null);return;}
-     const resultJson=JSON.stringify({...result,sourceError,mediaNote:media.note||null,extractedText:media.text||null}),sourceJson=source?JSON.stringify(source):null;
+     const resultJson=JSON.stringify({...result,sourceError,mediaNote:media.note||null,extractedText:[media.text,preservation?.text].filter(Boolean).join('\n\n')||null,download:preservation?.evidence||null}),sourceJson=source?JSON.stringify(source):null;
      const old=db.query('SELECT storage_bytes FROM customer_processing_results WHERE capture_id=? AND account_id=?').get(row.id,job.account_id) as {storage_bytes:number}|null;
-     const generated=bytes(resultJson)+bytes(sourceJson||'');const nextTags=JSON.stringify(result.tags);
+     const generated=bytes(resultJson)+bytes(sourceJson||'');const nextTags=mediaOnly?row.tags:JSON.stringify(result.tags);
      const oldMedia=(db.query('SELECT COALESCE(SUM(bytes),0) bytes FROM customer_derivatives WHERE capture_id=? AND account_id=?').get(row.id,job.account_id) as {bytes:number}).bytes;
      const nextMedia=media.derivatives||[];
      const mediaDelta=nextMedia.reduce((sum,item)=>sum+item.data.byteLength,0)-oldMedia;
-     const delta=mediaDelta+generated-(old?.storage_bytes||0)+bytes(result.summary)+bytes(result.category)+(nextTags==='[]'?0:bytes(nextTags))-derived(current.row);
+     const delta=(staged?staged.bytes+bytes(preservation?.fileName||''):0)+mediaDelta+generated-(old?.storage_bytes||0)+bytes(result.summary||'')+bytes(result.category)+(nextTags==='[]'?0:bytes(nextTags))-derived(current.row);
      const usage=db.query('SELECT COALESCE(SUM(storage_bytes),0) total,COALESCE(SUM(CASE WHEN account_id=? THEN storage_bytes ELSE 0 END),0) owned FROM customer_captures').get(job.account_id) as {total:number;owned:number};
      if(usage.owned+delta>accountPlan(db,job.account_id,now()).limits.maxBytes||usage.total+delta>(options.globalMaxBytes||Number(process.env.ATLAS_CUSTOMER_GLOBAL_MAX_BYTES)||2*1024**3)){settle(job,'failed','Storage is full. Your original is safe.');return;}
+     const finalHash=staged?fingerprint({...current.row,file_path:staged.relativePath,file_mime:staged.mime,file_bytes:staged.bytes}):job.source_hash;
      db.query(`INSERT INTO customer_processing_results(capture_id,account_id,source_hash,model,result_json,source_json,storage_bytes,created_at) VALUES(?,?,?,?,?,?,?,?)
        ON CONFLICT(capture_id) DO UPDATE SET source_hash=excluded.source_hash,model=excluded.model,result_json=excluded.result_json,source_json=excluded.source_json,storage_bytes=excluded.storage_bytes,created_at=excluded.created_at`)
-       .run(row.id,job.account_id,job.source_hash,ai.model,resultJson,sourceJson,generated,now());
+       .run(row.id,job.account_id,finalHash,mediaOnly?'media-preservation':ai.model,resultJson,sourceJson,generated,now());
      db.query('DELETE FROM customer_derivatives WHERE capture_id=? AND account_id=?').run(row.id,job.account_id);
-     for(const item of nextMedia)db.query('INSERT INTO customer_derivatives(account_id,capture_id,kind,mime,data,bytes,source_hash,created_at) VALUES(?,?,?,?,?,?,?,?)').run(job.account_id,row.id,item.kind,item.mime,item.data,item.data.byteLength,job.source_hash,now());
+     for(const item of nextMedia)db.query('INSERT INTO customer_derivatives(account_id,capture_id,kind,mime,data,bytes,source_hash,created_at) VALUES(?,?,?,?,?,?,?,?)').run(job.account_id,row.id,item.kind,item.mime,item.data,item.data.byteLength,finalHash,now());
      db.query('UPDATE customer_captures SET summary=?,category=?,tags=?,storage_bytes=MAX(0,storage_bytes+?),updated_at=MAX(updated_at+1,?) WHERE id=? AND account_id=?').run(result.summary,result.category,nextTags,delta,now(),row.id,job.account_id);
+     if(staged)db.query('UPDATE customer_captures SET file_path=?,file_name=?,file_mime=?,file_bytes=? WHERE id=? AND account_id=?').run(staged.relativePath,preservation!.fileName!,staged.mime,staged.bytes,row.id,job.account_id);
+     if(!mediaOnly){
      db.query("DELETE FROM customer_capture_links WHERE account_id=? AND source_id=? AND origin='hosted'").run(job.account_id,row.id);
      for(const target of result.relatedIds)if(getSave(job.account_id,target))db.query("INSERT OR IGNORE INTO customer_capture_links(account_id,source_id,target_id,origin,created_at) VALUES(?,?,?,'hosted',?)").run(job.account_id,row.id,target,now());
+     }
+     db.query('UPDATE customer_processing_jobs SET source_hash=? WHERE id=? AND lease_token=?').run(finalHash,job.id,job.lease_token);
      settle(job,'done',null,true);
     }).immediate();
+    committed=!!staged&&getSave(job.account_id,row.id)?.file_path===staged.relativePath;
    }catch{
     db.transaction(()=>{
      const current=db.query("SELECT * FROM customer_processing_jobs WHERE id=? AND status='running' AND lease_token=?").get(job.id,job.lease_token) as Job|null;
-     if(!current)return;if(current.attempts>=3)settle(current,'failed',FAILURE);
+     if(!current)return;if(!valid()){settle(current,'cancelled',null);return;}if(current.attempts>=3)settle(current,'failed',FAILURE);
      else db.query("UPDATE customer_processing_jobs SET status='pending',error=?,lease_token=NULL,lease_until=NULL,updated_at=? WHERE id=?").run(FAILURE,now(),job.id);
     }).immediate();
-   }
+   }finally{clearInterval(cancellation);controller.abort();if(staged&&!committed)removeCustomerFile(options.root||config.dataDir,staged.relativePath);}
    return 1;
   }finally{running=false;}
  }
@@ -180,5 +209,5 @@ export function registerCustomerProcessing(app:Hono<CustomerEnv>,db:Database,ser
  app.get('/automation',c=>c.json(processing.settings(services.auth(c).account.id)));
  app.put('/automation',async c=>{services.auth(c);const body=await services.jsonBody(c);return c.json(processing.configure(services.auth(c).account.id,body));});
  app.post('/captures/:id/process',async c=>{services.auth(c);const body=await services.jsonBody(c);if(Object.keys(body).length)moduleFail(400,'invalid_input','This action takes no options.');const owner=services.auth(c).account.id;services.rate('process:'+owner,20,60_000);return c.json(processing.enqueue(owner,c.req.param('id'),'manual'),202);});
- app.get('/captures/:id/processing',c=>{const owner=services.auth(c).account.id;if(!db.query('SELECT 1 FROM customer_captures WHERE id=? AND account_id=?').get(c.req.param('id'),owner))moduleFail(404,'not_found','Saved item not found.');return c.json({processing:processing.details(owner,c.req.param('id'))});});
+ app.get('/captures/:id/processing',c=>{const owner=services.auth(c).account.id;if(!db.query('SELECT 1 FROM customer_captures WHERE id=? AND account_id=?').get(c.req.param('id'),owner))moduleFail(404,'not_found','Saved item not found.');return c.json({processing:processing.details(owner,c.req.param('id')),job:db.query('SELECT id,status,error,updated_at AS updatedAt FROM customer_processing_jobs WHERE account_id=? AND capture_id=? ORDER BY updated_at DESC,rowid DESC LIMIT 1').get(owner,c.req.param('id'))});});
 }

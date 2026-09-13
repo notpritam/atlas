@@ -76,7 +76,7 @@ export interface StoredCustomerFile {
 
 export async function writeCustomerFile(
   request: Request,
-  options: { root: string; maxBytes?: number; deadlineMs?: number },
+  options: { root: string; maxBytes?: number; deadlineMs?: number; namespace?: "remote" },
 ): Promise<StoredCustomerFile> {
   const maxBytes = options.maxBytes ?? MAX_CUSTOMER_FILE_BYTES;
   const declaredLength = request.headers.get("content-length");
@@ -89,9 +89,11 @@ export async function writeCustomerFile(
   if (!request.body) throw new CustomerFileError(400, "file_required", "Choose a file to save.");
 
   const root = resolve(options.root);
-  const temporaryDirectory = join(root, "customer-files", ".tmp");
+  // Internal callers may select only the fixed remote namespace, never a supplied path.
+  const directory = options.namespace === "remote" ? join(root, "customer-files", "remote") : join(root, "customer-files");
+  const temporaryDirectory = join(directory, ".tmp");
   const month = new Date().toISOString().slice(0, 7);
-  const finalDirectory = join(root, "customer-files", month);
+  const finalDirectory = join(directory, month);
   mkdirSync(temporaryDirectory, { recursive: true });
   mkdirSync(finalDirectory, { recursive: true });
   const temporaryPath = join(temporaryDirectory, `${randomUUID()}.upload`);
@@ -150,4 +152,29 @@ export function removeCustomerFile(root: string, relativePath: string | null | u
 export function fileDisposition(mime: string, name: string): string {
   const inline = mime === "application/pdf" || mime.startsWith("image/") || mime.startsWith("audio/") || mime.startsWith("video/");
   return `${inline ? "inline" : "attachment"}; filename*=UTF-8''${encodeURIComponent(safeFileName(name))}`;
+}
+
+/** Call only after checking capture ownership. A single range supports private media seeking. */
+export function customerFileResponse(file:ReturnType<typeof Bun.file>,mime:string,name:string,range:string|null):Response {
+  const size=file.size;
+  const headers=new Headers({
+    'Content-Type':mime,'Content-Disposition':fileDisposition(mime,name),
+    'Content-Security-Policy':"default-src 'none'; sandbox",'Cross-Origin-Resource-Policy':'same-origin',
+    'Accept-Ranges':'bytes','Content-Length':String(size),
+  });
+  if(!range)return new Response(file.stream(),{headers});
+  const match=/^bytes=(\d*)-(\d*)$/.exec(range.trim());
+  let start=0,end=size-1,valid=!!match&&(!!match[1]||!!match[2]);
+  if(valid&&match){
+    if(!match[1]){
+      const suffix=Number(match[2]);valid=Number.isSafeInteger(suffix)&&suffix>0;start=Math.max(0,size-suffix);
+    }else{
+      start=Number(match[1]);const requestedEnd=match[2]?Number(match[2]):size-1;
+      valid=Number.isSafeInteger(start)&&Number.isSafeInteger(requestedEnd)&&start<size&&requestedEnd>=start;
+      end=Math.min(requestedEnd,size-1);
+    }
+  }
+  if(!valid||!size){headers.set('Content-Range',`bytes */${size}`);headers.set('Content-Length','0');return new Response(null,{status:416,headers});}
+  headers.set('Content-Range',`bytes ${start}-${end}/${size}`);headers.set('Content-Length',String(end-start+1));
+  return new Response(file.slice(start,end+1).stream(),{status:206,headers});
 }

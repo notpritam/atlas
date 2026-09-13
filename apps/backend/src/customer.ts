@@ -26,7 +26,7 @@ import {
 import {
   CustomerFileError,
   decodeCaptureHeader,
-  fileDisposition,
+  customerFileResponse,
   removeCustomerFile,
   resolveCustomerFile,
   safeFileName,
@@ -1066,11 +1066,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
     try { path = resolveCustomerFile(config.dataDir, row.file_path); } catch { fail(404, "not_found", "File not found."); }
     const file = Bun.file(path);
     if (!file.size) fail(404, "not_found", "File not found.");
-    c.header("Content-Type", row.file_mime);
-    c.header("Content-Disposition", fileDisposition(row.file_mime, row.file_name || "Shared file"));
-    c.header("Content-Security-Policy", "default-src 'none'; sandbox");
-    c.header("Cross-Origin-Resource-Policy", "same-origin");
-    return c.body(file.stream());
+    return customerFileResponse(file,row.file_mime,row.file_name||"Shared file",c.req.header("range")||null);
   }
 
   app.get("/captures/:id/file", (c) => serveCustomerFile(c, true));
