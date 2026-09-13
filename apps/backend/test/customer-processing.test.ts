@@ -2,6 +2,8 @@ import {afterEach,beforeEach,expect,test} from 'bun:test';
 import {openDb} from '../src/db.ts';
 import {writeSubscription} from '../src/customer-plans.ts';
 import {createProcessingService,CONSENT_VERSION} from '../src/customer-processing.ts';
+import type {AiInput} from '../src/customer-ai.ts';
+import {extractSource} from '../src/customer-source.ts';
 let db:ReturnType<typeof openDb>;let owner:string;let capture:string;
 const result={summary:'A useful article.',category:'Reading',tags:['research'],relatedIds:[]};
 function service(organize:()=>Promise<typeof result>=async()=>result){return createProcessingService(db,{ai:{available:true,model:'test-model',organize},now:()=>Date.now()});}
@@ -104,4 +106,43 @@ test('invalid modes, intervals and caps are rejected and two workers cannot doub
 
 test('unreadable public links do not use a credit or ask the model to invent contents',async()=>{
  let calls=0;const s=createProcessingService(db,{ai:{available:true,model:'test',organize:async()=>{calls++;return result;}},source:async url=>({url,requestedUrl:url,fetchedAt:Date.now(),contentHash:'test',text:'',title:null,description:null,imageUrl:null,author:null,publishedAt:null,siteName:null,extractionStatus:'unavailable'})});enable(s);s.configure(owner,{fetchLinks:true});db.query("UPDATE customer_captures SET note_text=NULL,source_url='https://example.com/private' WHERE id=?").run(capture);s.enqueue(owner,capture,'manual');await s.tick();expect(calls).toBe(0);expect(s.settings(owner).usage).toMatchObject({used:0,reserved:0});
+});
+
+test.each([true,false])('a titled link without captured evidence never charges when fetchLinks=%s',async fetchLinks=>{
+ let calls=0;const s=createProcessingService(db,{ai:{available:true,model:'test',organize:async()=>{calls++;return result;}},source:async()=>{throw new Error('HTTP 403');}});
+ enable(s);s.configure(owner,{fetchLinks});db.query("UPDATE customer_captures SET note_text=NULL,source_title='A private article',source_url='https://example.com/private' WHERE id=?").run(capture);
+ const job=s.enqueue(owner,capture,'manual');await s.tick();
+ expect(calls).toBe(0);expect(s.details(owner,capture)).toBeNull();expect(s.settings(owner).usage).toMatchObject({used:0,reserved:0});
+ expect(db.query('SELECT status FROM customer_processing_jobs WHERE id=?').get(job.id)).toEqual({status:'failed'});
+ expect(db.query('SELECT source_title,note_text,summary FROM customer_captures WHERE id=?').get(capture)).toEqual({source_title:'A private article',note_text:null,summary:null});
+});
+test.each([true,false])('captured text remains usable with explicit unavailable source evidence when fetchLinks=%s',async fetchLinks=>{
+ const inputs:AiInput[]=[];const s=createProcessingService(db,{ai:{available:true,model:'test',organize:async input=>{inputs.push(input);return result;}},source:async()=>{throw new Error('HTTP 403');}});
+ enable(s);s.configure(owner,{fetchLinks});db.query("UPDATE customer_captures SET source_title='Private article',source_url='https://example.com/private' WHERE id=?").run(capture);
+ s.enqueue(owner,capture,'manual');await s.tick();
+ expect(inputs).toHaveLength(1);expect(inputs[0]).toMatchObject({text:'My article',sourceEvidence:{status:'unavailable',notice:expect.any(String)}});expect(s.settings(owner).usage).toMatchObject({used:1,reserved:0});
+});
+test('description previews carry evidence and title-only previews cannot charge',async()=>{
+ const inputs:AiInput[]=[];let description='';const s=createProcessingService(db,{ai:{available:true,model:'test',organize:async input=>{inputs.push(input);return result;}},source:async url=>({...extractSource('<title>A lesson</title>'+description,url),requestedUrl:url,fetchedAt:Date.now(),contentHash:'test'})});
+ enable(s);s.configure(owner,{fetchLinks:true});db.query("UPDATE customer_captures SET note_text=NULL,source_title='A lesson',source_url='https://youtube.com/watch?v=123' WHERE id=?").run(capture);
+ s.enqueue(owner,capture,'manual');await s.tick();expect(inputs).toHaveLength(0);expect(s.settings(owner).usage).toMatchObject({used:0,reserved:0});
+ description='<meta name="description" content="Three ways to organize a reading library">';s.enqueue(owner,capture,'manual');await s.tick();
+ expect(inputs).toHaveLength(1);expect(inputs[0]).toMatchObject({text:'Three ways to organize a reading library',sourceEvidence:{status:'metadata-only',transcript:'unavailable'}});expect(s.settings(owner).usage.used).toBe(1);
+});
+test('unsupported blob formats cannot substitute for readable text or supported image evidence',async()=>{
+ let calls=0;const s=createProcessingService(db,{ai:{available:true,model:'test',organize:async()=>{calls++;return result;}},media:async()=>({})});enable(s);s.configure(owner,{images:true});
+ db.query("UPDATE customer_captures SET note_text=NULL,source_title='Saved file',blob_mime='application/octet-stream',blob_data=? WHERE id=?").run(new Uint8Array([1,2,3]),capture);s.enqueue(owner,capture,'manual');await s.tick();
+ expect(calls).toBe(0);expect(s.settings(owner).usage).toMatchObject({used:0,reserved:0});
+});
+test('edited paused saves retire obsolete jobs so the twenty-first save resumes exactly once',async()=>{
+ let calls=0;let clock=Date.now();const s=createProcessingService(db,{ai:{available:true,model:'test',organize:async()=>{calls++;return result;}},now:()=>clock});enable(s);s.configure(owner,{mode:'manual'});
+ const ids=[capture];for(let i=1;i<21;i++){const id=crypto.randomUUID();ids.push(id);db.query("INSERT INTO customer_captures(id,account_id,client_id,type,status,note_text,storage_bytes,captured_at,created_at,updated_at) VALUES(?,?,?,'note','done','Saved note',10,1,1,1)").run(id,owner,id);}
+ const originalJobs=ids.map(id=>{clock++;return s.enqueue(owner,id,'manual').id;});s.configure(owner,{mode:'paused'});
+ for(const id of ids.slice(0,20))db.query("UPDATE customer_captures SET note_text='Edited while paused' WHERE id=?").run(id);
+ s.configure(owner,{mode:'manual'});const other=service(async()=>{calls++;return result;});for(let i=0;i<23;i++)await Promise.all([s.tick(),other.tick()]);
+ expect(s.details(owner,ids[20]!)).not.toBeNull();expect(calls).toBe(21);expect(s.settings(owner).usage).toMatchObject({used:21,reserved:0});
+ expect(db.query("SELECT COUNT(*) n FROM customer_processing_jobs WHERE status='paused'").get()).toEqual({n:0});
+ for(const id of originalJobs.slice(0,20))expect(db.query('SELECT status,credit FROM customer_processing_jobs WHERE id=?').get(id)).toEqual({status:'cancelled',credit:0});
+ for(const id of ids){expect(s.enqueue(owner,id,'manual').status).toBe('done');expect(db.query("SELECT COUNT(*) n FROM customer_processing_jobs WHERE capture_id=? AND status='done'").get(id)).toEqual({n:1});}
+ expect(s.settings(owner).usage).toMatchObject({used:21,reserved:0});
 });

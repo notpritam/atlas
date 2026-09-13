@@ -32,3 +32,24 @@ test('gated shells are unavailable and similar-looking hosts are not trusted pla
  expect(extractSource('<html><body><main><h1>Log in to continue</h1><p>Please enable JavaScript</p></main></body></html>','https://instagram.com/p/1')).toMatchObject({text:'',extractionStatus:'unavailable'});
  expect(extractSource('<article><p>An independent article.</p></article>','https://youtube.com.example.org/article').platform).toBe('web');
 });
+
+test.each(['https://www.facebook.com/unsupportedbrowser','https://www.instagram.com/accounts/login/','https://www.facebook.com/checkpoint/123','https://x.com/i/flow/login'])('blocked redirect %s is unavailable even when its text is not English',async destination=>{
+ const requested='https://www.instagram.com/instagram/';let calls=0;
+ const fetcher=createSourceFetcher({resolve:async()=>[{address:'1.1.1.1',family:4}],transport:async()=>{
+  calls++;return {status:calls===1?302:200,headers:new Headers(calls===1?{location:destination}:{'content-type':'text/html'}),body:(async function*(){yield new TextEncoder().encode('<html><head><title>Обновите свой браузер</title><meta name="description" content="Обновите свой браузер для продолжения"></head><body><h1>Обновите свой браузер</h1><p>Необходимо обновить браузер.</p></body></html>');})(),cancel(){}};
+ }});
+ const result=await fetcher(requested);expect(result).toMatchObject({requestedUrl:requested,url:destination,platform:'instagram',extractionStatus:'unavailable',text:'',title:null,description:null});expect(result.notice).toBeTruthy();
+});
+test('legitimate cross-domain article redirects retain readable evidence',async()=>{
+ let calls=0;const fetcher=createSourceFetcher({resolve:async()=>[{address:'1.1.1.1',family:4}],transport:async()=>{
+  calls++;return {status:calls===1?302:200,headers:new Headers(calls===1?{location:'https://publisher.example/articles/login-security'}:{'content-type':'text/html'}),body:(async function*(){yield new TextEncoder().encode(html);})(),cancel(){}};
+ }});expect(await fetcher('https://links.example/story')).toMatchObject({requestedUrl:'https://links.example/story',url:'https://publisher.example/articles/login-security',platform:'web',extractionStatus:'readable',text:expect.stringContaining('original article')});
+});
+test('blocked-route detection cannot bypass public-address validation on redirected hosts',async()=>{
+ let calls=0;const fetcher=createSourceFetcher({resolve:async host=>[{address:host==='www.facebook.com'?'127.0.0.1':'1.1.1.1',family:4}],transport:async()=>{
+  calls++;return {status:302,headers:new Headers({location:'https://www.facebook.com/unsupportedbrowser'}),body:(async function*(){})(),cancel(){}};
+ }});await expect(fetcher('https://www.instagram.com/instagram/')).rejects.toThrow('not a public');expect(calls).toBe(1);
+});
+test('a web heading that only repeats the title is preview metadata, not article evidence',()=>{
+ expect(extractSource('<html><head><title>Saved article</title></head><body><h1>Saved article</h1></body></html>','https://example.com/article')).toMatchObject({title:'Saved article',text:'',extractionStatus:'metadata-only'});
+});

@@ -65,7 +65,12 @@ export function createProcessingService(db:Database,options:Options={}){
    if(preference.mode==='paused')moduleFail(409,'processing_paused','Processing is paused. Resume it in settings first.');
    if(!ai.available)moduleFail(503,'processing_unavailable','Managed processing is not configured yet.');
    if(row.status!=='done' && !(row.status==='failed' && row.enrich_attempts>=3))moduleFail(409,'capture_busy','This item is still being saved. Try again shortly.');
-   const sourceHash=fingerprint(row);let existing=db.query('SELECT * FROM customer_processing_jobs WHERE account_id=? AND capture_id=? AND source_hash=?').get(owner,id,sourceHash) as Job|null;
+   const sourceHash=fingerprint(row);
+   // Retire held versions in the same transaction as deduplication and reservation.
+   // Otherwise edited saves occupy the bounded resume page indefinitely.
+   const superseded=db.query("SELECT * FROM customer_processing_jobs WHERE account_id=? AND capture_id=? AND source_hash<>? AND status='paused'").all(owner,id,sourceHash) as Job[];
+   for(const job of superseded)settle(job,'cancelled',null);
+   let existing=db.query('SELECT * FROM customer_processing_jobs WHERE account_id=? AND capture_id=? AND source_hash=?').get(owner,id,sourceHash) as Job|null;
    if(existing&&!['failed','cancelled','paused'].includes(existing.status))return {id:existing.id,status:existing.status};
    const cycle=new Date(now()).toISOString().slice(0,7);
    db.query('INSERT OR IGNORE INTO customer_processing_usage(account_id,cycle) VALUES(?,?)').run(owner,cycle);
@@ -126,9 +131,14 @@ export function createProcessingService(db:Database,options:Options={}){
     const candidates=db.query('SELECT id,source_title AS title,summary FROM customer_captures WHERE account_id=? AND id<>? ORDER BY created_at DESC LIMIT 40').all(job.account_id,row.id) as {id:string;title:string|null;summary:string|null}[];
     const input:AiInput={title:row.source_title||source?.title||row.type,url:row.source_url,text:[row.note_text,row.selection_text,row.article_text||source?.text,row.ocr_text,media.text].filter(Boolean).join('\n\n'),candidates:candidates.map(value=>({id:value.id,title:value.title||'',summary:value.summary||''}))};
     if(source?.extractionStatus)input.sourceEvidence={status:source.extractionStatus,notice:source.notice||null,transcript:source.transcriptStatus||null};
-    if(preference.images){if(media.image)input.image=media.image;else if(row.blob_data&&row.blob_data.byteLength<=4*1024*1024&&row.blob_mime)input.image={mime:row.blob_mime,base64:Buffer.from(row.blob_data).toString('base64')};}
+    else if(row.source_url&&!source)input.sourceEvidence={status:'unavailable',notice:sourceError||'Source fetching is disabled. Only the saved content is available.',transcript:null};
+    if(preference.images){
+     const supportedImage=(image:MediaResult['image'])=>image&&['image/png','image/jpeg','image/webp'].includes(image.mime)&&image.base64.length>0&&image.base64.length<5_600_000;
+     if(supportedImage(media.image))input.image=media.image;
+     else if(row.blob_data?.byteLength&&row.blob_data.byteLength<=4*1024*1024&&row.blob_mime&&['image/png','image/jpeg','image/webp'].includes(row.blob_mime))input.image={mime:row.blob_mime,base64:Buffer.from(row.blob_data).toString('base64')};
+    }
     if(!valid()){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
-    if(!input.text.trim()&&!input.image&&(!row.source_title||source?.extractionStatus==='unavailable')){
+    if(!input.text.trim()&&!input.image){
      db.transaction(()=>settle(job,'failed','No readable content was available. Add page text with the extension or a note, then retry.')).immediate();return 1;
     }
     const result=validateAiResult(await ai.organize(input),candidates.map(value=>value.id));
