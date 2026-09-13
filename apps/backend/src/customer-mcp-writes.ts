@@ -29,7 +29,7 @@ export const mcpWriteSpecs={
     }).strict(),
   },
   update_save:{
-    description:'Update explicit editable details on an owned save using its latest revision. Limits: title 1,000, note 50,000, summary 2,000, category 80 characters; up to 20 personal tags of 40 characters. Omitted fields and original source content are preserved.',
+    description:'Update explicit editable details on an owned save using its latest revision. Title, note, summary, and category edits wait for basic processing; personal folder and tag edits remain available. Limits: title 1,000, note 50,000, summary 2,000, category 80 characters; up to 20 personal tags of 40 characters. Omitted fields and original source content are preserved.',
     scope:'library:write' as const,
     schema:z.object({
       id,expectedRevision:z.number().int().nonnegative(),sourceTitle:optionalText(1000),noteText:optionalText(50_000),
@@ -71,10 +71,10 @@ function agentProvenance(value:Record<string,any>,capturedAt:number){
 }
 
 function cancelHostedJobs(db:Database,owner:string,captureId:string,updatedAt:number){
-  const active=db.query("SELECT cycle,credit FROM customer_processing_jobs WHERE account_id=? AND capture_id=? AND status IN ('pending','running')")
+  const active=db.query("SELECT cycle,credit FROM customer_processing_jobs WHERE account_id=? AND capture_id=? AND status IN ('pending','running','paused')")
     .all(owner,captureId) as {cycle:string;credit:number}[];
   if(!active.length)return;
-  db.query("UPDATE customer_processing_jobs SET status='cancelled',credit=0,error=NULL,lease_token=NULL,lease_until=NULL,updated_at=? WHERE account_id=? AND capture_id=? AND status IN ('pending','running')")
+  db.query("UPDATE customer_processing_jobs SET status='cancelled',credit=0,error=NULL,lease_token=NULL,lease_until=NULL,updated_at=? WHERE account_id=? AND capture_id=? AND status IN ('pending','running','paused')")
     .run(updatedAt,owner,captureId);
   const releases=new Map<string,number>();
   for(const job of active)if(job.credit===1)releases.set(job.cycle,(releases.get(job.cycle)||0)+1);
@@ -107,7 +107,9 @@ export function callMcpWrite(db:Database,name:McpWriteName,value:Record<string,a
 
     const row=capture(db,owner,value.id);
     if(row.updated_at!==value.expectedRevision)moduleFail(409,'revision_conflict','This save changed. Read it again before editing.');
-    if((has(value,'summary')||has(value,'category'))&&(row.status==='pending'||row.status==='processing'))moduleFail(409,'capture_busy','This save is still being organized. Read it again after processing finishes.');
+    const editsDetails=['sourceTitle','noteText','summary','category'].some(key=>has(value,key));
+    const basicBusy=row.status==='pending'||row.status==='processing'||row.status==='failed'&&row.enrich_attempts<3;
+    if(editsDetails&&basicBusy)moduleFail(409,'capture_busy','This save is still being organized. Read it again after processing finishes.');
     const organizationValue=captureOrganization(db,owner,value,row);
     const sourceTitle=has(value,'sourceTitle')?value.sourceTitle:row.source_title;
     const noteText=has(value,'noteText')?value.noteText:row.note_text;

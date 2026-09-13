@@ -5,6 +5,7 @@ import {createMcpOperations} from '../src/customer-mcp.ts';
 import {customerChanges} from '../src/customer-changes.ts';
 import {writeSubscription} from '../src/customer-plans.ts';
 import {CONSENT_VERSION,createProcessingService} from '../src/customer-processing.ts';
+import {processCustomerQueue} from '../src/customer-enrichment.ts';
 
 let db:ReturnType<typeof openDb>;
 let owner:string;
@@ -143,16 +144,33 @@ test('summary updates cancel an awaiting hosted job without allowing overwrite o
   expect(processing.settings(owner).usage).toMatchObject({reserved:0,used:0});
 });
 
-test('summary and category updates wait until basic processing no longer owns generated fields',async()=>{
+test('substantive updates wait through retryable basic processing while personal organization remains available',async()=>{
   const ops=createMcpOperations(db,'Bearer '+token);
   const created=(await ops.call('create_save',{clientId:'basic-race',type:'note',noteText:'Original input'})) as any;
-  for(const status of ['pending','processing']){
-    db.query('UPDATE customer_captures SET status=? WHERE id=?').run(status,created.capture.id);
-    await expect(ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,summary:'Too early'})).rejects.toMatchObject({code:'capture_busy'});
-    await expect(ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,category:'Too early'})).rejects.toMatchObject({code:'capture_busy'});
-  }
-  const edited=await ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,noteText:'Updated before basic processing'}) as any;
-  expect(edited.capture.noteText).toBe('Updated before basic processing');
+  db.query("UPDATE customer_captures SET status='pending',enrich_attempts=0 WHERE id=?").run(created.capture.id);
+  await expect(ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,summary:'Too early'})).rejects.toMatchObject({code:'capture_busy'});
+  await expect(ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,noteText:'Too early'})).rejects.toMatchObject({code:'capture_busy'});
+  db.query("UPDATE customer_captures SET status='failed',enrich_attempts=2 WHERE id=?").run(created.capture.id);
+  await expect(ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,category:'Retry can overwrite this'})).rejects.toMatchObject({code:'capture_busy'});
+  await expect(ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,sourceTitle:'Retry can snapshot this'})).rejects.toMatchObject({code:'capture_busy'});
+  const organized=await ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,userTags:['Safe during processing']}) as any;
+  expect(organized.capture.userTags).toEqual(['Safe during processing']);
+  db.query("UPDATE customer_captures SET status='failed',enrich_attempts=3 WHERE id=?").run(created.capture.id);
+  const terminal=await ops.call('update_save',{id:created.capture.id,expectedRevision:organized.capture.updatedAt,noteText:'Terminal edit',summary:'Agent summary'}) as any;
+  expect(terminal.capture).toMatchObject({noteText:'Terminal edit',summary:'Agent summary'});
+});
+
+test('an active basic worker rejects source edits before its old snapshot can become stale',async()=>{
+  const ops=createMcpOperations(db,'Bearer '+token);
+  const created=(await ops.call('create_save',{clientId:'active-basic-race',type:'note',noteText:'Original worker input'})) as any;
+  db.query("UPDATE customer_captures SET status='pending',blob_data=?,blob_mime='image/png' WHERE id=?").run(Buffer.from([1]),created.capture.id);
+  let entered!:()=>void,finish!:(text:string)=>void;const workerStarted=new Promise<void>(resolve=>entered=resolve);
+  const running=processCustomerQueue(db,{batchSize:1,ocr:()=>{entered();return new Promise(resolve=>finish=resolve);}});
+  await workerStarted;
+  const revision=(db.query('SELECT updated_at FROM customer_captures WHERE id=?').get(created.capture.id) as any).updated_at;
+  await expect(ops.call('update_save',{id:created.capture.id,expectedRevision:revision,noteText:'New input'})).rejects.toMatchObject({code:'capture_busy'});
+  finish('recognized text');await running;
+  expect((await ops.call('read_save',{id:created.capture.id}) as any).capture.noteText).toBe('Original worker input');
 });
 
 test('personal organization preserves queued hosted work until source details change',async()=>{
@@ -169,5 +187,39 @@ test('personal organization preserves queued hosted work until source details ch
 
   await ops.call('update_save',{id:created.capture.id,expectedRevision:tagged.capture.updatedAt,noteText:'Changed input'});
   expect(db.query('SELECT status,credit FROM customer_processing_jobs WHERE capture_id=?').get(created.capture.id)).toEqual({status:'cancelled',credit:0});
+  expect(processing.settings(owner).usage).toMatchObject({reserved:0,used:0});
+});
+
+test('editing an agent summary retires a paused hosted job so resume cannot overwrite or charge',async()=>{
+  const ops=createMcpOperations(db,'Bearer '+token);
+  const created=(await ops.call('create_save',{clientId:'paused-summary',type:'note',noteText:'Original input'})) as any;
+  writeSubscription(db,owner,'revenuecat',{status:'active',expiresAt:Date.now()+60_000,renews:true,sandbox:true});
+  let calls=0;const processing=createProcessingService(db,{ai:{available:true,model:'paused-test',organize:async()=>{calls++;return {summary:'Hosted',category:'Notes',tags:['hosted'],relatedIds:[]};}}});
+  processing.configure(owner,{enabled:true,fetchLinks:false,images:false,consentVersion:CONSENT_VERSION,mode:'manual'});
+  processing.enqueue(owner,created.capture.id,'manual');processing.configure(owner,{mode:'paused'});
+  expect(db.query('SELECT status,credit FROM customer_processing_jobs WHERE capture_id=?').get(created.capture.id)).toEqual({status:'paused',credit:0});
+
+  await ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,summary:'Agent summary'});
+  expect(db.query('SELECT status,credit FROM customer_processing_jobs WHERE capture_id=?').get(created.capture.id)).toEqual({status:'cancelled',credit:0});
+  processing.configure(owner,{mode:'manual'});await processing.tick();
+  expect(calls).toBe(0);
+  expect((await ops.call('read_save',{id:created.capture.id}) as any).capture).toMatchObject({summary:'Agent summary',category:null,tags:[]});
+  expect(processing.settings(owner).usage).toMatchObject({reserved:0,used:0});
+});
+
+test('editing source details retires the old paused fingerprint instead of resuming stale work',async()=>{
+  const ops=createMcpOperations(db,'Bearer '+token);
+  const created=(await ops.call('create_save',{clientId:'paused-source',type:'note',noteText:'Old input'})) as any;
+  writeSubscription(db,owner,'revenuecat',{status:'active',expiresAt:Date.now()+60_000,renews:true,sandbox:true});
+  let calls=0;const processing=createProcessingService(db,{ai:{available:true,model:'paused-source-test',organize:async()=>{calls++;return {summary:'Hosted',category:'Notes',tags:[],relatedIds:[]};}}});
+  processing.configure(owner,{enabled:true,fetchLinks:false,images:false,consentVersion:CONSENT_VERSION,mode:'manual'});
+  processing.enqueue(owner,created.capture.id,'manual');processing.configure(owner,{mode:'paused'});
+
+  const updated=await ops.call('update_save',{id:created.capture.id,expectedRevision:created.capture.updatedAt,noteText:'New input'}) as any;
+  expect(updated.capture.noteText).toBe('New input');
+  expect(db.query('SELECT status,credit FROM customer_processing_jobs WHERE capture_id=?').get(created.capture.id)).toEqual({status:'cancelled',credit:0});
+  processing.configure(owner,{mode:'manual'});await processing.tick();
+  expect(calls).toBe(0);
+  expect((db.query("SELECT COUNT(*) count FROM customer_processing_jobs WHERE capture_id=? AND status='paused'").get(created.capture.id) as any).count).toBe(0);
   expect(processing.settings(owner).usage).toMatchObject({reserved:0,used:0});
 });
