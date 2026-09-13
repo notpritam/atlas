@@ -43,7 +43,7 @@ test('compact appearance control, beta downloads, and dark account surfaces stay
  assert.equal(await page.getByLabel('Appearance',{exact:true}).count(),0,'Compact control has no text dropdown');
  assert.equal(await page.getByRole('link',{name:'Download extension',exact:true}).getAttribute('href'),'https://foundkeep.app/foundkeep-extension.zip');
  const darkThemeColors=await page.locator('meta[name="theme-color"]').evaluateAll(metas=>metas.map(meta=>meta.getAttribute('content')));
- assert.ok(darkThemeColors.length>0&&darkThemeColors.every(color=>color==='#000000'));
+ assert.ok(darkThemeColors.length>0&&darkThemeColors.every(color=>color==='#08090a'),'Dark browser chrome uses the approved near-black paper color');
  await toggle.click();await page.waitForFunction(()=>document.documentElement.dataset.theme==='light');
  assert.equal(await page.getByRole('button',{name:'Switch to dark mode',exact:true}).getAttribute('title'),'Switch to dark mode');
  assert.equal(await page.evaluate(()=>localStorage.getItem('foundkeep.appearance')),'light');
