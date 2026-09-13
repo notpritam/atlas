@@ -1,3 +1,4 @@
+import { getEnvironment } from '../environment.ts';
 import { type Href, router, useLocalSearchParams } from 'expo-router';
 import { useEffect } from 'react';
 import { ActivityIndicator, View } from 'react-native';
@@ -11,7 +12,7 @@ export default function OpenFoundkeepLink() {
   useEffect(() => {
     if (!ready) return;
     const path = Array.isArray(params.path) ? null : params.path;
-    const target = path ? parseFoundkeepLink(`https://foundkeep.app/open?path=${encodeURIComponent(path)}`) : null;
+    const target = path ? parseFoundkeepLink(`${getEnvironment().origin}/open?path=${encodeURIComponent(path)}`) : null;
     if (!target) { router.replace('/'); return; }
     if (target.requiresAuth && !account) {
       setPendingRoute(target.href);

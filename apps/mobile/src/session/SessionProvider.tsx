@@ -1,6 +1,6 @@
 import * as Device from 'expo-device';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AppState } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import FoundkeepShared from '../../modules/foundkeep-shared/src';
 import { createFoundkeepClient, FoundkeepApiError } from '../api/client.ts';
 import type { Account, NativeSession, Usage } from '../api/types.ts';
@@ -99,7 +99,7 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     if (token) void syncNotificationRegistration(client, policy.features.notifications).catch(() => {});
   }, [client, policy.features.notifications, token]);
 
-  const deviceName = Device.deviceName || Device.modelName || 'iPhone';
+  const deviceName = Device.deviceName || Device.modelName || (Platform.OS === 'android' ? 'Android' : 'iPhone');
   const value = useMemo<SessionValue>(() => ({
     ready, account, usage, token, recoveryCode, policy, pendingRoute, updateRequired: requiresBinaryUpdate('1.0.0', policy.minimumVersion), client,
     setPendingRoute: value => setPendingRouteState(safeReturnPath(value)),

@@ -1,3 +1,4 @@
+import { getEnvironment } from './environment.ts';
 export const OAUTH_NAMES = { apple: 'Apple', google: 'Google', github: 'GitHub', twitter: 'X' } as const;
 export type OAuthProvider = keyof typeof OAUTH_NAMES;
 export type OAuthIntent = 'sign-in' | 'delete';
@@ -6,12 +7,12 @@ export function isOAuthProvider(value: unknown): value is OAuthProvider {
   return typeof value === 'string' && Object.hasOwn(OAUTH_NAMES, value);
 }
 export function validAuthorizeUrl(value: string, flow: string) {
-  return /^[a-f0-9]{32}$/.test(flow) && value === `https://foundkeep.app/api/auth/oauth/authorize/${flow}`;
+  return /^[a-f0-9]{32}$/.test(flow) && value === `${getEnvironment().origin}/api/auth/oauth/authorize/${flow}`;
 }
 export function parseOAuthReturn(value: string): { flow: string; code: string | null; error: boolean } | null {
   try {
     const url = new URL(value);
-    if (url.protocol !== 'foundkeep:' || url.host !== 'oauth' || url.pathname !== '/complete' || url.hash || url.username || url.password) return null;
+    if (url.protocol !== `${getEnvironment().scheme}:` || url.host !== 'oauth' || url.pathname !== '/complete' || url.hash || url.username || url.password) return null;
     const params = url.searchParams;
     for (const key of params.keys()) if (!['flow', 'code', 'error'].includes(key) || params.getAll(key).length !== 1) return null;
     const flow = params.get('flow'), code = params.get('code');

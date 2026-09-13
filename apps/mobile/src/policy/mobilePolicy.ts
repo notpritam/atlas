@@ -1,3 +1,4 @@
+import { getEnvironment } from '../environment.ts';
 import type { CaptureType } from '../api/types.ts';
 
 const MOBILE_CAPTURE_TYPES = ['bookmark', 'selection', 'note', 'image', 'video', 'audio', 'document', 'file'] as const;
@@ -72,7 +73,7 @@ export async function fetchMobilePolicy(fetcher: typeof fetch = fetch): Promise<
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 10_000);
     try {
-      const response = await fetcher('https://foundkeep.app/mobile-policy.json', { cache: 'no-store', redirect: 'error', signal: controller.signal });
+      const response = await fetcher(`${getEnvironment().origin}/mobile-policy.json`, { cache: 'no-store', redirect: 'error', signal: controller.signal });
       if (!response.ok) return null;
       return normalizeMobilePolicy(await response.json());
     } finally { clearTimeout(timeout); }

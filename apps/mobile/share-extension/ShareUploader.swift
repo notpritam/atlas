@@ -59,10 +59,10 @@ final class ShareUploader {
   private let session = URLSession(configuration: .ephemeral, delegate: FoundkeepNoRedirectDelegate(), delegateQueue: nil)
 
   init() throws {
-    guard let container = manager.containerURL(forSecurityApplicationGroupIdentifier: "group.app.foundkeep.ios") else { throw FoundkeepUploadError.storage }
-    self.container = container
+    guard let container = manager.containerURL(forSecurityApplicationGroupIdentifier: (Bundle.main.object(forInfoDictionaryKey: "FoundkeepAppGroup") as? String ?? "group.app.foundkeep.ios")) else { throw FoundkeepUploadError.storage }
+    self.container = FoundkeepEnvironmentStorage.container(container)
     connection = try? Self.readConnection()
-    queue = container.appendingPathComponent("queue", isDirectory: true)
+    queue = self.container.appendingPathComponent("queue", isDirectory: true)
     try manager.createDirectory(at: queue, withIntermediateDirectories: true)
   }
 
@@ -101,7 +101,7 @@ final class ShareUploader {
 
   private func organizationRequest(path: String, body: Data? = nil) async throws -> (Data, String) {
     guard let token = try token() else { throw FoundkeepUploadError.signedOut }
-    var request = URLRequest(url: URL(string: "https://foundkeep.app\(path)")!)
+    var request = URLRequest(url: URL(string: "\(Bundle.main.object(forInfoDictionaryKey: "FoundkeepOrigin") as? String ?? "https://foundkeep.app")\(path)")!)
     request.httpMethod = body == nil ? "GET" : "POST"
     request.httpBody = body
     request.timeoutInterval = 8
@@ -191,7 +191,7 @@ final class ShareUploader {
     if let path = record["payloadPath"] as? String {
       let payloadURL = container.appendingPathComponent(path)
       let size = (try manager.attributesOfItem(atPath: payloadURL.path)[.size] as? NSNumber)?.intValue ?? 0
-      request = URLRequest(url: URL(string: "https://foundkeep.app/api/mobile/captures/file")!)
+      request = URLRequest(url: URL(string: "\(Bundle.main.object(forInfoDictionaryKey: "FoundkeepOrigin") as? String ?? "https://foundkeep.app")/api/mobile/captures/file")!)
       request.httpMethod = "POST"
       request.setValue(base64URL(metadataData), forHTTPHeaderField: "X-Foundkeep-Capture")
       request.setValue(metadata["declaredMime"] as? String ?? "application/octet-stream", forHTTPHeaderField: "Content-Type")
@@ -203,7 +203,7 @@ final class ShareUploader {
       try validateCaptureResponse(data: data, response: response)
       try? manager.removeItem(at: payloadURL)
     } else {
-      request = URLRequest(url: URL(string: "https://foundkeep.app/api/captures")!)
+      request = URLRequest(url: URL(string: "\(Bundle.main.object(forInfoDictionaryKey: "FoundkeepOrigin") as? String ?? "https://foundkeep.app")/api/captures")!)
       request.httpMethod = "POST"
       request.setValue("application/json", forHTTPHeaderField: "Content-Type")
       request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
@@ -292,7 +292,7 @@ final class ShareUploader {
   private static func readConnection() throws -> FoundkeepQueueSession? {
     let account = Data("foundkeep-device-token".utf8)
     var query: [String: Any] = [
-      kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: "app.foundkeep.shared",
+      kSecClass as String: kSecClassGenericPassword, kSecAttrService as String: (Bundle.main.object(forInfoDictionaryKey: "FoundkeepKeychainService") as? String ?? "app.foundkeep.shared"),
       kSecAttrAccount as String: "foundkeep-device-token", kSecAttrGeneric as String: account,
       kSecReturnData as String: true, kSecReturnAttributes as String: true, kSecMatchLimit as String: kSecMatchLimitOne,
     ]

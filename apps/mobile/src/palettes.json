@@ -1,0 +1,8 @@
+{
+  "light": {
+    "paper":"#F5FAFC","surface":"#FFFFFF","ink":"#233E4B","muted":"#526B76","line":"#D6E7EB","accent":"#237CB4","accentPressed":"#1B6392","accentSoft":"#E3F4EE","error":"#A52B22","white":"#FFFFFF","black":"#000000","note":"#E3F4EE","pending":"#76551B","errorSurface":"#F8E8E5","onAccent":"#FFFFFF","onError":"#FFFFFF","glass":"rgba(245,250,252,0.88)","glassCard":"rgba(255,255,255,0.94)","glassEdge":"rgba(255,255,255,0.88)","shadow":"#233E4B"
+  },
+  "dark": {
+    "paper":"#16191D","surface":"#20252A","ink":"#EFF3F5","muted":"#B4C1C8","line":"#3A444C","accent":"#91CFF2","accentPressed":"#B8E3FA","accentSoft":"#283D3A","error":"#F2A79D","white":"#FFFFFF","black":"#000000","note":"#283D3A","pending":"#E2C887","errorSurface":"#4B302F","onAccent":"#16191D","onError":"#261B19","glass":"rgba(32,37,42,0.90)","glassCard":"rgba(32,37,42,0.96)","glassEdge":"rgba(180,193,200,0.23)","shadow":"#000000"
+  }
+}

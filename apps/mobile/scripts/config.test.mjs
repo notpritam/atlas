@@ -46,3 +46,24 @@ test('EAS profiles separate development, preview and production update channels'
   assert.equal(eas.build.production.autoIncrement, true);
   assert.equal(eas.submit.production.ios.ascAppId, '6809771188');
 });
+
+test('resolved dev config isolates bundle, group, keychain, Android, OTA channel and submission', async () => {
+  const { execFileSync } = await import('node:child_process');
+  const cwd = new URL('..', import.meta.url);
+  const config = env => JSON.parse(execFileSync('bunx', ['expo','config','--type','public','--json'], {cwd,env:{...process.env,FOUNDKEEP_APP_ENV:env},encoding:'utf8'}));
+  const prod=config('prod'),dev=config('dev');
+  assert.equal(prod.ios.bundleIdentifier,'app.foundkeep.ios');assert.equal(prod.scheme,'foundkeep');
+  assert.equal(dev.name,'FoundKeep Dev');assert.equal(dev.ios.bundleIdentifier,'app.foundkeep.ios');assert.equal(dev.android.package,'app.foundkeep.android');assert.equal(prod.android.package,'app.foundkeep.android');
+  assert.equal(dev.scheme,'foundkeep');assert.equal(dev.extra.foundkeep.origin,'https://dev.foundkeep.app');
+  assert.deepEqual(dev.ios.entitlements['com.apple.security.application-groups'],['group.app.foundkeep.ios']);
+  assert.deepEqual(dev.ios.entitlements['keychain-access-groups'],['$(AppIdentifierPrefix)app.foundkeep.shared']);
+  assert.equal(dev.ios.infoPlist.FoundkeepOrigin,'https://dev.foundkeep.app');
+  assert.equal(dev.extra.eas.build.experimental.ios.appExtensions[0].bundleIdentifier,'app.foundkeep.ios.ShareExtension');
+  assert.equal(dev.android.allowBackup,false);assert.equal(dev.ios.infoPlist.FoundkeepStorageNamespace,'dev');assert.equal(prod.ios.infoPlist.FoundkeepStorageNamespace,'');assert.notEqual(dev.ios.infoPlist.FoundkeepKeychainService,prod.ios.infoPlist.FoundkeepKeychainService);
+  const sharing=dev.plugins.find(plugin=>Array.isArray(plugin)&&plugin[0]==='expo-sharing')[1];assert.equal(sharing.android.enabled,true);assert.equal(sharing.ios.enabled,false);
+  const eas=JSON.parse(await readFile(new URL('../eas.json',import.meta.url),'utf8'));
+  for(const name of ['friends-ios','friends-android','friends-play']) {assert.equal(eas.build[name].channel,'production-beta');assert.equal(eas.build[name].env.FOUNDKEEP_APP_ENV,'prod');}
+  for(const name of ['pritam-ios','pritam-android']){assert.equal(eas.build[name].channel,'dev');assert.equal(eas.build[name].env.FOUNDKEEP_APP_ENV,'dev');}
+  assert.equal(eas.build['friends-android'].android.buildType,'apk');assert.equal(eas.build['friends-play'].android.buildType,'app-bundle');assert.equal(eas.submit['friends-ios'].ios.ascAppId,'6809771188');
+  assert.throws(()=>config('staging'));
+});

@@ -15,7 +15,7 @@ struct FoundkeepSharePolicy {
   )
 
   static var current: FoundkeepSharePolicy {
-    guard let raw = UserDefaults(suiteName: "group.app.foundkeep.ios")?.string(forKey: "mobile-policy"),
+    guard let raw = UserDefaults(suiteName: (Bundle.main.object(forInfoDictionaryKey: "FoundkeepAppGroup") as? String ?? "group.app.foundkeep.ios"))?.string(forKey: FoundkeepEnvironmentStorage.key("mobile-policy")),
           let data = raw.data(using: .utf8),
           let root = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
           root["schemaVersion"] as? Int == 1,

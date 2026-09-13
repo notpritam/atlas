@@ -397,7 +397,7 @@ final class ShareViewController: UIViewController, UITextViewDelegate {
   }
 
   @objc private func openFoundkeep() {
-    guard let url = URL(string: "foundkeep://") else { return }
+    guard let url = URL(string: "\(Bundle.main.object(forInfoDictionaryKey: "FoundkeepScheme") as? String ?? "foundkeep")://") else { return }
     extensionContext?.open(url) { opened in
       if opened { self.extensionContext?.completeRequest(returningItems: nil) }
       else { self.statusLabel.text = "Open the Foundkeep app from your Home Screen, then return here." }

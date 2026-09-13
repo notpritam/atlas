@@ -1,3 +1,4 @@
+import { getEnvironment } from '../environment.ts';
 import type { Capture } from '../api/types.ts';
 
 type PreviewSource = { uri: string; headers?: Record<string, string> };
@@ -10,7 +11,7 @@ export function capturePreviewSource(capture: Partial<Capture>, token: string | 
     const query = new URLSearchParams({ account: accountId, v: String(capture.updatedAt || 0) });
     // Never trust a returned URL with a bearer header. Construct the exact owned
     // endpoint, with a non-secret account/revision key for native image caches.
-    return { uri: `https://foundkeep.app/api/mobile/captures/${encodeURIComponent(capture.id)}/${kind}?${query}`, headers: { Authorization: `Bearer ${token}` } };
+    return { uri: `${getEnvironment().origin}/api/mobile/captures/${encodeURIComponent(capture.id)}/${kind}?${query}`, headers: { Authorization: `Bearer ${token}` } };
   }
   const raw = capture.provenance?.leadImageUrl;
   if (!raw) return null;

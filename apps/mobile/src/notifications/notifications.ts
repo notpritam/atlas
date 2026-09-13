@@ -1,3 +1,4 @@
+import { Platform } from 'react-native';
 import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
@@ -21,7 +22,7 @@ function projectId() {
 }
 
 async function deviceToken() {
-  if (!Device.isDevice) throw new Error('Notifications require a physical iPhone.');
+  if (!Device.isDevice) throw new Error('Notifications require a physical device.');
   const id = projectId();
   if (!id) throw new Error('Notifications will be available after Foundkeep finishes its App Store setup.');
   return (await Notifications.getExpoPushTokenAsync({ projectId: id })).data;
@@ -39,11 +40,12 @@ export async function notificationState(client: FoundkeepClient): Promise<Notifi
 /** Called only from a customer gesture in Settings, so the iOS permission
  * prompt never appears during onboarding or app launch. */
 export async function enableNotifications(client: FoundkeepClient): Promise<void> {
+  if (Platform.OS === 'android') await Notifications.setNotificationChannelAsync('default', { name: 'Saved items', importance: Notifications.AndroidImportance.DEFAULT });
   let permission = await Notifications.getPermissionsAsync();
   if (!permission.granted && permission.canAskAgain) {
     permission = await Notifications.requestPermissionsAsync({ ios: { allowAlert: true, allowSound: true } });
   }
-  if (!permission.granted) throw new Error('Allow notifications in iPhone Settings to receive capture-ready alerts.');
+  if (!permission.granted) throw new Error('Allow notifications in device Settings to receive capture-ready alerts.');
   await client.registerNotifications(await deviceToken());
 }
 

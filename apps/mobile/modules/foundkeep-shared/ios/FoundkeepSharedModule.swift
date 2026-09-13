@@ -14,8 +14,8 @@ private final class FoundkeepSharedNoRedirectDelegate: NSObject, URLSessionTaskD
 }
 
 private final class FoundkeepSharedStore {
-  static let group = "group.app.foundkeep.ios"
-  static let service = "app.foundkeep.shared"
+  static let group = (Bundle.main.object(forInfoDictionaryKey: "FoundkeepAppGroup") as? String ?? "group.app.foundkeep.ios")
+  static let service = (Bundle.main.object(forInfoDictionaryKey: "FoundkeepKeychainService") as? String ?? "app.foundkeep.shared")
   static let tokenAccount = "foundkeep-device-token"
   private let manager = FileManager.default
   private let sessionLock = NSLock()
@@ -24,7 +24,7 @@ private final class FoundkeepSharedStore {
   private let uploadSession = URLSession(configuration: .ephemeral, delegate: FoundkeepSharedNoRedirectDelegate(), delegateQueue: nil)
 
   private var keychainGroup: String? { Bundle.main.object(forInfoDictionaryKey: "FoundkeepKeychainAccessGroup") as? String }
-  private var container: URL? { manager.containerURL(forSecurityApplicationGroupIdentifier: Self.group) }
+  private var container: URL? { manager.containerURL(forSecurityApplicationGroupIdentifier: Self.group).map { FoundkeepEnvironmentStorage.container($0) } }
   private var queue: URL? { container?.appendingPathComponent("queue", isDirectory: true) }
 
   func token() throws -> String? {
@@ -63,7 +63,7 @@ private final class FoundkeepSharedStore {
     defer { sessionLock.unlock() }
     let previous = try credential()
     if previous?.token != token || previous?.accountId != accountId { clearOrganizationCache() }
-    UserDefaults(suiteName: Self.group)?.removeObject(forKey: "account")
+    UserDefaults(suiteName: Self.group)?.removeObject(forKey: FoundkeepEnvironmentStorage.key("account"))
     var query = keychainQuery()
     let deletion = SecItemDelete(query as CFDictionary)
     guard deletion == errSecSuccess || deletion == errSecItemNotFound else { throw FoundkeepSharedError.keychain(deletion) }
@@ -72,7 +72,7 @@ private final class FoundkeepSharedStore {
     query[kSecAttrAccessible as String] = kSecAttrAccessibleAfterFirstUnlockThisDeviceOnly
     let status = SecItemAdd(query as CFDictionary, nil)
     guard status == errSecSuccess else { throw FoundkeepSharedError.keychain(status) }
-    UserDefaults(suiteName: Self.group)?.set(accountJSON, forKey: "account")
+    UserDefaults(suiteName: Self.group)?.set(accountJSON, forKey: FoundkeepEnvironmentStorage.key("account"))
   }
 
   // The caller obtained accountJSON from /me using this token. A delayed refresh
@@ -86,7 +86,7 @@ private final class FoundkeepSharedStore {
     let status = SecItemUpdate(keychainQuery() as CFDictionary, [kSecAttrLabel as String: accountId] as CFDictionary)
     guard status == errSecSuccess else { throw FoundkeepSharedError.keychain(status) }
     if current.accountId != accountId { clearOrganizationCache() }
-    UserDefaults(suiteName: Self.group)?.set(accountJSON, forKey: "account")
+    UserDefaults(suiteName: Self.group)?.set(accountJSON, forKey: FoundkeepEnvironmentStorage.key("account"))
   }
 
   func clear() throws {
@@ -94,7 +94,7 @@ private final class FoundkeepSharedStore {
     defer { sessionLock.unlock() }
     let status = SecItemDelete(keychainQuery() as CFDictionary)
     if status != errSecSuccess && status != errSecItemNotFound { throw FoundkeepSharedError.keychain(status) }
-    UserDefaults(suiteName: Self.group)?.removeObject(forKey: "account")
+    UserDefaults(suiteName: Self.group)?.removeObject(forKey: FoundkeepEnvironmentStorage.key("account"))
     clearOrganizationCache()
   }
 
@@ -102,8 +102,8 @@ private final class FoundkeepSharedStore {
     if let container { try? manager.removeItem(at: container.appendingPathComponent("organization.json")) }
   }
 
-  func policy() -> String? { UserDefaults(suiteName: Self.group)?.string(forKey: "mobile-policy") }
-  func set(policy: String) { UserDefaults(suiteName: Self.group)?.set(policy, forKey: "mobile-policy") }
+  func policy() -> String? { UserDefaults(suiteName: Self.group)?.string(forKey: FoundkeepEnvironmentStorage.key("mobile-policy")) }
+  func set(policy: String) { UserDefaults(suiteName: Self.group)?.set(policy, forKey: FoundkeepEnvironmentStorage.key("mobile-policy")) }
 
   func records() -> [(FoundkeepPendingRecord, URL)] {
     guard let queue else { return [] }
@@ -155,7 +155,7 @@ private final class FoundkeepSharedStore {
       var payloadURL: URL?
       if let payloadPath = record.payloadPath, let container {
         payloadURL = container.appendingPathComponent(payloadPath)
-        request = URLRequest(url: URL(string: "https://foundkeep.app/api/mobile/captures/file")!)
+        request = URLRequest(url: URL(string: "\(Bundle.main.object(forInfoDictionaryKey: "FoundkeepOrigin") as? String ?? "https://foundkeep.app")/api/mobile/captures/file")!)
         request.httpMethod = "POST"
         request.setValue(metadataData.base64EncodedString().replacingOccurrences(of: "+", with: "-").replacingOccurrences(of: "/", with: "_").replacingOccurrences(of: "=", with: ""), forHTTPHeaderField: "X-Foundkeep-Capture")
         if case .string(let mime) = metadata["declaredMime"] { request.setValue(mime, forHTTPHeaderField: "Content-Type") }
@@ -163,7 +163,7 @@ private final class FoundkeepSharedStore {
           request.setValue(String(bytes), forHTTPHeaderField: "Content-Length")
         }
       } else {
-        request = URLRequest(url: URL(string: "https://foundkeep.app/api/captures")!)
+        request = URLRequest(url: URL(string: "\(Bundle.main.object(forInfoDictionaryKey: "FoundkeepOrigin") as? String ?? "https://foundkeep.app")/api/captures")!)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         request.httpBody = metadataData
@@ -215,12 +215,12 @@ private final class FoundkeepSharedStore {
   func downloadCaptureFile(id: String, fileName: String) async throws -> String {
     guard id.range(of: "^[A-Za-z0-9-]{1,80}$", options: .regularExpression) != nil else { throw URLError(.badURL) }
     guard let token = try token() else { throw URLError(.userAuthenticationRequired) }
-    var request = URLRequest(url: URL(string: "https://foundkeep.app/api/mobile/captures/\(id)/file")!)
+    var request = URLRequest(url: URL(string: "\(Bundle.main.object(forInfoDictionaryKey: "FoundkeepOrigin") as? String ?? "https://foundkeep.app")/api/mobile/captures/\(id)/file")!)
     request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
     request.timeoutInterval = 30
     let (temporary, response) = try await uploadSession.download(for: request)
     guard let http = response as? HTTPURLResponse, (200...299).contains(http.statusCode) else { throw URLError(.badServerResponse) }
-    let cache = manager.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent("Foundkeep Exports", isDirectory: true)
+    let cache = manager.urls(for: .cachesDirectory, in: .userDomainMask)[0].appendingPathComponent(FoundkeepEnvironmentStorage.key("Foundkeep Exports"), isDirectory: true)
     try manager.createDirectory(at: cache, withIntermediateDirectories: true)
     let leaf = (fileName as NSString).lastPathComponent.components(separatedBy: .controlCharacters).joined().trimmingCharacters(in: .whitespacesAndNewlines)
     let safeName = String((leaf.isEmpty ? "Shared file" : leaf).prefix(180))

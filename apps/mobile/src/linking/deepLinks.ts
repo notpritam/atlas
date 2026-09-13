@@ -1,3 +1,4 @@
+import { getEnvironment } from '../environment.ts';
 export type FoundkeepLink = { href: string; requiresAuth: boolean };
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -32,11 +33,11 @@ export function parseFoundkeepLink(raw: string): FoundkeepLink | null {
   let url: URL;
   try { url = new URL(raw); } catch { return null; }
   if (url.username || url.password || url.hash) return null;
-  if (url.protocol === 'foundkeep:') {
+  if (url.protocol === `${getEnvironment().scheme}:`) {
     if (url.search) return null;
     return resolvePath([url.hostname, url.pathname].map(value => value.replace(/^\/+|\/+$/g, '')).filter(Boolean).join('/'));
   }
-  if (url.protocol !== 'https:' || url.hostname !== 'foundkeep.app' || url.port || !['/open', '/open.html'].includes(url.pathname)) return null;
+  if (url.protocol !== 'https:' || url.origin !== getEnvironment().origin || url.port || !['/open', '/open.html'].includes(url.pathname)) return null;
   if ([...url.searchParams.keys()].some(key => key !== 'path')) return null;
   const path = url.searchParams.get('path');
   return path ? resolvePath(path) : null;

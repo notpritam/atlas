@@ -3,6 +3,8 @@
 // in runtime matching so an OTA cannot assume a newer native share implementation.
 module.exports = {
   extraSources: [
+    { type: 'file', filePath: 'src/palettes.json', reasons: ['foundkeepNativeTheme'] },
+    { type: 'file', filePath: 'variants.json', reasons: ['foundkeepNativeVariant'] },
     { type: 'dir', filePath: 'share-extension', reasons: ['foundkeepShareExtension'] },
     { type: 'file', filePath: 'assets/images/mark.png', reasons: ['foundkeepShareExtension'] },
   ],

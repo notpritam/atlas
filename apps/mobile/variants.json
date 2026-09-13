@@ -1,0 +1,26 @@
+{
+  "prod": {
+    "environment": "prod",
+    "name": "Foundkeep",
+    "origin": "https://foundkeep.app",
+    "scheme": "foundkeep",
+    "iosBundle": "app.foundkeep.ios",
+    "androidPackage": "app.foundkeep.android",
+    "appGroup": "group.app.foundkeep.ios",
+    "keychainService": "app.foundkeep.shared",
+    "keychainAccessGroup": "app.foundkeep.shared",
+    "storageNamespace": ""
+  },
+  "dev": {
+    "environment": "dev",
+    "name": "FoundKeep Dev",
+    "origin": "https://dev.foundkeep.app",
+    "scheme": "foundkeep",
+    "iosBundle": "app.foundkeep.ios",
+    "androidPackage": "app.foundkeep.android",
+    "appGroup": "group.app.foundkeep.ios",
+    "keychainService": "app.foundkeep.dev.shared",
+    "keychainAccessGroup": "app.foundkeep.shared",
+    "storageNamespace": "dev"
+  }
+}

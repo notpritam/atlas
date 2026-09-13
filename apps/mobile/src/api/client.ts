@@ -1,8 +1,9 @@
+import { normalizeAutomation } from '../billing/automation.ts';
+import { getEnvironment, getMobilePlatform } from '../environment.ts';
 import type { Account, Capture, CaptureList, Folder, Organization, NativeSession, Usage, RelatedSave } from './types.ts';
 import type { Plan, AutomationState } from '../billing/types.ts';
 import type { OAuthIntent, OAuthProvider } from '../auth-oauth.ts';
 
-const API_ORIGIN = 'https://foundkeep.app';
 const REQUEST_TIMEOUT = 15_000;
 
 export class FoundkeepApiError extends Error {
@@ -50,7 +51,7 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
         if (!token) throw new FoundkeepApiError(401, 'signed_out', 'Sign in to open your Foundkeep collection.');
         headers.set('authorization', `Bearer ${token}`);
       }
-      const response = await fetcher(`${API_ORIGIN}${path}`, {
+      const response = await fetcher(`${getEnvironment().origin}${path}`, {
         method: options.method || 'GET', headers, signal: controller.signal,
         body: options.body === undefined ? undefined : JSON.stringify(options.body),
       });
@@ -105,14 +106,14 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
     plan: () => json<Plan>('/api/plan'),
     purchaseCheck: (intent?:'purchase'|'restore') => json<Plan>('/api/billing/purchase-check',{method:'POST',body:{intent}}),
     cancelMobilePurchase: (attemptId:string) => json('/api/billing/revenuecat/purchase-cancelled',{method:'POST',body:{attemptId}}),
-    automation: () => json<AutomationState>('/api/automation'),
-    updateAutomation: (value:Partial<Pick<AutomationState,'enabled'|'fetchLinks'|'images'|'consentVersion'>>) => json<AutomationState>('/api/automation', {method:'PUT',body:value}),
+    automation: async () => normalizeAutomation(await json<AutomationState>('/api/automation')),
+    updateAutomation: (value:Partial<Pick<AutomationState,'enabled'|'fetchLinks'|'images'|'consentVersion'|'mode'|'intervalHours'|'monthlyLimit'>>) => json<AutomationState>('/api/automation', {method:'PUT',body:value}).then(normalizeAutomation),
     processCapture: (id:string) => json<{id:string;status:string}>('/api/captures/'+encodeURIComponent(id)+'/process',{method:'POST',body:{}}),
     syncRevenueCat: () => json<Omit<Plan, 'billing'>>('/api/billing/revenuecat/sync', { method: 'POST' }),
     subscribeInvalidation(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },
-    oauthProviders: () => json<{ providers: OAuthProvider[] }>('/api/auth/providers?client=ios', { authenticated: false }),
+    oauthProviders: () => json<{ providers: OAuthProvider[] }>(`/api/auth/providers?client=${getMobilePlatform()}`, { authenticated: false }),
     startOAuth(value: { provider: OAuthProvider; intent: OAuthIntent; codeChallenge: string }) {
-      return json<{ flow: string; authorizeUrl: string }>('/api/auth/oauth/start', { method: 'POST', body: { ...value, client: 'ios', deviceName: 'iPhone' }, authenticated: value.intent === 'delete' });
+      return json<{ flow: string; authorizeUrl: string }>('/api/auth/oauth/start', { method: 'POST', body: { ...value, client: getMobilePlatform(), deviceName: getMobilePlatform() === 'android' ? 'Android' : 'iPhone' }, authenticated: value.intent === 'delete' });
     },
     exchangeOAuth(value: { flow: string; code: string; verifier: string; password?: string }, intent: OAuthIntent) {
       return json<NativeSession | { reauthToken: string }>('/api/auth/oauth/exchange', { method: 'POST', body: value, authenticated: intent === 'delete' });
@@ -153,7 +154,7 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
     createFolder: (name: string) => json<{ folder: Folder }>('/api/mobile/folders', { method: 'POST', body: { name } }),
     renameFolder: (id: string, name: string) => json<{ folder: Folder }>(`/api/mobile/folders/${encodeURIComponent(id)}`, { method: 'PUT', body: { name } }),
     deleteFolder: (id: string) => json<{ ok: true }>(`/api/mobile/folders/${encodeURIComponent(id)}`, { method: 'DELETE' }),
-    fileUrl: (id: string) => `${API_ORIGIN}/api/mobile/captures/${encodeURIComponent(id)}/file`,
+    fileUrl: (id: string) => `${getEnvironment().origin}/api/mobile/captures/${encodeURIComponent(id)}/file`,
   };
 }
 

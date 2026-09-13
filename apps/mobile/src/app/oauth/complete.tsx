@@ -1,3 +1,4 @@
+import { getEnvironment } from '../../environment.ts';
 import { AdaptiveText as Text } from '../../components/AdaptiveText.tsx';
 import * as Crypto from 'expo-crypto';
 import { router, Stack, useFocusEffect, useLocalSearchParams, type Href } from 'expo-router';
@@ -68,7 +69,7 @@ export default function OAuthComplete() {
     if (typeof values.flow === 'string') {
       const query = new URLSearchParams();
       for (const [key, value] of Object.entries(values)) for (const part of Array.isArray(value) ? value : [value]) query.append(key, part);
-      const returned = parseOAuthReturn('foundkeep://oauth/complete?' + query);
+      const returned = parseOAuthReturn(`${getEnvironment().scheme}://oauth/complete?` + query);
       if (!returned || returned.error) {
         pendingOAuth.clear(); setMessage(''); setError('Sign-in was canceled or could not be verified. Please start again.'); return;
       }

@@ -107,3 +107,11 @@ enum FoundkeepJSONValue: Codable, Equatable {
     }
   }
 }
+
+// Production's original directories and defaults keys remain untouched. Beta
+// builds share the store identity but keep all local data under a dev namespace.
+enum FoundkeepEnvironmentStorage {
+  static var namespace: String { Bundle.main.object(forInfoDictionaryKey: "FoundkeepStorageNamespace") as? String == "dev" ? "dev" : "" }
+  static func key(_ value: String) -> String { namespace.isEmpty ? value : "dev-\(value)" }
+  static func container(_ value: URL) -> URL { namespace.isEmpty ? value : value.appendingPathComponent("dev", isDirectory: true) }
+}

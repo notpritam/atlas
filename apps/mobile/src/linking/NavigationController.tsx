@@ -1,3 +1,4 @@
+import { getEnvironment } from '../environment.ts';
 import * as Notifications from 'expo-notifications';
 import { type Href, router } from 'expo-router';
 import { useCallback, useEffect, useRef } from 'react';
@@ -48,7 +49,7 @@ export function NavigationController() {
     // Browser previews use popstate; iOS uses +native-intent before navigation.
     const returning = () => {
       if (window.location.pathname !== '/oauth/complete') return;
-      const parsed = parseOAuthReturn('foundkeep://oauth/complete' + window.location.search + window.location.hash);
+      const parsed = parseOAuthReturn(`${getEnvironment().scheme}://oauth/complete` + window.location.search + window.location.hash);
       if (parsed) pendingOAuth.markReturn(parsed.flow);
     };
     window.addEventListener('popstate', returning);

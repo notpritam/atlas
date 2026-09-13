@@ -9,6 +9,8 @@ test('native share changes require a new OTA runtime; app UI and test changes do
   const baseline = await createFingerprintAsync(projectRoot, { platforms: ['ios'] });
   for (const [filePath, native] of [
     ['share-extension/ShareItemLoader.swift', true],
+    ['src/palettes.json', true],
+    ['variants.json', true],
     ['share-extension/SafariPreprocessor.js', true],
     ['share-extension/Info.plist', true],
     ['assets/images/mark.png', true],

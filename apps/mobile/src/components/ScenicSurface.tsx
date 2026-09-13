@@ -1,6 +1,7 @@
+import { useAppearance } from '../appearance/AppearanceProvider.tsx';
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
-import { AccessibilityInfo, Platform, StyleSheet, useColorScheme, useWindowDimensions, View, type ViewProps, type ViewStyle } from 'react-native';
+import { AccessibilityInfo, Platform, StyleSheet, useWindowDimensions, View, type ViewProps, type ViewStyle } from 'react-native';
 import { colors, palettes } from '../theme.ts';
 
 const MaterialContext = createContext({ opaque: true, scheme: 'light' as 'light' | 'dark', fontScale: 1 });
@@ -8,7 +9,7 @@ const MaterialContext = createContext({ opaque: true, scheme: 'light' as 'light'
 /** One accessibility subscription for all materials, never one blur per card. */
 export function MaterialProvider({ children }: { children: ReactNode }) {
   const { fontScale } = useWindowDimensions();
-  const scheme: 'light' | 'dark' = useColorScheme() === 'dark' ? 'dark' : 'light';
+  const { scheme } = useAppearance();
   const [transparency, setTransparency] = useState(true);
   const [contrast, setContrast] = useState(false);
   useEffect(() => {
@@ -29,7 +30,7 @@ export function MaterialProvider({ children }: { children: ReactNode }) {
   }, []);
   const value = useMemo(() => ({ opaque: transparency || contrast, scheme, fontScale }), [transparency, contrast, scheme, fontScale]);
   return <MaterialContext.Provider value={value}>
-    {Platform.OS === 'web' ? <style>{`:root{${webPalette('light')}}@media(prefers-color-scheme:dark){:root{${webPalette('dark')}}}`}</style> : null}
+    {Platform.OS === 'web' ? <style>{`:root{color-scheme:${scheme};${webPalette(scheme)}}`}</style> : null}
     {children}
   </MaterialContext.Provider>;
 }
@@ -42,7 +43,7 @@ export function GlassSurface({ children, style, interactive = false, ...props }:
   const native = Platform.OS === 'ios' && !opaque && isGlassEffectAPIAvailable() && isLiquidGlassAvailable();
   const Surface = native ? GlassView : View;
   const webFrost = Platform.OS === 'web' && !opaque ? { backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)' } as ViewStyle : undefined;
-  return <Surface {...props} {...(native ? { glassEffectStyle: 'regular' as const, colorScheme: scheme, tintColor: scheme === 'dark' ? '#223035' : '#F8F8F4', isInteractive: interactive } : {})}
+  return <Surface {...props} {...(native ? { glassEffectStyle: 'regular' as const, colorScheme: scheme, tintColor: palettes[scheme].surface, isInteractive: interactive } : {})}
     style={[styles.material, !native && { backgroundColor: opaque ? colors.surface : colors.glass }, webFrost, style, opaque && { backgroundColor: colors.surface, borderColor: colors.line }]}>{children}</Surface>;
 }
 

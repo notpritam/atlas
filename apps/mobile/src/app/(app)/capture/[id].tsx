@@ -1,3 +1,4 @@
+import { ProcessCapture } from '../../../billing/ProcessCapture.tsx';
 import { savedVia, savedViaLabels, sourcePlatform } from '../../../../../../packages/shared/src/collection-presentation.ts';
 import { AdaptiveText as Text } from '../../../components/AdaptiveText.tsx';
 import Ionicons from '@expo/vector-icons/Ionicons';
@@ -126,6 +127,7 @@ export default function CaptureDetail() {
         </View> : null}
       </FrostedPanel>
       <Message error>{error}</Message>
+      <ProcessCapture key={capture.id} id={capture.id} status={capture.status} onProcessed={()=>client.invalidate()} />
       <RelatedSaves key={capture.id} capture={capture} />
     </ScrollView>
     {editing ? <EditCaptureSheet capture={editing} onClose={() => setEditing(null)} /> : null}

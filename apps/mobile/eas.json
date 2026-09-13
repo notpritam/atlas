@@ -1,13 +1,95 @@
 {
-  "cli": { "version": ">= 23.2.0", "appVersionSource": "remote" },
+  "cli": {
+    "version": ">= 23.2.0",
+    "appVersionSource": "remote"
+  },
   "build": {
-    "development": { "bun": "1.4.2", "developmentClient": true, "distribution": "internal", "channel": "development" },
-    "preview": { "bun": "1.4.2", "distribution": "internal", "channel": "preview" },
-    "production": { "bun": "1.4.2", "channel": "production", "autoIncrement": true }
+    "development": {
+      "bun": "1.4.2",
+      "developmentClient": true,
+      "distribution": "internal",
+      "channel": "development"
+    },
+    "preview": {
+      "bun": "1.4.2",
+      "distribution": "internal",
+      "channel": "preview"
+    },
+    "production": {
+      "bun": "1.4.2",
+      "channel": "production",
+      "autoIncrement": true
+    },
+    "friends-ios": {
+      "bun": "1.4.2",
+      "distribution": "store",
+      "channel": "production-beta",
+      "autoIncrement": true,
+      "env": {
+        "FOUNDKEEP_APP_ENV": "prod"
+      }
+    },
+    "friends-android": {
+      "bun": "1.4.2",
+      "distribution": "internal",
+      "channel": "production-beta",
+      "autoIncrement": true,
+      "env": {
+        "FOUNDKEEP_APP_ENV": "prod"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "friends-play": {
+      "bun": "1.4.2",
+      "distribution": "store",
+      "channel": "production-beta",
+      "autoIncrement": true,
+      "env": {
+        "FOUNDKEEP_APP_ENV": "prod"
+      },
+      "android": {
+        "buildType": "app-bundle"
+      }
+    },
+    "pritam-ios": {
+      "bun": "1.4.2",
+      "distribution": "store",
+      "channel": "dev",
+      "autoIncrement": true,
+      "env": {
+        "FOUNDKEEP_APP_ENV": "dev"
+      }
+    },
+    "pritam-android": {
+      "bun": "1.4.2",
+      "distribution": "internal",
+      "channel": "dev",
+      "autoIncrement": true,
+      "env": {
+        "FOUNDKEEP_APP_ENV": "dev"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    }
   },
   "submit": {
     "production": {
-      "ios": { "ascAppId": "6809771188" }
+      "ios": {
+        "ascAppId": "6809771188"
+      }
+    },
+    "friends-ios": {
+      "ios": {
+        "ascAppId": "6809771188"
+      }
+    },
+    "pritam-ios": {
+      "ios": {
+        "ascAppId": "6809771188"
+      }
     }
   }
 }

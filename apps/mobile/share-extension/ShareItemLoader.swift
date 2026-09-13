@@ -32,8 +32,8 @@ final class ShareItemLoader: @unchecked Sendable {
 
   init(container: URL? = nil, policy: FoundkeepSharePolicy = .current) throws {
     self.policy = policy
-    guard let value = container ?? manager.containerURL(forSecurityApplicationGroupIdentifier: "group.app.foundkeep.ios") else { throw FoundkeepItemError.unavailable }
-    self.container = value
+    guard let value = container ?? manager.containerURL(forSecurityApplicationGroupIdentifier: (Bundle.main.object(forInfoDictionaryKey: "FoundkeepAppGroup") as? String ?? "group.app.foundkeep.ios")) else { throw FoundkeepItemError.unavailable }
+    self.container = container == nil ? FoundkeepEnvironmentStorage.container(value) : value
   }
 
   func load(_ inputs: [NSExtensionItem]) async throws -> [FoundkeepShareItem] {
