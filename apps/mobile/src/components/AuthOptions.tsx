@@ -1,7 +1,7 @@
 import { AdaptiveText as Text } from './AdaptiveText.tsx';
 import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AdaptiveIcon as Ionicons } from './AdaptiveIcon.tsx';
 import { OAuthButtons } from './OAuthButtons.tsx';
 import { colors } from '../theme.ts';
 

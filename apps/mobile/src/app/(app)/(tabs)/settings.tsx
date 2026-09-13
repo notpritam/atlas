@@ -2,7 +2,7 @@ import { useAppearance } from '../../../appearance/AppearanceProvider.tsx';
 import { getEnvironment } from '../../../environment.ts';
 import { useBilling } from '../../../billing/BillingProvider.tsx';
 import { AdaptiveText as Text } from '../../../components/AdaptiveText.tsx';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AdaptiveIcon as Ionicons } from '../../../components/AdaptiveIcon.tsx';
 import { router, useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Alert, Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';

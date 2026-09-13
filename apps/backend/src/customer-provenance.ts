@@ -15,6 +15,8 @@ const METHODS = new Set([
   "agent-create",
   "ios-share-url", "ios-share-text", "ios-share-image", "ios-share-video",
   "ios-share-audio", "ios-share-document", "ios-share-file", "ios-app-note",
+  "android-share-url", "android-share-text", "android-share-image", "android-share-video",
+  "android-share-audio", "android-share-document", "android-share-file",
 ]);
 
 export type ProcessingOptions = { ocr: boolean; summaries: boolean; tags: boolean };

@@ -1,5 +1,5 @@
 /** Shared, dependency-free presentation rules for the web and native libraries. */
-export type SavedVia = 'iphone' | 'browser' | 'dashboard';
+export type SavedVia = 'iphone' | 'android' | 'browser' | 'dashboard';
 type OriginCapture = {
   sourceUrl?: string | null; savedVia?: SavedVia | null;
   provenance?: { captureMethod?: string; sourceApplication?: string | null; pageUrl?: string | null; canonicalUrl?: string | null; targetUrl?: string | null } | null;
@@ -11,14 +11,15 @@ const platforms: [string[], string][] = [
   [['wikipedia.org'], 'Wikipedia'], [['spotify.com'], 'Spotify'], [['apple.com'], 'Apple'],
 ];
 export function savedVia(capture: OriginCapture): SavedVia | null {
-  if (capture.savedVia && ['iphone', 'browser', 'dashboard'].includes(capture.savedVia)) return capture.savedVia;
   const method = capture.provenance?.captureMethod || '';
+  if (method.startsWith('android-')) return 'android';
   if (method.startsWith('ios-')) return 'iphone';
   if (method === 'library-note') return 'dashboard';
   if (/^(popup-|keyboard-|context-|extension-|twitter-action)/.test(method)) return 'browser';
+  if (capture.savedVia && ['iphone', 'android', 'browser', 'dashboard'].includes(capture.savedVia)) return capture.savedVia;
   return null;
 }
-export const savedViaLabels: Record<SavedVia, string> = { iphone: 'iPhone', browser: 'Browser extension', dashboard: 'Web dashboard' };
+export const savedViaLabels: Record<SavedVia, string> = { iphone: 'iPhone', android: 'Android', browser: 'Browser extension', dashboard: 'Web dashboard' };
 export function sourcePlatform(capture: OriginCapture): string | null {
   for (const raw of [capture.sourceUrl, capture.provenance?.targetUrl, capture.provenance?.canonicalUrl, capture.provenance?.pageUrl]) {
     try {

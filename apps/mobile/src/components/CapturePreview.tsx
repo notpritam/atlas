@@ -1,5 +1,5 @@
 import { AdaptiveText as Text } from './AdaptiveText.tsx';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AdaptiveIcon as Ionicons } from './AdaptiveIcon.tsx';
 import { useMemo, useRef, useEffect, useState } from 'react';
 import { Animated, Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { Shimmer } from './Shimmer.tsx';

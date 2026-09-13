@@ -34,7 +34,7 @@ export interface Provenance {
 export interface Capture {
   id: string; type: string; sourceTitle?: string; sourceUrl?: string; blobUrl?: string; fileUrl?: string;
   previewUrl?: string; width?: number; height?: number; fileName?: string; fileMime?: string; fileBytes?: number; selectionText?: string; noteText?: string; summary?: string; articleText?: string; ocrText?: string;
-  createdAt?: number | string; savedVia?: 'iphone' | 'browser' | 'dashboard' | null;
+  createdAt?: number | string; savedVia?: 'iphone' | 'android' | 'browser' | 'dashboard' | null;
   capturedAt: number | string; status: string; category?: string; tags?: string[]; provenance?: Provenance; enrichError?: string;
 }
 export interface CapturePage { captures: Capture[]; nextCursor: string | null; total: number }

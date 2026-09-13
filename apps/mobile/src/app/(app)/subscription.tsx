@@ -1,4 +1,4 @@
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AdaptiveIcon as Ionicons } from '../../components/AdaptiveIcon.tsx';
 import { Linking,ScrollView,StyleSheet,View } from 'react-native';
 import { AdaptiveText as Text } from '../../components/AdaptiveText.tsx';
 import { Button,Message,Screen } from '../../components/ui.tsx';

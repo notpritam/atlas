@@ -1,5 +1,5 @@
 import { AdaptiveText as Text } from '../../components/AdaptiveText.tsx';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AdaptiveIcon as Ionicons } from '../../components/AdaptiveIcon.tsx';
 import { router } from 'expo-router';
 import { Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Brand, Button, Screen } from '../../components/ui.tsx';

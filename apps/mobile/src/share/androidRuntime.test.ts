@@ -27,6 +27,10 @@ test('Android copies all incoming files before queue commit and never fetches li
  await f.runtime.enqueueShares([{shareType:'image',value:'content://photos/1',mimeType:'image/jpeg'},{shareType:'url',value:'https://example.com/article'},{shareType:'text',value:'Remember this'}],'a');
  assert.equal(f.records.size,3);assert.deepEqual(f.copies,['content://photos/1']);assert.equal(f.uploads.length,0);
  assert.deepEqual([...f.records.values()].map(r=>r.metadata.type),['image','bookmark','selection']);
+ const provenance=[...f.records.values()].map(r=>r.metadata.provenance as Record<string,unknown>);
+ assert.deepEqual(provenance.map(value=>value?.captureMethod),['android-share-image','android-share-url','android-share-text']);
+ assert.deepEqual(provenance.map(value=>value.capturedAt),[provenance[0]?.extractedAt,provenance[1]?.extractedAt,provenance[2]?.extractedAt]);
+ assert.equal(provenance[0]?.originalFileName,'image.jpg');assert.equal(provenance[0]?.declaredMime,'image/jpeg');assert.equal(provenance[0]?.byteSize,10);
  const bad=fixture();await bad.runtime.setSession('a',account('a'));bad.storage.copy=async()=>{throw Error('Unreadable');};
  await assert.rejects(bad.runtime.enqueueShares([{shareType:'text',value:'First'},{shareType:'file',value:'content://file/1'}],'a'),/Unreadable/);assert.equal(bad.records.size,0);
 });

@@ -1,10 +1,12 @@
 import { forwardRef } from 'react';
-import { Text as NativeText, type TextProps } from 'react-native';
+import { StyleSheet, Text as NativeText, type TextProps } from 'react-native';
+import { resolvedThemeColor } from '../appearance/preferences.ts';
 import { useMaterial } from './ScenicSurface.tsx';
 
-/** Remeasure text when iOS changes Dynamic Type while the app stays mounted.
- * Remount only the native label, preserving forms, navigation, and drafts. */
+/** Refresh concrete Android palette colors in place. Remount only for Dynamic
+ * Type measurement changes, preserving forms, navigation, and drafts. */
 export const AdaptiveText = forwardRef<NativeText, TextProps>(function AdaptiveText(props, ref) {
-  const { fontScale } = useMaterial();
-  return <NativeText key={fontScale} {...props} ref={ref} />;
+  const { fontScale, scheme } = useMaterial();
+  const color = StyleSheet.flatten(props.style)?.color;
+  return <NativeText key={fontScale} {...props} style={[props.style, color === undefined ? null : { color: resolvedThemeColor(color, scheme) }]} ref={ref} />;
 });

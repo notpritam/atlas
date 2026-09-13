@@ -1,7 +1,7 @@
 import { ProcessCapture } from '../../../billing/ProcessCapture.tsx';
 import { savedVia, savedViaLabels, sourcePlatform } from '../../../../../../packages/shared/src/collection-presentation.ts';
 import { AdaptiveText as Text } from '../../../components/AdaptiveText.tsx';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AdaptiveIcon as Ionicons } from '../../../components/AdaptiveIcon.tsx';
 import { router, Stack, useFocusEffect, useLocalSearchParams } from 'expo-router';
 import * as Sharing from 'expo-sharing';
 import { useCallback, useRef, useState } from 'react';

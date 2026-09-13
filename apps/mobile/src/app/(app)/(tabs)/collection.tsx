@@ -1,5 +1,6 @@
 import { AdaptiveText as Text } from '../../../components/AdaptiveText.tsx';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AdaptiveIcon as Ionicons } from '../../../components/AdaptiveIcon.tsx';
+import { AdaptiveTextInput } from '../../../components/AdaptiveTextInput.tsx';
 import { router } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, ScrollView, StyleSheet, TextInput, useWindowDimensions, View, type NativeScrollEvent, type NativeSyntheticEvent } from 'react-native';
@@ -75,7 +76,7 @@ export default function CollectionScreen() {
         <View style={styles.controls}>
         {height > 550 && fontScale < 1.8 ? <View style={styles.heading}><Text style={styles.title}>The collection.</Text><Text style={styles.subtitle}>Recently saved · newest first</Text></View> : null}
         {updateRequired ? <Message error>Update Foundkeep in the App Store to keep saving.</Message> : <Message>{policy.notice}</Message>}
-        <View style={styles.search}><Ionicons name="search-outline" size={19} color={colors.muted} /><TextInput ref={searchRef} testID="collection-search" value={query} onChangeText={setQuery} onFocus={() => { searchingRef.current = true; chrome.reveal(); travel.setValue(0); syncCompact(false); }} onBlur={() => { searchingRef.current = false; }} maxLength={200} accessibilityLabel="Search saved items" placeholder="Search your collection" placeholderTextColor={colors.muted} style={styles.searchInput} returnKeyType="search" autoCorrect={false} clearButtonMode="while-editing" /></View>
+        <View style={styles.search}><Ionicons name="search-outline" size={19} color={colors.muted} /><AdaptiveTextInput ref={searchRef} testID="collection-search" value={query} onChangeText={setQuery} onFocus={() => { searchingRef.current = true; chrome.reveal(); travel.setValue(0); syncCompact(false); }} onBlur={() => { searchingRef.current = false; }} maxLength={200} accessibilityLabel="Search saved items" placeholder="Search your collection" style={styles.searchInput} returnKeyType="search" autoCorrect={false} clearButtonMode="while-editing" /></View>
         <View style={styles.filterRow}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filters} keyboardShouldPersistTaps="handled" style={{ flex: 1 }}>
           {filters.map(filter => <Pressable key={filter.label} accessibilityRole="button" accessibilityState={{ selected: type === filter.type }} onPress={() => { setType(filter.type); setListReset(value => value + 1); if (!filter.type) { setQuery(''); setSearchQuery(''); setOrganization({ folderId: undefined, userTags: [] }); void collection.refresh(); } chrome.reveal(); syncCompact(false); travel.setValue(0); }} style={({ pressed }) => [styles.filter, type === filter.type && styles.filterActive, pressed && styles.pressed]}><Text style={[styles.filterText, type === filter.type && styles.filterTextActive]}>{filter.label}</Text></Pressable>)}

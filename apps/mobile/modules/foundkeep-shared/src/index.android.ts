@@ -1,5 +1,5 @@
 import AndroidShares from './androidShares.ts';
-import { localFileName, withTransferTimeout, consumeUploadResponse, saveDownloadedBody } from '../../../src/share/androidIO.ts';
+import { copyIncomingFile, localFileName, withTransferTimeout, consumeUploadResponse, saveDownloadedBody } from '../../../src/share/androidIO.ts';
 import * as SecureStore from 'expo-secure-store';
 import { File, Directory, Paths } from 'expo-file-system';
 import { fetch } from 'expo/fetch';
@@ -52,11 +52,9 @@ const runtime = createAndroidRuntime({
   async copy(uri, id, limit) {
     ensure(); const source = new File(uri); const target = payload(id);
     try {
-      if (source.size > limit) throw new Error('This file exceeds the saving limit.');
-      source.copy(target);
-      if (!target.exists || target.size <= 0 || target.size > limit) throw new Error('This file is empty or exceeds the saving limit.');
+      const bytes = await copyIncomingFile(source.size, target, limit, () => source.copy(target));
       const name = await localFileName(uri, value => AndroidShares.localDisplayName(value), source.name);
-      return { path: id, name, bytes: target.size };
+      return { path: id, name, bytes };
     } catch (error) { removeFile(target); throw error; }
   },
   async policy() { ensure(); const file = new File(root, 'policy.json'); return file.exists ? file.text() : null; },

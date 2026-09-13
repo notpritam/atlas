@@ -1,5 +1,5 @@
 import { AdaptiveText as Text } from './AdaptiveText.tsx';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AdaptiveIcon as Ionicons } from './AdaptiveIcon.tsx';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, Keyboard, Modal, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import type { Folder, Organization } from '../api/types.ts';

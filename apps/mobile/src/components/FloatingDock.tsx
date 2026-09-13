@@ -1,5 +1,5 @@
 import { AdaptiveText as Text } from './AdaptiveText.tsx';
-import Ionicons from '@expo/vector-icons/Ionicons';
+import { AdaptiveIcon as Ionicons } from './AdaptiveIcon.tsx';
 import { router, Tabs } from 'expo-router';
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ComponentProps, type ReactNode } from 'react';
 import { AccessibilityInfo, Animated, Keyboard, Platform, Pressable, StyleSheet, useWindowDimensions, View } from 'react-native';

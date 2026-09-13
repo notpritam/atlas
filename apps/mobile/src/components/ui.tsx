@@ -1,6 +1,7 @@
 import { AdaptiveText as Text } from './AdaptiveText.tsx';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, TextInput, type TextInputProps, View } from 'react-native';
+import { ActivityIndicator, Image, KeyboardAvoidingView, Linking, Platform, Pressable, StyleSheet, type TextInputProps, View } from 'react-native';
+import { AdaptiveTextInput as TextInput } from './AdaptiveTextInput.tsx';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, typography } from '../theme.ts';
 

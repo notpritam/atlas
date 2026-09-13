@@ -12,6 +12,16 @@ export type AndroidStorage = {
   download(id: string, name: string, token: string): Promise<string>;
   uuid(): string;
 };
+function androidProvenance(type: string, sourceUrl: string | undefined, capturedAt: number, file?: { name: string; bytes: number; mime: string }) {
+  return {
+    schemaVersion: 1, captureMethod: `android-share-${type === 'bookmark' ? 'url' : type === 'selection' ? 'text' : type}`,
+    pageUrl: sourceUrl || null, canonicalUrl: null, pageTitle: null, siteName: null, description: null,
+    authors: [], publishedAt: null, modifiedAt: null, language: null, leadImageUrl: null, faviconUrl: null,
+    targetUrl: null, headings: [], capturedAt, extractedAt: capturedAt, extractorVersion: 1,
+    contentHash: null, extractionStatus: 'partial', extractionError: null,
+    ...(file ? { originalFileName: file.name, declaredMime: file.mime, byteSize: file.bytes } : {}),
+  };
+}
 export function shareMetadata(share: AndroidShare, policy: MobilePolicy): Record<string, unknown> {
   if (!share.value || typeof share.value !== 'string') throw new Error('The shared item is empty.');
   let type: string = share.shareType;
@@ -68,11 +78,14 @@ export function createAndroidRuntime(storage: AndroidStorage) {
         for (const share of shares) {
           const metadata = shareMetadata(share, limits); const id = storage.uuid(); const now = Date.now();
           let payloadPath: string | null = null;
+          let fileContext: { name: string; bytes: number; mime: string } | undefined;
           if (!['bookmark', 'selection'].includes(String(metadata.type))) {
             const file = await storage.copy(share.value, id, limits.limits.fileBytes); payloadPath = file.path; copied.push(file.path);
-            Object.assign(metadata, { fileName: file.name, declaredMime: share.mimeType || 'application/octet-stream' });
+            const mime = share.mimeType || 'application/octet-stream';
+            Object.assign(metadata, { fileName: file.name, declaredMime: mime });
+            fileContext = { name: file.name, bytes: file.bytes, mime };
           }
-          Object.assign(metadata, { clientId: id, batchId, capturedAt: now });
+          Object.assign(metadata, { clientId: id, batchId, capturedAt: now, provenance: androidProvenance(String(metadata.type), metadata.sourceUrl as string | undefined, now, fileContext) });
           prepared.push({ id, clientId: id, ownerAccountId: current.accountId, metadata, payloadPath, createdAt: now, nextAttemptAt: 0, attempts: 0 });
         }
         for (const record of prepared) await storage.save(record);

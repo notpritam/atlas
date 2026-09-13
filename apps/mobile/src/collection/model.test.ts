@@ -36,6 +36,8 @@ test('origin labels use source domains and capture provenance without inventing 
   assert.equal(sourcePlatform({ sourceUrl: 'https://youtube.com.evil.test/watch' }), 'youtube.com.evil.test');
   assert.equal(sourcePlatform({ sourceUrl: 'javascript:alert(1)' }), null);
   assert.equal(savedVia({ provenance: { captureMethod: 'ios-share-url' } }), 'iphone');
+  assert.equal(savedVia({ savedVia: 'iphone', provenance: { captureMethod: 'android-share-text' } }), 'android');
+  assert.equal(savedVia({ savedVia: 'iphone', provenance: { captureMethod: 'ios-share-text' } }), 'iphone');
   assert.equal(savedVia({ provenance: { captureMethod: 'popup-save-page' } }), 'browser');
   assert.equal(savedVia({ savedVia: 'dashboard' }), 'dashboard');
   assert.equal(savedVia({}), null);
