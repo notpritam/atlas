@@ -158,3 +158,11 @@ test('consented preview is analysis input while preserved video bytes remain sep
  const s=service({media:async()=>({image:{mime:'image/webp',base64:'AAAA'}})});s.configure(owner,{images:true});s.enqueue(owner,capture,'manual');await s.tick();
  expect(inputs[0]).toMatchObject({preservation:{status:'downloaded',bytes:data.length,mime:'video/mp4'},analysis:{text:false,image:true,transcript:false},image:{mime:'image/webp',base64:'AAAA'}});expect(s.settings(owner).usage.used).toBe(1);
 });
+test('a genuine OG caption remains processable when the title is only Instagram and the video download is refused',async()=>{
+ const {extractSource}=await import('../src/customer-source.ts');const sourceUrl='https://www.instagram.com/reel/sunrise/';
+ const html='<title>Instagram</title><meta property="og:type" content="video.other"><meta property="og:image" content="https://cdn.example.com/reels/hiking-sunrise.jpg"><meta property="og:description" content="A real caption about hiking at sunrise.">';
+ db.query('UPDATE customer_captures SET source_url=? WHERE id=?').run(sourceUrl,capture);
+ const s=service({source:async()=>({...extractSource(html,sourceUrl),requestedUrl:sourceUrl,contentHash:'caption-fixture',fetchedAt:Date.now()}),remote:async()=>({status:'unavailable',reason:'Copy unavailable'})});s.enqueue(owner,capture,'manual');await s.tick();
+ expect(inputs).toHaveLength(1);expect(inputs[0]).toMatchObject({text:'A real caption about hiking at sunrise.',sourceEvidence:{status:'metadata-only',transcript:'unavailable'},preservation:{status:'unavailable'},analysis:{text:true,image:false,transcript:false}});
+ expect(saved()).toMatchObject({summary:organized.summary,file_path:null});expect(s.settings(owner).usage).toMatchObject({used:1,reserved:0});expect(s.details(owner,capture)?.source).toMatchObject({description:'A real caption about hiking at sunrise.'});
+});

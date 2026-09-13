@@ -77,3 +77,22 @@ test('structured item metadata replaces generic platform head metadata rather th
  const preview=extractSource('<title>- YouTube</title><meta name="description" content="Generic platform marketing"><script type="application/ld+json">'+JSON.stringify({...item,transcript:undefined})+'</script>','https://youtube.com/watch?v=abc');
  expect(preview).toMatchObject({title:'Falling leaves',text:item.description,extractionStatus:'metadata-only'});
 });
+
+test('a real Instagram OG caption and item preview survive a platform-only title',()=>{
+ const caption='A real caption about hiking at sunrise.';
+ const result=extractSource('<title>Instagram</title><meta property="og:type" content="video.other"><meta property="og:image" content="https://cdn.example.com/reels/hiking-sunrise.jpg"><meta property="og:description" content="'+caption+'">','https://www.instagram.com/reel/sunrise/');
+ expect(result).toMatchObject({title:null,description:caption,text:caption,imageUrl:'https://cdn.example.com/reels/hiking-sunrise.jpg',contentKind:'video',extractionStatus:'metadata-only',transcriptStatus:'unavailable'});
+});
+test.each([
+ ['https://instagram.com/p/sunrise/','Instagram','og:description','og:image'],
+ ['https://x.com/alex/status/123','X','twitter:description','twitter:image'],
+ ['https://youtube.com/watch?v=sunrise','- YouTube','og:description','og:image'],
+])('explicit social caption and image identify item evidence on %s without an item-specific title', (url,title,description,image)=>{
+ const result=extractSource(`<title>${title}</title><meta property="${description}" content="An actual caption describing a sunrise hike."><meta property="${image}" content="https://cdn.example.com/sunrise.jpg">`,url);
+ expect(result).toMatchObject({description:'An actual caption describing a sunrise hike.',text:'An actual caption describing a sunrise hike.',extractionStatus:'metadata-only'});
+});
+test('an invalid preview or generic ordinary description does not upgrade a platform shell',async()=>{
+ expect(extractSource('<title>Instagram</title><meta property="og:description" content="Generic platform marketing"><meta property="og:image" content="javascript:invalid">','https://instagram.com/reel/abc/')).toMatchObject({text:'',description:null,extractionStatus:'unavailable'});
+ const observed=await Bun.file(new URL('./fixtures/youtube-generic-fi.html',import.meta.url)).text();
+ expect(extractSource(observed.replace('</head>','<meta property="og:image" content="https://cdn.example.com/logo.jpg"></head>'),'https://youtube.com/watch?v=abc')).toMatchObject({text:'',description:null,extractionStatus:'unavailable'});
+});
