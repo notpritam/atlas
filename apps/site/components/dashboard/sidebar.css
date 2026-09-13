@@ -6,7 +6,7 @@
 .customer-body.dashboard-body .library-sidebar :is(a,button,summary),.customer-body.dashboard-body .sidebar-mobile-header button { touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
 .customer-body.dashboard-body .library-sidebar :is(a,button,summary):focus-visible,.customer-body.dashboard-body .sidebar-mobile-header button:focus-visible { outline:2px solid var(--accent); outline-offset:3px; }
 .customer-body.dashboard-body .sidebar-heading { display:flex; align-items:center; flex-shrink:0; gap:8px; min-height:48px; margin:0 4px 20px; }
-.customer-body.dashboard-body .sidebar-brand { display:flex; align-items:center; gap:10px; min-width:48px; min-height:48px; padding:0; border:0; border-radius:8px; background:transparent; color:inherit; font:500 18px 'Clarity City',Geist,sans-serif; letter-spacing:-.35px; cursor:pointer; }
+.customer-body.dashboard-body .sidebar-brand { display:flex; align-items:center; gap:10px; min-width:48px; min-height:48px; padding:0; border:0; border-radius:8px; background:transparent; color:inherit; font:500 18px Inter,system-ui,sans-serif; letter-spacing:-.35px; cursor:pointer; }
 .customer-body.dashboard-body .sidebar-wordmark { white-space:nowrap; }
 .customer-body.dashboard-body .sidebar-brand img { width:32px; height:32px; flex-shrink:0; }
 .customer-body.dashboard-body .sidebar-icon-button { display:grid; place-items:center; width:48px; min-width:48px; height:48px; padding:0; border:0; border-radius:10px; background:transparent; color:#627074; cursor:pointer; }

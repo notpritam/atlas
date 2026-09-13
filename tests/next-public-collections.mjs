@@ -48,7 +48,7 @@ test('public editorial collection searches all pages, switches layout, shares, a
  await mkdir('.impeccable/review/friends-beta',{recursive:true});
  await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-desktop.png'});
  await page.getByRole('button',{name:'Switch to dark mode',exact:true}).click();await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
- assert.equal(await page.locator('.public-find').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(32, 37, 42)');
+ assert.equal(await page.locator('.public-find').first().evaluate(el=>getComputedStyle(el).backgroundColor),'rgb(17, 17, 17)');
  await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-dark-desktop.png'});
  await page.setViewportSize({width:390,height:844});await checkMasonry();await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-dark-phone.png'});await page.locator('.collection-entries').scrollIntoViewIfNeeded();await page.screenshot({path:'.impeccable/review/friends-beta/collection-cards-dark-phone.png'});await page.evaluate(()=>scrollTo(0,0));
  await page.evaluate(()=>localStorage.setItem('foundkeep.appearance','system'));await page.emulateMedia({colorScheme:'light'});await page.reload();await page.waitForFunction(()=>document.documentElement.dataset.theme==='light');await page.screenshot({path:'.impeccable/review/friends-beta/collection-after-phone.png'});
@@ -60,21 +60,40 @@ test('public editorial collection searches all pages, switches layout, shares, a
  await page.getByLabel('Filter by topic').selectOption('older');await page.getByRole('button',{name:'Search',exact:true}).click();await page.getByRole('heading',{name:'Older needle in a long collection',exact:true}).waitFor();assert.equal(await page.locator('.public-find').count(),1);
  await page.getByRole('link',{name:'Clear filters',exact:true}).click();await page.waitForFunction(()=>document.querySelectorAll('.public-find').length===24);
  await page.getByRole('button',{name:'Grid view',exact:true}).click();assert.equal(await page.locator('.collection-find-feed').getAttribute('data-view'),'grid');
- await page.locator('.find-expanded-note summary').click();await checkMasonry();await page.locator('.find-expanded-note summary').click();
+ const privateReads=[];page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/captures/'))privateReads.push(request.url());});
+ const readFind=page.getByRole('button',{name:'Read Think in components, then in states',exact:true});
+ await readFind.focus();await page.keyboard.press('Enter');
+ const reader=page.getByRole('dialog',{name:'Think in components, then in states',exact:true});await reader.waitFor();
+ assert.equal(await reader.locator('.snapshot-body').textContent(),'A useful design reference keeps the structure, the content, and the interaction in view. '.repeat(8).trim());
+ assert.equal(await page.evaluate(()=>document.body.style.overflow),'hidden');
+ assert.equal(await reader.getByRole('button',{name:'Close find'}).evaluate(el=>el===document.activeElement),true);
+ assert.match(await reader.locator('.reader-context').textContent(),/Editorial test curator/);
+ assert.equal(await reader.getByRole('link',{name:'Open original source',exact:true}).getAttribute('href'),'https://example.com/reference-26');
+ assert.equal(await reader.getByRole('link',{name:'Open original source',exact:true}).getAttribute('target'),'_blank');
+ await page.keyboard.press('Shift+Tab');assert.equal(await reader.evaluate(el=>el.contains(document.activeElement)),true,'Dialog traps focus');
+ await page.keyboard.press('Escape');await reader.waitFor({state:'hidden'});
+ assert.equal(await readFind.evaluate(el=>el===document.activeElement),true,'Reader returns focus to the originating card');
+ assert.equal(await page.evaluate(()=>document.body.style.overflow),'');
+ await page.keyboard.press('Space');await reader.waitFor();await reader.getByRole('button',{name:'Close find'}).click();
+ await page.locator('.public-find').filter({hasText:'Think in components, then in states'}).locator('.shared-entry-preview').click();await reader.waitFor();await page.keyboard.press('Escape');
+ const imageCard=page.locator('.public-find').filter({hasText:'Shape, light, and useful space'});await imageCard.locator('.shared-entry-image').click();
+ const imageReader=page.getByRole('dialog',{name:'Shape, light, and useful space',exact:true});await imageReader.waitFor();assert.equal(await imageReader.locator('.snapshot-media img').count(),1);await imageReader.getByRole('button',{name:'Close find'}).click();
+ assert.deepEqual(privateReads,[],'Published reader never fetches a private capture');
+ await checkMasonry();
  await page.getByRole('button',{name:'List view',exact:true}).click();
  await page.getByRole('button',{name:'Share collection',exact:true}).click();assert.equal(await page.getByLabel('Collection link',{exact:true}).inputValue(),base+path);
- await page.locator('.find-expanded-note summary').click();assert.equal(await page.locator('.find-expanded-note').getAttribute('open'),'');
+ await readFind.click();await reader.waitFor();await reader.getByRole('button',{name:'Close find'}).click();
  await page.getByRole('button',{name:'Load more finds'}).click();await page.waitForFunction(()=>document.querySelectorAll('.public-find').length===27);
  for(const width of [1920,1440,820,390,320]){
   await page.setViewportSize({width,height:1000});assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),`Overflow at ${width}`);
   if(width<=390){const contribute=page.getByRole('link',{name:'Log in to contribute',exact:true});assert.equal(await contribute.count(),1);assert.ok(await contribute.evaluate(el=>Boolean(el.closest('.collection-profile'))));}
-  for(const name of ['Grid view','List view','Search','Share collection']){const bounds=await page.getByRole('button',{name,exact:true}).boundingBox();assert.ok(bounds.height>=48&&bounds.width>=48,`${name} target at ${width}`);}
+  for(const name of ['Grid view','List view','Search','Share collection']){const bounds=await page.getByRole('button',{name,exact:true}).boundingBox();const minimum=width<=760?44:32;assert.ok(bounds.height>=minimum&&bounds.width>=minimum,`${name} target at ${width}`);}
  }
  // The mobile contribution action opens the real form and focuses its first field.
  const signed=await owner.newPage();await signed.setViewportSize({width:390,height:1000});await signed.goto(base+path);await signed.getByRole('button',{name:'Add a find',exact:true}).click();
  const form=signed.getByRole('form',{name:'Add to collection'});assert.ok(await form.getByLabel('Title',{exact:true}).evaluate(el=>el===document.activeElement));
  const noJs=await browser.newContext({javaScriptEnabled:false,viewport:{width:390,height:1000}});const basic=await noJs.newPage();await basic.goto(base+path);await basic.getByRole('heading',{name:c.title,exact:true}).waitFor();
- assert.equal(await basic.locator('.public-find').count(),24);await basic.getByLabel('Search this collection',{exact:true}).fill('Older needle');await basic.getByRole('button',{name:'Search',exact:true}).click();await basic.getByRole('heading',{name:'Older needle in a long collection',exact:true}).waitFor();assert.equal(await basic.locator('.public-find').count(),1);
+ assert.equal(await basic.locator('.public-find').count(),24);assert.equal(await basic.locator('.shared-entry-preview').first().evaluate(el=>getComputedStyle(el).webkitLineClamp),'none','Complete snapshot text is readable without JavaScript');await basic.getByLabel('Search this collection',{exact:true}).fill('Older needle');await basic.getByRole('button',{name:'Search',exact:true}).click();await basic.getByRole('heading',{name:'Older needle in a long collection',exact:true}).waitFor();assert.equal(await basic.locator('.public-find').count(),1);
  await page.goto(base+'/collections?q=unmatched-'+crypto.randomUUID());await page.getByRole('heading',{name:'No collections match yet.'}).waitFor();assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
  assert.deepEqual(errors,[]);
 });

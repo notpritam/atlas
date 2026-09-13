@@ -26,7 +26,7 @@
   margin:0;
   background:var(--paper);
   color:var(--ink);
-  font-family:Geist,system-ui,sans-serif;
+  font-family:Inter,system-ui,sans-serif;
   font-size:16px;
   line-height:1.5;
 }
@@ -84,7 +84,7 @@
 }
 
 .customer-body h1,.customer-body h2,.customer-body h3 {
-  font-family:'Clarity City',Geist,sans-serif;
+  font-family:Inter,system-ui,sans-serif;
   font-weight:700;
 }
 
@@ -155,7 +155,7 @@
   align-items:center;
   gap:12px;
   text-decoration:none;
-  font-family:'Clarity City',Geist,sans-serif;
+  font-family:Inter,system-ui,sans-serif;
   font-weight:700;
   font-size:28px;
   letter-spacing:-.035em;
@@ -333,7 +333,7 @@
   background:var(--ink);
   color:var(--accent);
   padding:10px 12px;
-  font-family:'Clarity City',Geist,sans-serif;
+  font-family:Inter,system-ui,sans-serif;
   font-weight:700;
   font-size:clamp(35px,4.05vw,61px);
   letter-spacing:-.04em;
@@ -738,7 +738,7 @@
 
 .customer-body .enrichment-notes>div>span {
   font-size:22px;
-  font-family:'Clarity City',Geist,sans-serif;
+  font-family:Inter,system-ui,sans-serif;
   font-weight:700;
   letter-spacing:-.03em;
 }
@@ -979,7 +979,7 @@
 }
 
 .customer-body .footer-wordmark {
-  font-family:'Clarity City',Geist,sans-serif;
+  font-family:Inter,system-ui,sans-serif;
   font-weight:700;
   font-size:clamp(110px,22vw,340px);
   letter-spacing:-.04em;
@@ -1185,7 +1185,7 @@
 .customer-body .support-index strong {
   display:block;
   max-width:320px;
-  font-family:'Clarity City',Geist,sans-serif;
+  font-family:Inter,system-ui,sans-serif;
   font-size:24px;
   line-height:1.15;
   letter-spacing:-.025em;
@@ -2149,7 +2149,7 @@
 .customer-body .library-nav svg { width:17px; height:17px; }
 .customer-body .library-nav button>span { margin-left:auto; font-size:11px; font-variant-numeric:tabular-nums; color:var(--accent); }
 .customer-body .sidebar-bottom { margin-top:auto; padding-top:45px; }
-.customer-body .sidebar-bottom>p { font-family:'Clarity City',Geist,sans-serif; font-size:25px; line-height:1.2; letter-spacing:-.025em; color:#fff; margin:0 0 24px; padding:22px 20px 120px; border-radius:20px; background:#0878b7 url('/assets/scenic-mountains-800.webp') center bottom / auto 100% no-repeat; }
+.customer-body .sidebar-bottom>p { font-family:Inter,system-ui,sans-serif; font-size:25px; line-height:1.2; letter-spacing:-.025em; color:#fff; margin:0 0 24px; padding:22px 20px 120px; border-radius:20px; background:#0878b7 url('/assets/scenic-mountains-800.webp') center bottom / auto 100% no-repeat; }
 .customer-body .account-button { display:flex; align-items:center; gap:10px; text-align:left; background:transparent; color:var(--ink); padding:17px 0; border-top:1px solid var(--line); width:100%; }
 .customer-body .account-avatar { display:grid; place-items:center; flex-shrink:0; width:32px; height:32px; background:var(--mint); color:#315127; font-size:14px; font-weight:600; border-radius:50%; }
 .customer-body .account-button>span:nth-child(2) { min-width:0; }
@@ -2248,13 +2248,13 @@
 .customer-body .detail-file h3 { overflow-wrap:anywhere; font-size:16px; }
 .customer-body .detail-file p { margin:6px 0 15px; color:var(--muted); font-size:11px; }
 .customer-body .detail-section { margin-top:28px; }
-.customer-body .detail-section h3 { font-family:Geist,sans-serif; font-size:11px; letter-spacing:0; font-weight:600; color:var(--muted); margin-bottom:10px; }
+.customer-body .detail-section h3 { font-family:Inter,system-ui,sans-serif; font-size:11px; letter-spacing:0; font-weight:600; color:var(--muted); margin-bottom:10px; }
 .customer-body .detail-section p { font-size:14px; line-height:1.8; white-space:pre-wrap; }
 .customer-body .detail-tags { display:flex; flex-wrap:wrap; gap:7px; padding:0; list-style:none; margin:24px 0 0; }
 .customer-body .detail-tags li { padding:4px 9px; background:var(--mint); color:var(--muted); border-radius:4px; font-size:11px; }
 .customer-body .detail-processing { margin-top:22px; font-size:12px; padding:14px; background:var(--mint); color:var(--muted); border-radius:12px; }
 .customer-body .detail-origin { margin-top:25px; padding:18px; border:1px solid var(--line); border-radius:8px; background:var(--sky); }
-.customer-body .detail-origin>summary { font:500 16px/1.5 'Clarity City',sans-serif; cursor:pointer; }
+.customer-body .detail-origin>summary { font:500 16px/1.5 Inter,system-ui,sans-serif; cursor:pointer; }
 .customer-body .detail-origin[open]>summary { margin-bottom:10px; }
 .customer-body .detail-origin-intro { max-width:55ch; margin-top:7px; color:var(--muted); font-size:11px; line-height:1.6; }
 .customer-body .detail-origin dl { display:grid; grid-template-columns:120px minmax(0,1fr); gap:8px 15px; margin:17px 0 0; }
@@ -2453,7 +2453,7 @@
 .customer-body .device-promotion .icon-button { min-width:32px; }
 .customer-body.open-body { background:var(--paper); }
 .customer-body .open-card { border-radius:28px; background:var(--surface); border:1px solid var(--line); box-shadow:0 18px 50px #183b4b0d; }
-.customer-body .open-card h1 { font-family:'Clarity City',Geist,sans-serif; color:var(--ink); }
+.customer-body .open-card h1 { font-family:Inter,system-ui,sans-serif; color:var(--ink); }
 @media (max-width:1180px) { .customer-body .device-options { grid-template-columns:1fr; gap:16px; } }
 @media (max-width:680px) {
   .customer-body .device-option { padding:20px; }

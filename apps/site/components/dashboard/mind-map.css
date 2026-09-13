@@ -40,7 +40,7 @@
 .mind-map-inspector{position:absolute;top:18px;right:20px;z-index:2;max-height:calc(100% - 40px);overflow:auto;width:300px;border:1px solid var(--fk-line);border-radius:16px;padding:22px;background:var(--fk-surface);box-shadow:0 8px 32px #00000010;min-width:0}
 .mind-map-content[data-inspecting=true] .mind-map-legend{max-width:calc(100% - 370px)}
 .mind-map-inspector-top>span{font-size:11px;color:var(--fk-accent)}
-.customer-body .mind-map-inspector h2{font:500 23px/1.25 'Clarity City',sans-serif;letter-spacing:-.025em;margin:14px 0;overflow-wrap:anywhere}
+.customer-body .mind-map-inspector h2{font:500 23px/1.25 Inter,system-ui,sans-serif;letter-spacing:-.025em;margin:14px 0;overflow-wrap:anywhere}
 .mind-map-inspector p{color:var(--fk-muted);font-size:12px;line-height:1.85}
 .mind-map-inspector h3{font-size:14px;margin:22px 0 12px}
 .mind-map-inspector .button{width:100%;margin-top:15px;min-height:48px;font-size:12px}

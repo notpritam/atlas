@@ -69,7 +69,7 @@ test('Library first uses real collections, logo reopening, and an accessible mob
     await page.setViewportSize({ width, height: 900 });
     if (width <= 760) { await open.waitFor(); await open.click(); } else { await page.waitForFunction(() => !document.querySelector('#main').inert); if (await sidebar.getAttribute('data-collapsed') === 'true') await logo.click(); }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Fits ${width}px`);
-    const bounds = await toggle.boundingBox(); assert.ok(bounds.width >= 48 && bounds.height >= 48);
+    const bounds = await toggle.boundingBox(); assert.ok(bounds.width >= (width <= 760 ? 48 : 36) && bounds.height >= (width <= 760 ? 48 : 36));
     if (width <= 760) await toggle.click();
   }
   await page.emulateMedia({ reducedMotion: 'reduce' }); await toggle.click(); assert.equal(await main.evaluate(el => getComputedStyle(el).transform), 'none'); await logo.click();

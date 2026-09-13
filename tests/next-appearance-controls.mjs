@@ -38,17 +38,17 @@ test('compact appearance control, beta downloads, and dark account surfaces stay
 
  await page.goto(base+'/beta');await page.waitForFunction(()=>document.documentElement.dataset.theme==='dark');
  const toggle=page.getByRole('button',{name:'Switch to light mode',exact:true});
- const bounds=await toggle.boundingBox();assert.ok(bounds&&bounds.width>=48&&bounds.height>=48,'Compact theme button has a 48px target');
+ const bounds=await toggle.boundingBox();assert.ok(bounds&&bounds.width>=36&&bounds.height>=36,'Compact theme button has a 36px desktop target');
  assert.equal(await toggle.getAttribute('title'),'Switch to light mode');
  assert.equal(await page.getByLabel('Appearance',{exact:true}).count(),0,'Compact control has no text dropdown');
  assert.equal(await page.getByRole('link',{name:'Download extension',exact:true}).getAttribute('href'),'https://foundkeep.app/foundkeep-extension.zip');
  const darkThemeColors=await page.locator('meta[name="theme-color"]').evaluateAll(metas=>metas.map(meta=>meta.getAttribute('content')));
- assert.ok(darkThemeColors.length>0&&darkThemeColors.every(color=>color==='#16191d'));
+ assert.ok(darkThemeColors.length>0&&darkThemeColors.every(color=>color==='#000000'));
  await toggle.click();await page.waitForFunction(()=>document.documentElement.dataset.theme==='light');
  assert.equal(await page.getByRole('button',{name:'Switch to dark mode',exact:true}).getAttribute('title'),'Switch to dark mode');
  assert.equal(await page.evaluate(()=>localStorage.getItem('foundkeep.appearance')),'light');
  const lightThemeColors=await page.locator('meta[name="theme-color"]').evaluateAll(metas=>metas.map(meta=>meta.getAttribute('content')));
- assert.ok(lightThemeColors.length>0&&lightThemeColors.every(color=>color==='#f5fafc'));
+ assert.ok(lightThemeColors.length>0&&lightThemeColors.every(color=>color==='#fafafa'));
  const devBeta=await auth.request.get(base+'/beta',{headers:{Host:'dev.foundkeep.app'}});assert.equal(devBeta.status(),200);
  assert.match(await devBeta.text(),/https:\/\/dev\.foundkeep\.app\/ext\/foundkeep-extension-dev\.zip/);
 
@@ -68,7 +68,7 @@ test('compact appearance control, beta downloads, and dark account surfaces stay
  await dashboard.screenshot({path:'.impeccable/review/friends-beta/apps-devices-dark-desktop.png',fullPage:true});
  await dashboard.getByRole('button',{name:'Open account menu',exact:true}).click();
  const sidebarToggle=dashboard.getByRole('button',{name:'Switch to light mode',exact:true}),sidebarBounds=await sidebarToggle.boundingBox();
- assert.ok(sidebarBounds&&sidebarBounds.width===48&&sidebarBounds.height===48,'Sidebar uses the shared 48px compact theme button');
+ assert.ok(sidebarBounds&&sidebarBounds.width===36&&sidebarBounds.height===36,'Sidebar uses the shared 36px compact theme button');
  await dashboard.goto(base+'/dashboard/settings');
  const choices=dashboard.getByRole('group',{name:'Appearance',exact:true});
  await choices.waitFor();

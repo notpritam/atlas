@@ -26,7 +26,7 @@
 .customer-body .agent-secret .field-help { color:#456373; }
 .customer-body .agent-secret textarea { background:var(--surface); color:var(--ink); margin-top:18px; }
 .customer-body .agent-connections,.customer-body .agent-instructions { padding-top:32px; margin-top:36px; border-top:1px solid var(--line); min-width:0; }
-.customer-body .agent-count { font-family:Geist,sans-serif; color:var(--muted); font-size:15px; font-weight:400; }
+.customer-body .agent-count { font-family:Inter,system-ui,sans-serif; color:var(--muted); font-size:15px; font-weight:400; }
 .customer-body .agent-empty { padding:28px 0; }
 .customer-body .agent-empty h3 { font-size:18px; }
 .customer-body .agent-empty p { margin-top:8px; color:var(--muted); font-size:13px; line-height:1.7; }
@@ -34,7 +34,7 @@
 .customer-body .agent-connection-list li { display:flex; align-items:center; justify-content:space-between; gap:24px; padding:22px 0; border-top:1px solid var(--line); }
 .customer-body .agent-connection-list li:first-child { border:0; }
 .customer-body .agent-connection-list li>div { min-width:0; overflow-wrap:anywhere; }
-.customer-body .agent-connection-list h3 { font-family:Geist,sans-serif; font-size:15px; }
+.customer-body .agent-connection-list h3 { font-family:Inter,system-ui,sans-serif; font-size:15px; }
 .customer-body .agent-connection-list p { margin-top:7px; font-size:12px; line-height:1.65; color:var(--muted); }
 .customer-body .agent-connection-list .button { flex-shrink:0; }
 .customer-body .agent-instructions .service-form { max-width:680px; }

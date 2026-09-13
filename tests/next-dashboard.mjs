@@ -60,12 +60,12 @@ try {
   await page.locator('.capture-note .capture-open').click(); await page.locator('#detail-title').filter({ hasText: 'dashboard QA note' }).waitFor();
   assert.equal(await page.locator('.capture-selected').count(), 1); assert.equal(await page.locator('dialog[open]').count(), 0); record('Actual stored screenshot loads and the nonmodal pane switches between cards');
   await page.locator('.expand-capture').click(); await page.waitForURL('**/dashboard/saved/**'); await page.locator('#detail-title').filter({ hasText: 'dashboard QA note' }).waitFor();
-  await page.locator('.reading-back').click(); await page.waitForURL(base + '/dashboard'); await page.locator('.capture-open').first().waitFor(); record('Capture expands to its reading route and returns to the collection');
+  await page.getByRole('button', { name: 'Back to library', exact: true }).click(); await page.waitForURL(base + '/dashboard'); await page.locator('.capture-open').first().waitFor(); record('Capture expands to its reading route and returns to the collection');
   await page.locator('#search').fill('missing'); await page.getByRole('heading', { name: 'No finds this time.' }).waitFor(); assert.match(page.url(), /q=missing/);
   await page.goBack(); await page.locator('.capture-open').first().waitFor(); assert.equal(await page.locator('#search').inputValue(), '');
   await page.locator('[data-type="note"]').click(); await page.waitForFunction(() => document.querySelectorAll('.capture-card').length === 1); assert.match(page.url(), /type=note/);
   await page.locator('.capture-open').click(); await page.locator('.expand-capture').click(); await page.waitForURL('**/dashboard/saved/**'); assert.equal(new URL(page.url()).searchParams.get('type'), 'note');
-  await page.locator('.reading-back').click(); await page.waitForURL('**/dashboard?type=note'); await page.locator('[data-type=""]').click(); record('Search, filters, Back and expanded-reader return preserve URL state');
+  await page.getByRole('button', { name: 'Back to library', exact: true }).click(); await page.waitForURL('**/dashboard?type=note'); await page.locator('[data-type=""]').click(); record('Search, filters, Back and expanded-reader return preserve URL state');
   await page.locator('#open-account').click(); await page.locator('#sidebar-account-settings').click(); await page.waitForURL('**/dashboard/settings'); await page.getByRole('link', { name: 'Browser capture', exact: true }).click(); await page.locator('#preference-form[data-ready="true"]').waitFor();
   await page.locator('[data-preference="capture.note"]').uncheck(); await page.locator('#save-preferences').click(); await page.locator('#preference-message').filter({ hasText: 'Saved.' }).waitFor();
   await page.locator('#all-captures').click(); await page.waitForURL(base + '/dashboard'); await page.locator('#new-note').waitFor(); assert.equal(await page.locator('#new-note').isDisabled(), true);

@@ -4,7 +4,7 @@ import type {Core,StylesheetJson} from 'cytoscape';
 import type {MindMapData} from '../../lib/mind-map';
 import {useTheme} from '../appearance/theme';
 function graphStyles(dark:boolean):StylesheetJson{return [
- {selector:'node',style:{label:'','font-family':'Geist, sans-serif','font-size':11,color:dark?'#dce6ed':'#354954','text-wrap':'wrap','text-max-width':'150px','text-valign':'bottom','text-margin-y':7,'text-background-color':dark?'#191c22':'#f5f8fa','text-background-opacity':.88,'text-background-padding':'3px','background-color':dark?'#a1b3be':'#637e8d','border-width':0,width:'data(size)',height:'data(size)'}},
+ {selector:'node',style:{label:'','font-family':'Inter, sans-serif','font-size':11,color:dark?'#ededed':'#424242','text-wrap':'wrap','text-max-width':'150px','text-valign':'bottom','text-margin-y':7,'text-background-color':dark?'#000000':'#fafafa','text-background-opacity':.88,'text-background-padding':'3px','background-color':dark?'#b0b0b0':'#777777','border-width':0,width:'data(size)',height:'data(size)'}},
  {selector:'node[type="note"],node[type="selection"]',style:{'background-color':dark?'#70aff0':'#237cb4'}},
  {selector:'node[kind="tag"]',style:{'background-color':dark?'#77cbbb':'#368d78'}},
  {selector:'edge',style:{width:.7,'curve-style':'haystack','line-color':dark?'#798896':'#9aafbb',opacity:dark?.28:.4}},

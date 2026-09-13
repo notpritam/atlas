@@ -43,7 +43,7 @@
 .collection-editorial .collection-find-feed{min-width:0;scroll-margin-top:100px}
 .collection-editorial .collection-feed-heading{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:0 0 18px}
 .collection-editorial .collection-feed-heading h2{display:flex;align-items:center;gap:12px;font-size:23px;margin:0}
-.collection-editorial .collection-feed-heading h2 span{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 8px;background:var(--fk-soft);border-radius:7px;font:400 12px Geist,sans-serif}
+.collection-editorial .collection-feed-heading h2 span{display:inline-flex;align-items:center;justify-content:center;min-width:28px;height:26px;padding:0 8px;background:var(--fk-soft);border-radius:7px;font:400 12px Inter,system-ui,sans-serif}
 .collection-editorial .collection-view-control{display:flex;gap:2px;border:1px solid var(--public-line);padding:3px;border-radius:12px;background:var(--fk-surface)}
 .collection-editorial .collection-view-control button{display:grid;place-items:center;width:48px;height:48px;padding:0;border:0;border-radius:8px;color:var(--public-quiet);background:transparent}
 .collection-editorial .collection-view-control button[aria-pressed=true]{color:var(--fk-accent);background:var(--fk-sky)}
@@ -122,7 +122,7 @@
 .collection-editorial .close-submission{display:block;margin-left:auto;font-size:12px}
 .collection-editorial .public-submission .entry-form{margin-bottom:22px;background:var(--fk-surface)}
 .collection-editorial .public-collection-footer{display:flex;align-items:center;gap:22px;flex-wrap:wrap;margin:56px 0 0;padding:24px 0;border-top:1px solid var(--public-line);font-size:12px;color:var(--public-quiet)}
-.collection-editorial .public-collection-footer .footer-brand{display:flex;align-items:center;gap:8px;min-height:48px;color:var(--fk-ink);font:500 15px 'Clarity City',sans-serif;text-decoration:none}
+.collection-editorial .public-collection-footer .footer-brand{display:flex;align-items:center;gap:8px;min-height:48px;color:var(--fk-ink);font:500 15px Inter,system-ui,sans-serif;text-decoration:none}
 .collection-editorial .public-collection-footer nav{display:flex;gap:24px;margin-left:auto}
 .collection-editorial .public-collection-footer nav a{display:flex;align-items:center;min-height:48px;font-size:12px;color:var(--public-quiet);text-decoration:none}
 .collection-editorial .collection-unavailable{padding:100px 24px}

@@ -1,0 +1,113 @@
+/* The product interface uses a single locally hosted variable family. */
+@font-face{font-family:Inter;src:url('/assets/fonts/InterVariable.woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}
+html{scrollbar-color:var(--fk-control) var(--fk-paper)}
+html body :is(.customer-body,.social-collections){font-family:Inter,system-ui,sans-serif;font-optical-sizing:auto;font-feature-settings:'calt' 1;caret-color:var(--fk-accent)}
+html body :is(.customer-body,.social-collections) :is(h1,h2,h3,h4){font-family:Inter,system-ui,sans-serif;font-weight:550;letter-spacing:-.025em}
+html body :is(.customer-body,.social-collections) ::selection{color:var(--fk-ink);background:color-mix(in srgb,var(--fk-accent) 25%,var(--fk-surface))}
+html body :is(.customer-body,.social-collections) :is(input,textarea)::placeholder{color:var(--fk-muted)}
+html body :is(.customer-body,.social-collections) :is(a,button,summary):focus-visible{outline:2px solid var(--fk-accent);outline-offset:3px}
+html body .customer-body.dashboard-body .library-sidebar{--sidebar-line:var(--fk-line);--sidebar-muted:var(--fk-muted);color:var(--fk-ink);padding:16px 12px 12px}
+html body .customer-body.dashboard-body .sidebar-heading{margin:0 4px 12px;min-height:36px}
+html body .customer-body.dashboard-body .sidebar-brand{font-family:Inter,system-ui,sans-serif;font-size:17px;letter-spacing:-.45px;font-weight:550;gap:9px}
+html body .customer-body.dashboard-body .sidebar-brand img{width:28px;height:28px}
+html body .customer-body.dashboard-body .library-nav{gap:2px}
+html body .customer-body.dashboard-body .sidebar-nav-link{font-size:14px;line-height:20px;font-weight:400;gap:10px;border-radius:8px}
+html body .customer-body.dashboard-body :is(.sidebar-nav-link.nav-active,.sidebar-collection-link[aria-current=page]){background:var(--fk-soft);color:var(--fk-ink);font-weight:500}
+html body .customer-body.dashboard-body .sidebar-nav-link.nav-active>svg{color:var(--fk-ink)}
+html body .customer-body.dashboard-body :is(.sidebar-nav-link,.sidebar-collection-link,.sidebar-icon-button,.sidebar-brand):hover{background:var(--fk-soft);color:var(--fk-ink)}
+html body .customer-body.dashboard-body .library-sidebar svg{width:18px;height:18px;stroke-width:1.6}
+html body .customer-body.dashboard-body :is(.sidebar-section-title,.sidebar-collection-tree summary){font-size:12px;font-weight:400;letter-spacing:0;text-transform:none}
+html body .customer-body.dashboard-body .sidebar-section-title{margin:18px 10px 5px}
+html body .customer-body.dashboard-body .sidebar-collection-tree{margin-top:10px}
+html body .customer-body.dashboard-body .sidebar-collection-link{font-size:13px;line-height:20px;margin-left:18px;padding-left:16px}
+html body .customer-body.dashboard-body .sidebar-plan-summary{padding:10px 8px 0}
+html body .customer-body.dashboard-body .library-main{padding:22px 24px 0}
+html body .customer-body.dashboard-body .compact-library-header{margin-bottom:18px;gap:10px}
+html body .customer-body.dashboard-body .compact-library-header h1{font-size:24px;line-height:1.25;font-weight:550}
+html body .customer-body.dashboard-body .compact-library-header p{font-size:12px;line-height:1.5}
+html body .customer-body.dashboard-body .capture-card{border-radius:12px;background:var(--fk-surface)}
+html body .customer-body.dashboard-body .capture-card-body{padding:15px}
+html body .customer-body.dashboard-body .capture-card h2{font-size:17px;line-height:1.4;letter-spacing:-.02em;margin-top:10px;font-weight:550}
+html body .customer-body.dashboard-body .capture-excerpt{font-size:12px;line-height:1.65}
+html body .customer-body.dashboard-body .capture-card-footer{margin-top:14px}
+html body .customer-body.dashboard-body .filter-row{gap:12px;padding-bottom:12px;align-items:center}
+/* Neutral rails with an inset selected pill, shared across filtering and layout. */
+html body .customer-body.dashboard-body .type-filters,
+html body .collection-editorial :is(.collection-topic-filters,.collection-view-control){display:flex;gap:2px;padding:3px;background:var(--fk-soft);border:1px solid transparent;border-radius:999px;scrollbar-width:thin;max-width:100%}
+html body .customer-body.dashboard-body .filter-row .type-filters{flex:0 1 auto}
+html body .customer-body.dashboard-body .type-filters button,
+html body .collection-editorial :is(.collection-topic-filters a,.collection-view-control button){display:inline-flex;align-items:center;justify-content:center;gap:6px;flex:0 0 auto;padding:6px 12px;border:1px solid transparent;border-radius:999px;background:transparent;color:var(--fk-muted);font-size:13px;line-height:20px;font-weight:400;text-decoration:none;white-space:nowrap}
+html body .customer-body.dashboard-body .type-filters button:hover,
+html body .collection-editorial :is(.collection-topic-filters a,.collection-view-control button):hover{color:var(--fk-ink)}
+html body .customer-body.dashboard-body .type-filters button[aria-pressed=true],
+html body .collection-editorial :is(.collection-topic-filters a[aria-current=page],.collection-view-control button[aria-pressed=true]){background:var(--fk-surface);color:var(--fk-ink);border-color:var(--fk-line);font-weight:500;box-shadow:0 1px 3px #00000010}
+html body .segment-count{font-size:12px;font-weight:400;color:var(--fk-muted);font-variant-numeric:tabular-nums}
+html body .collection-editorial .collection-topic-filters{width:max-content;margin-bottom:8px}
+html body .collection-editorial .collection-view-control button{padding:0}
+html body .collection-editorial .public-collection-nav{min-height:60px;padding:8px 28px}
+html body .collection-editorial .public-collection{padding-inline:28px}
+html body .collection-editorial .collection-breadcrumb{min-height:46px}
+html body .collection-editorial .collection-profile{gap:12px 28px;padding:4px 0 12px}
+html body .collection-editorial .collection-profile h1{font-size:30px;line-height:1.2;margin-bottom:10px;letter-spacing:-.03em}
+html body .collection-editorial .collection-description{font-size:14px;line-height:1.65;margin-bottom:16px}
+html body .collection-editorial .collection-reading-layout{padding-top:18px}
+html body .collection-editorial .collection-feed-heading{margin-bottom:12px}
+html body .collection-editorial .collection-feed-heading h2{font-size:20px;gap:8px}
+html body .collection-editorial .collection-feed-heading h2 span{font-family:inherit;background:none;padding:0;color:var(--fk-muted);font-variant-numeric:tabular-nums}
+html body .collection-editorial .collection-result-summary{padding:4px 0 14px}
+html body .collection-editorial .public-find{border-radius:12px;box-shadow:none;background:var(--fk-surface)}
+html body .collection-editorial .public-find .shared-entry-content{padding:15px}
+html body .collection-editorial .public-find .shared-entry-meta{margin-bottom:12px;gap:7px}
+html body .collection-editorial .public-find .find-source-mark{width:24px;height:24px;border-radius:6px;background:var(--fk-soft);color:var(--fk-muted)}
+html body .collection-editorial .public-find h2{font-size:17px;line-height:1.4;font-weight:550}
+html body .collection-editorial .public-find .shared-entry-text{font-size:12px;line-height:1.65}
+html body .collection-editorial .public-find footer{margin-top:14px;padding-top:10px}
+html body .collection-editorial .public-find .collection-tags{margin-top:12px}
+html body .collection-editorial .public-find .collection-tags>span{background:var(--fk-soft);color:var(--fk-muted)}
+html body .collection-editorial .collection-find-search :is(input,select,.button){border-radius:8px}
+html body .theme-toggle{width:36px;height:36px;flex-basis:36px;border-radius:8px}
+html body .theme-toggle>svg{width:18px;height:18px}
+html body .customer-body.dashboard-body .sidebar-account-menu .theme-toggle{width:36px;min-width:36px;height:36px;border-radius:8px}
+@media(min-width:761px) and (pointer:fine){
+ html body .customer-body.dashboard-body .library-shell{grid-template-columns:244px minmax(0,1fr)}
+ html body .customer-body.dashboard-body .library-shell:has(.library-sidebar[data-collapsed=true]){grid-template-columns:72px minmax(0,1fr)}
+ html body .customer-body.dashboard-body :is(.sidebar-nav-link,.sidebar-collection-link){min-height:36px;padding-top:8px;padding-bottom:8px}
+ html body .customer-body.dashboard-body :is(.sidebar-brand,.sidebar-icon-button){min-width:36px;min-height:36px;width:auto;height:36px}
+ html body .customer-body.dashboard-body .sidebar-icon-button{width:36px}
+ html body .customer-body.dashboard-body .sidebar-collection-tree summary{min-height:32px;padding:6px 10px}
+ html body .customer-body.dashboard-body :is(.sidebar-plan-link,.sidebar-collection-message a,.sidebar-collection-message button){min-height:34px}
+ html body .customer-body.dashboard-body .sidebar-account .account-button{min-height:44px;padding:7px 8px}
+ html body .customer-body.dashboard-body .compact-library-header :is(.button,.search-field){min-height:36px;height:36px;padding-block:6px;border-radius:8px}
+ html body .customer-body.dashboard-body .compact-library-header .refresh-button{width:36px;min-width:36px;padding:8px}
+ html body .customer-body.dashboard-body .compact-library-header .refresh-button svg{width:18px;height:18px}
+ html body .customer-body.dashboard-body .type-filters button{min-height:32px;padding:5px 11px}
+ html body .collection-editorial :is(.button,.public-collection-nav .brand,.public-nav-account,.collection-breadcrumb a,.collection-suggest-action .text-link,.collection-manage-link,.collection-about>summary,.collection-result-summary a){min-height:36px;padding-block:7px}
+ html body .collection-editorial .collection-view-control button{width:32px;height:32px;min-height:32px}
+ html body .collection-editorial .collection-topic-filters a{min-height:32px;padding-block:5px}
+ html body .collection-editorial .collection-find-search :is(input,select,.button){height:36px;min-height:36px;padding-block:7px;font-size:13px}
+ html body .collection-editorial .find-search-input>svg{top:9px;width:17px;height:17px}
+ html body .social-collections .collection-entry-actions :is(button,a){min-height:32px;font-size:12px;padding:5px 8px}
+}
+@media(max-width:760px),(pointer:coarse){
+ html body .theme-toggle{width:48px;height:48px;flex-basis:48px}
+ html body .customer-body.dashboard-body .sidebar-account-menu .theme-toggle{width:48px;min-width:48px;height:48px}
+ html body .customer-body.dashboard-body .type-filters button,
+ html body .collection-editorial .collection-topic-filters a{min-height:44px}
+ html body .collection-editorial .collection-view-control button{width:44px;height:44px;min-height:44px}
+ html body .customer-body.dashboard-body .sidebar-heading{min-height:48px}
+}
+@media(max-width:760px){
+ html body .customer-body.dashboard-body .library-main{padding:18px 16px 0}
+ html body .customer-body.dashboard-body .filter-row{flex-wrap:wrap;gap:8px}
+ html body .customer-body.dashboard-body .filter-row .type-filters{flex:1 1 100%}
+ html body .customer-body.dashboard-body .filter-row .results-count{font-size:11px}
+ html body .customer-body.dashboard-body .compact-library-header h1{font-size:23px}
+ html body .collection-editorial .public-collection-nav{padding:8px 16px}
+ html body .collection-editorial .public-collection{padding-inline:16px}
+ html body .collection-editorial .collection-profile h1{font-size:27px}
+ html body .collection-editorial .collection-profile{gap:12px}
+ html body .collection-editorial .collection-description{font-size:13px}
+ html body .collection-editorial [data-view=grid] .public-find .shared-entry-content{padding:12px}
+ html body .collection-editorial [data-view=grid] .public-find h2{font-size:15px;line-height:1.4}
+ html body .collection-editorial .collection-find-feed[data-view=grid] .collection-entries{gap:12px}
+}
