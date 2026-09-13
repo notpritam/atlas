@@ -84,15 +84,31 @@ test('a real Instagram OG caption and item preview survive a platform-only title
  expect(result).toMatchObject({title:null,description:caption,text:caption,imageUrl:'https://cdn.example.com/reels/hiking-sunrise.jpg',contentKind:'video',extractionStatus:'metadata-only',transcriptStatus:'unavailable'});
 });
 test.each([
- ['https://instagram.com/p/sunrise/','Instagram','og:description','og:image'],
- ['https://x.com/alex/status/123','X','twitter:description','twitter:image'],
- ['https://youtube.com/watch?v=sunrise','- YouTube','og:description','og:image'],
-])('explicit social caption and image identify item evidence on %s without an item-specific title', (url,title,description,image)=>{
- const result=extractSource(`<title>${title}</title><meta property="${description}" content="An actual caption describing a sunrise hike."><meta property="${image}" content="https://cdn.example.com/sunrise.jpg">`,url);
+ ['https://instagram.com/p/sunrise/','Instagram','og:description','og:image','article'],
+ ['https://x.com/alex/status/123','X','twitter:description','twitter:image','article'],
+ ['https://youtube.com/watch?v=sunrise','- YouTube','og:description','og:image','video.other'],
+])('explicit item type identifies caption and image evidence on %s without an item-specific title', (url,title,description,image,itemType)=>{
+ const result=extractSource(`<title>${title}</title><meta property="og:type" content="${itemType}"><meta property="${description}" content="An actual caption describing a sunrise hike."><meta property="${image}" content="https://cdn.example.com/sunrise.jpg">`,url);
  expect(result).toMatchObject({description:'An actual caption describing a sunrise hike.',text:'An actual caption describing a sunrise hike.',extractionStatus:'metadata-only'});
 });
 test('an invalid preview or generic ordinary description does not upgrade a platform shell',async()=>{
  expect(extractSource('<title>Instagram</title><meta property="og:description" content="Generic platform marketing"><meta property="og:image" content="javascript:invalid">','https://instagram.com/reel/abc/')).toMatchObject({text:'',description:null,extractionStatus:'unavailable'});
  const observed=await Bun.file(new URL('./fixtures/youtube-generic-fi.html',import.meta.url)).text();
  expect(extractSource(observed.replace('</head>','<meta property="og:image" content="https://cdn.example.com/logo.jpg"></head>'),'https://youtube.com/watch?v=abc')).toMatchObject({text:'',description:null,extractionStatus:'unavailable'});
+});
+test.each(['','<meta property="og:type" content="website">'])('a generic OG caption and logo without item context are discarded, including preview evidence (%s)',type=>{
+ const result=extractSource('<title>Instagram</title>'+type+'<meta property="og:image" content="https://cdn.example.com/instagram-logo.jpg"><meta property="og:description" content="Discover photos and videos from people around the world.">','https://instagram.com/reel/abc/');
+ expect(result).toMatchObject({title:null,description:null,text:'',imageUrl:null,extractionStatus:'unavailable',transcriptStatus:'unavailable'});
+});
+test('rejected generic head previews are dropped even when they have no caption to analyze',()=>{
+ expect(extractSource('<title>- YouTube</title><meta property="og:image" content="https://cdn.example.com/youtube-logo.jpg">','https://youtube.com/watch?v=abc')).toMatchObject({text:'',imageUrl:null,extractionStatus:'unavailable'});
+});
+test.each(['<meta property="og:type" content="video.other">','<meta property="article:published_time" content="2026-09-01">','<script type="application/ld+json">{"@type":"VideoObject","name":"A sunrise hike"}</script>'])('explicit item context retains the real caption and preview (%s)',context=>{
+ const result=extractSource('<title>Instagram</title>'+context+'<meta property="og:image" content="https://cdn.example.com/reels/hiking.jpg"><meta property="og:description" content="A real caption about hiking at sunrise.">','https://instagram.com/reel/abc/');
+ expect(result).toMatchObject({description:'A real caption about hiking at sunrise.',text:'A real caption about hiking at sunrise.',imageUrl:'https://cdn.example.com/reels/hiking.jpg',extractionStatus:'metadata-only'});
+});
+test('structured item preview takes priority over a generic platform head logo',()=>{
+ const item={'@type':'VideoObject',name:'Sunrise hike',description:'A walk along the ridge.',image:'https://cdn.example.com/reels/ridge.jpg'};
+ const result=extractSource('<title>Instagram</title><meta property="og:image" content="https://cdn.example.com/instagram-logo.jpg"><script type="application/ld+json">'+JSON.stringify(item)+'</script>','https://instagram.com/reel/ridge/');
+ expect(result).toMatchObject({title:'Sunrise hike',description:item.description,imageUrl:item.image,extractionStatus:'metadata-only'});
 });

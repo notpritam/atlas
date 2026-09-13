@@ -166,3 +166,11 @@ test('a genuine OG caption remains processable when the title is only Instagram 
  expect(inputs).toHaveLength(1);expect(inputs[0]).toMatchObject({text:'A real caption about hiking at sunrise.',sourceEvidence:{status:'metadata-only',transcript:'unavailable'},preservation:{status:'unavailable'},analysis:{text:true,image:false,transcript:false}});
  expect(saved()).toMatchObject({summary:organized.summary,file_path:null});expect(s.settings(owner).usage).toMatchObject({used:1,reserved:0});expect(s.details(owner,capture)?.source).toMatchObject({description:'A real caption about hiking at sunrise.'});
 });
+test.each([true,false])('refused video plus generic OG marketing/logo has no evidence and no charge when images=%s',async images=>{
+ const {extractSource}=await import('../src/customer-source.ts');const sourceUrl='https://instagram.com/reel/abc/';
+ const html='<title>Instagram</title><meta property="og:image" content="https://cdn.example.com/instagram-logo.jpg"><meta property="og:description" content="Discover photos and videos from people around the world.">';
+ let snapshot:ReturnType<typeof extractSource>|undefined;
+ db.query('UPDATE customer_captures SET source_url=? WHERE id=?').run(sourceUrl,capture);
+ const s=service({source:async()=>{snapshot=extractSource(html,sourceUrl);return {...snapshot,requestedUrl:sourceUrl,contentHash:'generic-logo-fixture',fetchedAt:Date.now()};},remote:async()=>({status:'unavailable',reason:'Copy unavailable'})});s.configure(owner,{images});s.enqueue(owner,capture,'manual');await s.tick();
+ expect(snapshot).toMatchObject({text:'',imageUrl:null,description:null,extractionStatus:'unavailable'});expect(inputs).toHaveLength(0);expect(s.details(owner,capture)).toBeNull();expect(saved()).toMatchObject({summary:'Keep summary',file_path:null});expect(s.settings(owner).usage).toMatchObject({used:0,reserved:0});
+});

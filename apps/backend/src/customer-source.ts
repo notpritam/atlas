@@ -40,13 +40,14 @@ export function extractSource(html:string,url:string,requestedUrl=url):Omit<Sour
   const rawTitle=cleaned(meta('og:title')||meta('twitter:title')||data.headline||data.name||headTitle,1000);
   const genericHead=platformOnlyTitle(headTitle,platform);
   const title=usable(genericHead?data.headline||data.name:rawTitle,1000);
+  // A generic title needs explicit item context; an image URL alone may only be a platform logo.
+  const itemContext=/^(?:video(?:\.(?:other|movie|episode|tv_show))?|article)$/i.test(meta('og:type')||'')||!!usable(meta('article:published_time')||meta('article:author'),200)||Object.keys(data).length>0;
   const dataImage=Array.isArray(data.image)?data.image[0]:data.image;
-  const image=meta('og:image')||meta('twitter:image')||cleaned(typeof dataImage==='object'&&dataImage?(dataImage as Record<string,unknown>).url:dataImage,4096);let imageUrl:string|null=null;
+  const structuredImage=cleaned(typeof dataImage==='object'&&dataImage?(dataImage as Record<string,unknown>).url:dataImage,4096);
+  const image=genericHead&&!itemContext?null:genericHead&&structuredImage?structuredImage:meta('og:image')||meta('twitter:image')||structuredImage;let imageUrl:string|null=null;
   try{imageUrl=image?previewSourceUrl(new URL(image,url).href)?.href||null:null;}catch{}
-  // A social caption paired with a valid item preview is evidence even when the title is only the platform.
-  // Ordinary site-description metadata alone (including a platform logo) cannot make that distinction.
   const socialDescription=usable(meta('og:description')||meta('twitter:description'),2000);
-  const description=usable(genericHead?data.description||imageUrl&&socialDescription:meta('og:description')||meta('twitter:description')||meta('description')||data.description,2000);
+  const description=usable(genericHead?data.description||(itemContext?socialDescription:null):meta('og:description')||meta('twitter:description')||meta('description')||data.description,2000);
   const dataAuthor=Array.isArray(data.author)?data.author[0]:data.author;
   const author=cleaned(meta('author')||meta('article:author')||(typeof dataAuthor==='object'&&dataAuthor?(dataAuthor as Record<string,unknown>).name:dataAuthor),200),publishedAt=cleaned(meta('article:published_time')||data.datePublished||data.uploadDate,100),siteName=cleaned(meta('og:site_name'),200);
   const types=[data['@type']].flat(),video=platform==='youtube'||platform==='instagram'&&/^\/(reel|reels|tv)\//.test(new URL(url).pathname)||types.includes('VideoObject')||meta('og:type')?.startsWith('video');
