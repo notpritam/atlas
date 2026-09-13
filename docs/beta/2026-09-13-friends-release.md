@@ -1,6 +1,6 @@
 # Friends beta — 13 September 2026
 
-Status at 14:22 UTC. Friends use **https://foundkeep.app/beta** and production accounts. **https://dev.foundkeep.app** remains Pritam-only. Android and desktop are available for Free beta use; production Pro configuration, updated native builds and external TestFlight access remain open. This is not a completed all-feature, all-device launch.
+Status at 14:32 UTC. Friends use **https://foundkeep.app/beta** and production accounts. **https://dev.foundkeep.app** remains Pritam-only. Android and desktop are available for Free beta use; production Pro configuration, updated native builds and external TestFlight access remain open. This is not a completed all-feature, all-device launch.
 
 ## Available now
 
@@ -32,7 +32,7 @@ Revision `8fa9e31` was enabled on the dev backend at13:52Z, dev website at13:54Z
 
 Backend fix `ebe9e2e` was deployed to dev at14:21:33Z and production at14:21:49Z. Migration27→28 was first applied to an online copy of production and preserved every customer row, adding only nullable `scheduled_cutoff`. Both live databases now have schema28 and pass integrity/ID-preservation checks. New backend backups are dev `~/.local/share/foundkeep-dev-backups/20260913-142132-remote-media` and production `~/.local/share/foundkeep-production-backups/20260913-142149-remote-media`. The immediately previous immutable backend `20260913-135112-remote-media-8fa9e31` is retained. Websites remain at the earlier8fa9e31 build because this fix does not change site code.
 
-Previous website releases are production `20260913-123918-beta-distribution` and dev `20260913-123822-beta-distribution`; prior backend code `20260913-native-notes-ab4c082` remains available. Roll back code/configuration without overwriting newer customer data with a database backup.
+Previous website releases are production `20260913-123918-beta-distribution` and dev `20260913-123822-beta-distribution`; prior backend code `20260913-native-notes-ab4c082` remains available. Roll back code/configuration without overwriting newer customer data with a database backup. The raw schema27 backend cannot open schema28 because its migration guard correctly rejects a newer schema. Use prepared `/home/pritam/.local/share/foundkeep-backend/releases/20260913-rollback-8fa9e31-schema28` for an emergency backend rollback: it contains the exact previous8fa9e31 source with only `db.ts` fromebe9e2e so the additive schema remains supported. A copied-production check proved the original release rejects schema28, the compatibility release opens it, and every customer row and database integrity remain unchanged. This compatibility release is staged, not active. Set only the relevant service release override’s `WorkingDirectory` to its `apps/backend`, reload systemd and restart that backend; retain realm environment/data/runtime overrides. Do not lower `user_version` or restore an old database. Evidence: `~/.local/share/foundkeep-beta-media-samples/final-migration/rollback-verification.json`.
 
 At14:04Z all original production and dev account/capture/connection IDs remained present, SQLite integrity was `ok`, and both environments had zero enabled automations after QA cleanup. Current production counts were4accounts/30captures/5connections; dev5accounts/16captures/0connections. New customer saves were retained. No production demo data was seeded.
 
@@ -93,7 +93,7 @@ Production still has no OpenAI/live Paddle/RevenueCat configuration or intended 
 
 ## Remaining gates
 
-- Build and verify updated Android and iOS production-beta artifacts from reviewed `ebe9e2e`; the matching backend is already deployed.
+- Build and verify updated Android and iOS production-beta artifacts from reviewed `ebe9e2e`; the matching backend is already deployed. The signing Mac stopped responding after14:25:33Z. Android6 source is transferred and iOS simulator compile/install plus observer tests pass, but neither new signed build/increment started. Resume only after an actual remote file/terminal call succeeds; the stale connected label is insufficient. Existing Android5 and iOS21 remain unchanged.
 - Configure the intended production AI provider and legitimate Pro access/billing path after the pending user decisions.
 - Complete external TestFlight contact/review/tester setup. Android manual APK is available; Play beta is optional and requires account/listing access.
 - General App Store/Play publication remains a later, separate release instruction. No invitations or public rollout have been performed.
