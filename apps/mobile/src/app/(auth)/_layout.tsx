@@ -1,14 +1,17 @@
 import { type Href, router, Stack, usePathname } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { useAppearance } from '../../appearance/AppearanceProvider.tsx';
 import { useMotionAllowed } from '../../components/motion.tsx';
 import { useSession } from '../../session/SessionProvider.tsx';
-import { colors } from '../../theme.ts';
+import { palettes } from '../../theme.ts';
 
 export default function AuthLayout() {
   const motion = useMotionAllowed();
   const { ready, account, recoveryCode, consumePendingRoute } = useSession();
   const pathname = usePathname();
+  const { scheme } = useAppearance();
+  const palette = palettes[scheme];
   const redirecting = useRef(false);
   useEffect(() => {
     if (!ready) return;
@@ -19,6 +22,6 @@ export default function AuthLayout() {
     }
     if (!account || recoveryCode) redirecting.current = false;
   }, [ready, account, recoveryCode, pathname, consumePendingRoute]);
-  if (!ready || (account && !recoveryCode && pathname !== '/recovery-code')) return <View style={{ flex: 1, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.accent} /></View>;
+  if (!ready || (account && !recoveryCode && pathname !== '/recovery-code')) return <View style={{ flex: 1, backgroundColor: palette.paper, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={palette.accent} /></View>;
   return <Stack screenOptions={{ headerShown: false, animation: motion ? 'slide_from_right' : 'fade' }} />;
 }

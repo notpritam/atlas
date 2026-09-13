@@ -9,6 +9,7 @@ import { colors } from '../theme.ts';
 import { useMotionAllowed } from './motion.tsx';
 import { GlassSurface } from './ScenicSurface.tsx';
 import { createDockMotion, dockSpring } from './dockMotion.ts';
+import { useThemedStyles } from '../appearance/AppearanceProvider.tsx';
 
 type TabBarProps = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 const DockContext = createContext({ collapsed: false, setCollapsed: (_value: boolean) => {}, bottomSpace: 100, height: 60 });
@@ -38,6 +39,7 @@ function useDockScreenReader() {
 
 /** A floating tab bar: its absolute frame leaves the collection behind the glass. */
 export function FloatingDock({ state, descriptors, navigation, insets }: TabBarProps) {
+  const styles = useThemedStyles(baseStyles);
   const { collapsed, height } = useDock();
   const { width, fontScale } = useWindowDimensions();
   const { policy, updateRequired } = useSession();
@@ -97,7 +99,7 @@ export function FloatingDock({ state, descriptors, navigation, insets }: TabBarP
   </View>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   frame: { position: 'absolute', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 10 },
   surface: { borderRadius: 42, borderCurve: 'continuous', shadowColor: colors.shadow, shadowOffset: { width: 0, height: 6 }, shadowOpacity: .13, shadowRadius: 16, elevation: 6 },
   tabs: { flexDirection: 'row', alignItems: 'center', padding: 6 },

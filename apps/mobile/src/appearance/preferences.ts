@@ -14,4 +14,9 @@ export function resolvedThemeColor<T>(value: T, scheme: 'light' | 'dark'): T | s
   const key = Object.keys(palettes[scheme]).find(candidate => candidate.toLowerCase() === match[1]);
   return key ? palettes[scheme][key as keyof typeof palettes.light] : value;
 }
+export function resolvedThemeStyle<T>(value: T, scheme: 'light' | 'dark'): T {
+  if (Array.isArray(value)) return value.map(item => resolvedThemeStyle(item, scheme)) as T;
+  if (!value || typeof value !== 'object') return value;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => [key, resolvedThemeColor(item, scheme)])) as T;
+}
 export const appearanceStorageKey = (environment: string) => `foundkeep.${environment}.appearance`;

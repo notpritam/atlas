@@ -20,4 +20,5 @@ test('Android share methods are explicit and arbitrary client methods stay rejec
   };
   expect(normalizeProvenance(provenance,1000)).toEqual(provenance);
   expect(()=>normalizeProvenance({...provenance,captureMethod:'android-spoofed'},1000)).toThrow('captureMethod is not supported');
+  expect(normalizeProvenance({...provenance,captureMethod:'android-app-note'},1000)?.captureMethod).toBe('android-app-note');
 });

@@ -8,11 +8,13 @@ import type { Capture } from '../api/types.ts';
 import { capturePreviewSource } from '../collection/preview.ts';
 import { useSession } from '../session/SessionProvider.tsx';
 import { colors } from '../theme.ts';
+import { useThemedStyles } from '../appearance/AppearanceProvider.tsx';
 
 export const captureIcons = { bookmark: 'link-outline', image: 'image-outline', screenshot: 'scan-outline', document: 'document-text-outline', file: 'document-outline', note: 'create-outline', selection: 'text-outline', audio: 'musical-notes-outline', video: 'videocam-outline', tweet: 'chatbubble-outline' } as const;
 export const captureLabels = { bookmark: 'Link', image: 'Image', screenshot: 'Screenshot', document: 'Document', file: 'File', note: 'Note', selection: 'Highlight', audio: 'Audio', video: 'Video', tweet: 'Post' } as const;
 
 export function CapturePreview({ capture, style, contain = false, compact = false }: { capture: Capture; style?: StyleProp<ViewStyle>; contain?: boolean; compact?: boolean }) {
+  const styles = useThemedStyles(baseStyles);
   const { token, account } = useSession();
   const source = useMemo(() => capturePreviewSource(capture, token, account?.id), [capture, token, account?.id]);
   const key = source?.uri || '';
@@ -34,4 +36,4 @@ export function CapturePreview({ capture, style, contain = false, compact = fals
     </> : <View style={styles.fallback}><Ionicons name={captureIcons[capture.type]} size={compact ? 22 : 32} color={colors.accent} />{compact ? null : <Text style={styles.label}>{failed ? 'Preview unavailable' : capture.fileMime?.split('/')[1]?.toUpperCase() || captureLabels[capture.type]}</Text>}</View>}
   </View>;
 }
-const styles = StyleSheet.create({ preview: { backgroundColor: colors.accentSoft, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', aspectRatio: 1.25 }, fallback: { padding: 12, gap: 10, alignItems: 'center' }, label: { color: colors.muted, fontSize: 12, textAlign: 'center' } });
+const baseStyles = StyleSheet.create({ preview: { backgroundColor: colors.accentSoft, overflow: 'hidden', alignItems: 'center', justifyContent: 'center', aspectRatio: 1.25 }, fallback: { padding: 12, gap: 10, alignItems: 'center' }, label: { color: colors.muted, fontSize: 12, textAlign: 'center' } });

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createFoundkeepClient, FoundkeepApiError } from './client.ts';
+import { configureEnvironment } from '../environment.ts';
 
 test('related-save requests stay private, coalesce, and refresh after edits or account changes', async () => {
   let token = 'first', reads = 0;
@@ -237,6 +238,17 @@ test('organization filters and personal edits remain authenticated and invalidat
   await client.organization(); assert.equal(reads, 2);
   await client.createNote({ clientId: 'new', capturedAt: 13, noteText: 'Keep this', folderId: 'reading', userTags: ['Personal'] });
   assert.equal(requests.at(-1)!.body.folderId, 'reading'); assert.deepEqual(requests.at(-1)!.body.userTags, ['Personal']);
+});
+
+test('native notes record their actual app platform without trusting caller input',async()=>{
+ const bodies:Record<string,unknown>[]=[];
+ const client=createFoundkeepClient({getToken:async()=> 'token',fetcher:async(_input,init)=>{bodies.push(JSON.parse(String(init?.body)));return Response.json({capture:{id:'note'}});}});
+ try {
+  configureEnvironment(undefined,'android');await client.createNote({clientId:'android-note',noteText:'Android',capturedAt:1000});
+  configureEnvironment(undefined,'ios');await client.createNote({clientId:'ios-note',noteText:'iOS',capturedAt:2000});
+ } finally { configureEnvironment(undefined,'ios'); }
+ assert.equal((bodies[0]?.provenance as Record<string,unknown>).captureMethod,'android-app-note');
+ assert.equal((bodies[1]?.provenance as Record<string,unknown>).captureMethod,'ios-app-note');
 });
 
 test('social auth uses only Foundkeep endpoints and separates login from authenticated deletion', async () => {

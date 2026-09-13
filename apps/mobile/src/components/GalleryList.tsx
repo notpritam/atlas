@@ -10,10 +10,13 @@ import { MotionBoundary } from './motion.tsx';
 import { GalleryCard } from './GalleryCard.tsx';
 import { GallerySkeleton } from './Shimmer.tsx';
 import { Button, Message } from './ui.tsx';
-import { colors, typography } from '../theme.ts';
+import { colors, palettes, typography } from '../theme.ts';
 import type { Capture } from '../api/types.ts';
+import { useAppearance, useThemedStyles } from '../appearance/AppearanceProvider.tsx';
 
 export function GalleryList({ collection, filtered = false, headerSpace = 0, bottomSpace = 24, resetKey = 0, onScroll }: { collection: ReturnType<typeof useCollection>; filtered?: boolean; headerSpace?: number; bottomSpace?: number; resetKey?: number; onScroll?: (event: NativeSyntheticEvent<NativeScrollEvent>) => void }) {
+  const styles = useThemedStyles(baseStyles);
+  const palette = palettes[useAppearance().scheme];
   const { width, height, fontScale } = useWindowDimensions();
   const [viewport, setViewport] = useState({ width, height: height / 2 });
   const [windowTop, setWindowTop] = useState(0);
@@ -71,7 +74,7 @@ export function GalleryList({ collection, filtered = false, headerSpace = 0, bot
       if (!error && !loading && contentOffset.y + layoutMeasurement.height > contentSize.height - 400) void loadMore();
       onScroll?.(event);
     }} scrollEventThrottle={16} keyboardDismissMode="on-drag" keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}
-    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={colors.accent} progressViewOffset={headerSpace} />}>
+    refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => void refresh()} tintColor={palette.accent} progressViewOffset={headerSpace} />}>
     <View style={{ height: headerSpace }} />
     {captures.length && error ? <View style={styles.error}><Message error>{error}</Message><Button secondary label="Try again" onPress={() => void refresh()} /></View> : null}
     {captures.length ? <View testID="masonry-gallery" style={{ height: layout.height }}>
@@ -97,4 +100,4 @@ export function GalleryList({ collection, filtered = false, headerSpace = 0, bot
     {loadingMore ? <View style={{ paddingTop: 12 }}><MotionBoundary enabled={footerVisible}><GallerySkeleton columns={columns} viewportHeight={200} /></MotionBoundary></View> : captures.length ? <Text style={styles.count}>{captures.length < total ? `${captures.length} of ${total} finds` : `${total} ${total === 1 ? 'find' : 'finds'} · yours to keep`}</Text> : null}
   </ScrollView>;
 }
-const styles = StyleSheet.create({ list: { flex: 1 }, content: { paddingHorizontal: 18, paddingTop: 16 }, error: { gap: 10, paddingBottom: 16 }, empty: { flex: 1, paddingVertical: 40, paddingHorizontal: 16, gap: 18, alignItems: 'center', justifyContent: 'center' }, emptyCopy: { color: colors.muted, textAlign: 'center', maxWidth: 300 }, count: { ...typography.small, textAlign: 'center', paddingVertical: 24 } });
+const baseStyles = StyleSheet.create({ list: { flex: 1 }, content: { paddingHorizontal: 18, paddingTop: 16 }, error: { gap: 10, paddingBottom: 16 }, empty: { flex: 1, paddingVertical: 40, paddingHorizontal: 16, gap: 18, alignItems: 'center', justifyContent: 'center' }, emptyCopy: { color: colors.muted, textAlign: 'center', maxWidth: 300 }, count: { ...typography.small, textAlign: 'center', paddingVertical: 24 } });

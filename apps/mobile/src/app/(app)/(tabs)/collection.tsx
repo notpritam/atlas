@@ -14,6 +14,7 @@ import { useSession } from '../../../session/SessionProvider.tsx';
 import { createScrollChrome } from '../../../collection/scrollChrome.ts';
 import { useMotionAllowed } from '../../../components/motion.tsx';
 import { colors } from '../../../theme.ts';
+import { useThemedStyles } from '../../../appearance/AppearanceProvider.tsx';
 
 const filters: Array<{ type?: CaptureType; label: string }> = [
   { label: 'All' }, { type: 'bookmark', label: 'Links' }, { type: 'image', label: 'Images' }, { type: 'note', label: 'Notes' },
@@ -21,6 +22,7 @@ const filters: Array<{ type?: CaptureType; label: string }> = [
   { type: 'audio', label: 'Audio' }, { type: 'video', label: 'Video' }, { type: 'tweet', label: 'Posts' }, { type: 'file', label: 'Files' },
 ];
 export default function CollectionScreen() {
+  const styles = useThemedStyles(baseStyles);
   const { policy, updateRequired } = useSession();
   const [query, setQuery] = useState('');
   const [listReset, setListReset] = useState(0);
@@ -89,7 +91,7 @@ export default function CollectionScreen() {
   </Screen>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   galleryRegion: { flex: 1, overflow: 'hidden' },
   header: { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 2, paddingHorizontal: 20, paddingTop: 6, paddingBottom: 16, backgroundColor: colors.paper },
   controls: { gap: 14 },

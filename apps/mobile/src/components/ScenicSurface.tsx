@@ -1,4 +1,4 @@
-import { useAppearance } from '../appearance/AppearanceProvider.tsx';
+import { useAppearance, useThemedStyles } from '../appearance/AppearanceProvider.tsx';
 import { GlassView, isGlassEffectAPIAvailable, isLiquidGlassAvailable } from 'expo-glass-effect';
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { AccessibilityInfo, Platform, StyleSheet, useWindowDimensions, View, type ViewProps, type ViewStyle } from 'react-native';
@@ -40,19 +40,23 @@ const webPalette = (scheme: 'light' | 'dark') => Object.entries(palettes[scheme]
 /** Liquid Glass on compatible iOS; frosted web preview and solid fallbacks. */
 export function GlassSurface({ children, style, interactive = false, ...props }: ViewProps & { interactive?: boolean }) {
   const { opaque, scheme } = useMaterial();
+  const styles = useThemedStyles(baseStyles);
+  const palette = palettes[scheme];
   const native = Platform.OS === 'ios' && !opaque && isGlassEffectAPIAvailable() && isLiquidGlassAvailable();
   const Surface = native ? GlassView : View;
   const webFrost = Platform.OS === 'web' && !opaque ? { backdropFilter: 'blur(20px) saturate(140%)', WebkitBackdropFilter: 'blur(20px) saturate(140%)' } as ViewStyle : undefined;
   return <Surface {...props} {...(native ? { glassEffectStyle: 'regular' as const, colorScheme: scheme, tintColor: palettes[scheme].surface, isInteractive: interactive } : {})}
-    style={[styles.material, !native && { backgroundColor: opaque ? colors.surface : colors.glass }, webFrost, style, opaque && { backgroundColor: colors.surface, borderColor: colors.line }]}>{children}</Surface>;
+    style={[styles.material, !native && { backgroundColor: opaque ? palette.surface : palette.glass }, webFrost, style, opaque && { backgroundColor: palette.surface, borderColor: palette.line }]}>{children}</Surface>;
 }
 
 export function FrostedPanel({ children, style, ...props }: ViewProps) {
-  const { opaque } = useMaterial();
-  return <View {...props} style={[styles.panel, { backgroundColor: opaque ? colors.surface : colors.glassCard, borderColor: opaque ? colors.line : colors.glassEdge }, style]}>{children}</View>;
+  const { opaque, scheme } = useMaterial();
+  const styles = useThemedStyles(baseStyles);
+  const palette = palettes[scheme];
+  return <View {...props} style={[styles.panel, { backgroundColor: opaque ? palette.surface : palette.glassCard, borderColor: opaque ? palette.line : palette.glassEdge }, style]}>{children}</View>;
 }
 
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   material: { borderWidth: StyleSheet.hairlineWidth, borderColor: colors.glassEdge, borderRadius: 24, borderCurve: 'continuous', shadowColor: colors.shadow, shadowOffset: { width: 0, height: 5 }, shadowOpacity: .09, shadowRadius: 18, elevation: 3 },
   panel: { borderWidth: 1, borderColor: colors.glassEdge, borderRadius: 22, borderCurve: 'continuous', padding: 20, gap: 14 },
 });

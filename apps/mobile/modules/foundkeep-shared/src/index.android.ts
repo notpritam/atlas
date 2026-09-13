@@ -1,5 +1,5 @@
 import AndroidShares from './androidShares.ts';
-import { copyIncomingFile, localFileName, withTransferTimeout, consumeUploadResponse, saveDownloadedBody } from '../../../src/share/androidIO.ts';
+import { copySharedPayload, localFileName, withTransferTimeout, consumeUploadResponse, saveDownloadedBody } from '../../../src/share/androidIO.ts';
 import * as SecureStore from 'expo-secure-store';
 import { File, Directory, Paths } from 'expo-file-system';
 import { fetch } from 'expo/fetch';
@@ -52,8 +52,8 @@ const runtime = createAndroidRuntime({
   async copy(uri, id, limit) {
     ensure(); const source = new File(uri); const target = payload(id);
     try {
-      const bytes = await copyIncomingFile(source.size, target, limit, () => source.copy(target));
-      const name = await localFileName(uri, value => AndroidShares.localDisplayName(value), source.name);
+      const bytes = await copySharedPayload(uri, source.size, target, limit, () => source.copy(target), (value, maximum) => AndroidShares.copyContentUri(value, target.uri, maximum));
+      const name = await localFileName(uri, value => AndroidShares.localDisplayName(value), uri.startsWith('content://') ? 'Shared file' : source.name);
       return { path: id, name, bytes };
     } catch (error) { removeFile(target); throw error; }
   },

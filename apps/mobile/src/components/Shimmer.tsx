@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Animated, Easing, Platform, StyleSheet, useWindowDimensions, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { colors } from '../theme.ts';
+import { colors, palettes } from '../theme.ts';
 import { useMotionAllowed } from './motion.tsx';
+import { useAppearance, useThemedStyles } from '../appearance/AppearanceProvider.tsx';
 
 /** Transform-only light sweep; stops when hidden, backgrounded or Reduce Motion is on. */
 export function Shimmer({ children, style }: { children?: ReactNode; style?: StyleProp<ViewStyle> }) {
+  const styles = useThemedStyles(baseStyles);
   const allowed = useMotionAllowed();
   const [focused, setFocused] = useState(false);
   useFocusEffect(useCallback(() => { setFocused(true); return () => setFocused(false); }, []));
@@ -29,19 +31,21 @@ export function Shimmer({ children, style }: { children?: ReactNode; style?: Sty
   </View>;
 }
 export function GallerySkeleton({ columns, viewportHeight }: { columns: number; viewportHeight: number }) {
+  const styles = useThemedStyles(baseStyles);
+  const palette = palettes[useAppearance().scheme];
   const { width } = useWindowDimensions();
   const cardHeight = ((width - 36) / columns - 6) / 1.25 + 87;
   const rows = Math.max(1, Math.ceil(viewportHeight / cardHeight));
   return <View accessibilityLabel="Loading your collection" accessibilityRole="progressbar" accessibilityState={{ busy: true }} style={styles.grid}>
     {Array.from({ length: columns * rows }, (_, index) => <View key={index} style={{ width: columns === 1 ? '100%' : '48%' }}>
       <Shimmer style={styles.card}>
-        <View style={{ aspectRatio: 1.25, backgroundColor: colors.line }} />
+        <View style={{ aspectRatio: 1.25, backgroundColor: palette.line }} />
         <View style={styles.copy}><View style={[styles.line, { width: '48%', height: 9 }]} /><View style={styles.line} /><View style={[styles.line, { width: '72%' }]} /></View>
       </Shimmer>
     </View>)}
   </View>;
 }
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   base: { overflow: 'hidden', backgroundColor: colors.accentSoft }, sweep: { position: 'absolute', top: 0, bottom: 0, left: 0, flexDirection: 'row' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
   card: { borderRadius: 12, backgroundColor: colors.surface, borderColor: colors.line, borderWidth: 1 },

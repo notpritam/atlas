@@ -16,15 +16,18 @@ import { Button, Message, Screen } from '../../../components/ui.tsx';
 import { capturePreviewSource } from '../../../collection/preview.ts';
 import { captureTitle } from '../../../collection/model.ts';
 import { useSession } from '../../../session/SessionProvider.tsx';
-import { colors, typography } from '../../../theme.ts';
+import { useAppearance, useThemedStyles } from '../../../appearance/AppearanceProvider.tsx';
+import { colors, palettes, typography } from '../../../theme.ts';
 
 const readableBytes = (value: number) => value < 1024 ? `${value} B` : value < 1048576 ? `${(value / 1024).toFixed(1)} KB` : `${(value / 1048576).toFixed(1)} MB`;
 const date = (value?: number | null) => value ? new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value)) : 'Unknown';
-function Row({ label, value }: { label: string; value?: string | number | null }) { if (value === null || value === undefined || value === '') return null; return <View style={styles.row}><Text style={typography.label}>{label}</Text><Text selectable style={styles.rowValue}>{String(value)}</Text></View>; }
+function Row({ label, value }: { label: string; value?: string | number | null }) { const styles = useThemedStyles(baseStyles); if (value === null || value === undefined || value === '') return null; return <View style={styles.row}><Text style={typography.label}>{label}</Text><Text selectable style={styles.rowValue}>{String(value)}</Text></View>; }
 
 import FoundkeepShared from '../../../../modules/foundkeep-shared/src';
 
 export default function CaptureDetail() {
+  const styles = useThemedStyles(baseStyles);
+  const palette = palettes[useAppearance().scheme];
   const { id } = useLocalSearchParams<{ id: string }>(); const { client, token, account } = useSession(); const [capture, setCapture] = useState<Capture | null>(null); const [error, setError] = useState(''); const [opening, setOpening] = useState(false);
   const [originExpanded, setOriginExpanded] = useState(false);
   const [editing, setEditing] = useState<Capture | null>(null);
@@ -105,7 +108,7 @@ export default function CaptureDetail() {
       {capture.fileName ? <Pressable accessibilityRole="button" accessibilityLabel={opening ? 'Preparing file' : 'Open or share file'} disabled={opening} onPress={() => void openFile()} style={({ pressed }) => [styles.file, pressed && styles.pressed]}>
         <Ionicons name={capture.type === 'audio' ? 'musical-notes-outline' : capture.type === 'video' ? 'videocam-outline' : 'document-outline'} size={24} color={colors.accent} />
         <View style={{ flex: 1, gap: 4 }}><Text style={styles.fileName}>{capture.fileName}</Text><Text style={typography.small}>{capture.fileMime || 'File'} · {readableBytes(capture.fileBytes)}</Text></View>
-        {opening ? <ActivityIndicator color={colors.accent} /> : <Ionicons name="share-outline" size={20} color={colors.accent} />}
+        {opening ? <ActivityIndicator color={palette.accent} /> : <Ionicons name="share-outline" size={20} color={colors.accent} />}
       </Pressable> : null}
       {capture.selectionText || capture.noteText || capture.summary || capture.articleText ? <FrostedPanel style={styles.reading}>
       <Row label="Highlight" value={capture.selectionText} />
@@ -134,9 +137,10 @@ export default function CaptureDetail() {
   </Screen>;
 }
 function QuickAction({ label, icon, onPress }: { label: string; icon: React.ComponentProps<typeof Ionicons>['name']; onPress: () => void }) {
+  const styles = useThemedStyles(baseStyles);
   return <Pressable accessibilityRole="button" accessibilityLabel={label} onPress={onPress} style={({ pressed }) => [styles.quickAction, pressed && styles.pressed]}><Ionicons name={icon} size={22} color={colors.accent} /></Pressable>;
 }
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   page: { padding: 20, paddingTop: 8, paddingBottom: 48, gap: 20 }, loading: { flex: 1, justifyContent: 'center', padding: 24, gap: 16 },
   actions: { flexDirection: 'row' }, quickAction: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center', borderRadius: 22 }, pressed: { opacity: .6 },
   cover: { borderRadius: 24, aspectRatio: 1.05 },

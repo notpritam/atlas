@@ -5,9 +5,11 @@ import { Button,Message,Screen } from '../../components/ui.tsx';
 import { FrostedPanel } from '../../components/ScenicSurface.tsx';
 import { ProcessingControls } from '../../billing/ProcessingControls.tsx';
 import { useBilling } from '../../billing/BillingProvider.tsx';
+import { useThemedStyles } from '../../appearance/AppearanceProvider.tsx';
 import { colors,typography } from '../../theme.ts';
 
 export default function Subscription(){
+  const styles=useThemedStyles(baseStyles);
   const {plan,monthly,loading,busy,error,notice,purchase,restore,refresh}=useBilling();
   const active=plan?.subscriptions.filter(item=>item.active)||[];
   const appStore=active.find(item=>item.provider==='revenuecat');
@@ -35,5 +37,5 @@ export default function Subscription(){
     <View style={styles.links}><Text accessibilityRole="link" style={styles.link} onPress={()=>void Linking.openURL('https://foundkeep.app/terms')}>Terms of Use</Text><Text accessibilityRole="link" style={styles.link} onPress={()=>void Linking.openURL('https://foundkeep.app/privacy')}>Privacy Policy</Text></View>
   </ScrollView></Screen>;
 }
-function Feature({title,detail}:{title:string;detail:string}){return <View style={styles.feature}><Ionicons name="checkmark-circle-outline" size={21} color={colors.accent}/><View style={{flex:1,gap:4}}><Text style={typography.label}>{title}</Text><Text style={typography.small}>{detail}</Text></View></View>;}
-const styles=StyleSheet.create({page:{padding:24,gap:22,paddingBottom:36},badge:{flexDirection:'row',alignItems:'center',gap:9,marginTop:8},eyebrow:{fontSize:12,fontWeight:'700',letterSpacing:1.5,color:colors.accent},feature:{flexDirection:'row',gap:12,paddingVertical:10},legal:{...typography.small,fontSize:12,lineHeight:18},links:{flexDirection:'row',justifyContent:'center',gap:24},link:{...typography.small,textDecorationLine:'underline',color:colors.ink}});
+function Feature({title,detail}:{title:string;detail:string}){const styles=useThemedStyles(baseStyles);return <View style={styles.feature}><Ionicons name="checkmark-circle-outline" size={21} color={colors.accent}/><View style={{flex:1,gap:4}}><Text style={typography.label}>{title}</Text><Text style={typography.small}>{detail}</Text></View></View>;}
+const baseStyles=StyleSheet.create({page:{padding:24,gap:22,paddingBottom:36},badge:{flexDirection:'row',alignItems:'center',gap:9,marginTop:8},eyebrow:{fontSize:12,fontWeight:'700',letterSpacing:1.5,color:colors.accent},feature:{flexDirection:'row',gap:12,paddingVertical:10},legal:{...typography.small,fontSize:12,lineHeight:18},links:{flexDirection:'row',justifyContent:'center',gap:24},link:{...typography.small,textDecorationLine:'underline',color:colors.ink}});

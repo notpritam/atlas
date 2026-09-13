@@ -8,12 +8,21 @@ export async function localFileName(uri: string, providerName: (uri: string) => 
   throw new Error('Only local files can be saved.');
 }
 type CopyTarget = { exists: boolean; size: number };
-/** Expo File.copy is asynchronous for content-provider streams. */
+/** Expo File.copy completes asynchronously for ordinary local file URIs. */
 export async function copyIncomingFile(sourceSize: number, target: CopyTarget, limit: number, copy: () => Promise<void>): Promise<number> {
   if (sourceSize > limit) throw new Error('This file exceeds the saving limit.');
   await copy();
   if (!target.exists || target.size <= 0 || target.size > limit) throw new Error('This file is empty or exceeds the saving limit.');
   return target.size;
+}
+export async function copySharedPayload(uri: string, sourceSize: number, target: CopyTarget, limit: number, fileCopy: () => Promise<void>, contentCopy: (uri: string, limit: number) => Promise<number>): Promise<number> {
+  if (uri.startsWith('content://')) {
+    if (sourceSize > limit) throw new Error('This file exceeds the saving limit.');
+    const bytes = await contentCopy(uri, limit);
+    if (!target.exists || bytes <= 0 || bytes > limit) throw new Error('This file is empty or exceeds the saving limit.');
+    return bytes;
+  }
+  return copyIncomingFile(sourceSize, target, limit, fileCopy);
 }
 export class TransferTimeoutError extends Error {
   constructor() { super('The transfer took too long. Please try again.'); this.name = 'TransferTimeoutError'; }

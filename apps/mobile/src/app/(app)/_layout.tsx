@@ -3,15 +3,18 @@ import { Redirect, Stack } from 'expo-router';
 import { ActivityIndicator, View } from 'react-native';
 import { useSession } from '../../session/SessionProvider.tsx';
 import { useMotionAllowed } from '../../components/motion.tsx';
-import { colors } from '../../theme.ts';
+import { useAppearance } from '../../appearance/AppearanceProvider.tsx';
+import { palettes } from '../../theme.ts';
 
 export const unstable_settings = { initialRouteName: '(tabs)' };
 export default function AppLayout() {
   const { ready, account } = useSession();
   const motion = useMotionAllowed();
-  if (!ready) return <View style={{ flex: 1, backgroundColor: colors.paper, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={colors.accent} /></View>;
+  const { scheme } = useAppearance();
+  const palette = palettes[scheme];
+  if (!ready) return <View style={{ flex: 1, backgroundColor: palette.paper, alignItems: 'center', justifyContent: 'center' }}><ActivityIndicator color={palette.accent} /></View>;
   if (!account) return <Redirect href="/(auth)/sign-in" />;
-  return <BillingProvider><Stack screenOptions={{ headerStyle: { backgroundColor: colors.paper }, headerTintColor: colors.accent, headerTitleStyle: { color: colors.ink, fontSize: 17, fontWeight: '600' }, headerShadowVisible: false, contentStyle: { backgroundColor: colors.paper }, animation: motion ? 'default' : 'fade', headerBackButtonDisplayMode: 'minimal' }}>
+  return <BillingProvider><Stack screenOptions={{ headerStyle: { backgroundColor: palette.paper }, headerTintColor: palette.accent, headerTitleStyle: { color: palette.ink, fontSize: 17, fontWeight: '600' }, headerShadowVisible: false, contentStyle: { backgroundColor: palette.paper }, animation: motion ? 'default' : 'fade', headerBackButtonDisplayMode: 'minimal' }}>
     <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
     <Stack.Screen name="capture/[id]" options={{ title: 'Saved item' }} />
     <Stack.Screen name="batch/[id]" options={{ title: 'Saved together' }} />

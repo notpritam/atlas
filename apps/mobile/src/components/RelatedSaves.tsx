@@ -9,8 +9,10 @@ import { useSession } from '../session/SessionProvider.tsx';
 import { colors, typography } from '../theme.ts';
 import { CapturePreview } from './CapturePreview.tsx';
 import { Shimmer } from './Shimmer.tsx';
+import { useThemedStyles } from '../appearance/AppearanceProvider.tsx';
 
 export function RelatedSaves({ capture }: { capture: Capture }) {
+  const styles = useThemedStyles(baseStyles);
   const { client } = useSession();
   const [items, setItems] = useState<RelatedSave[] | null>(null);
   const [failed, setFailed] = useState(false);
@@ -46,7 +48,7 @@ export function RelatedSaves({ capture }: { capture: Capture }) {
       </Pressable>) : <Text style={typography.small}>Saves with shared tags, folders, or sources will appear here.</Text>}
   </View>;
 }
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   section: { gap: 14, paddingTop: 8 }, item: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: colors.line },
   preview: { width: 56, height: 60, aspectRatio: undefined, borderRadius: 8 }, copy: { flex: 1, gap: 5 }, title: { color: colors.ink, fontSize: 15, lineHeight: 21, fontWeight: '600' },
   skeleton: { height: 72, borderRadius: 10 }, retry: { minHeight: 44, justifyContent: 'center', alignSelf: 'flex-start' }, link: { color: colors.accent, fontSize: 15, fontWeight: '600' },

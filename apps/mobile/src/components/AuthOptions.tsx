@@ -3,11 +3,13 @@ import { useState, type ReactNode } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { AdaptiveIcon as Ionicons } from './AdaptiveIcon.tsx';
 import { OAuthButtons } from './OAuthButtons.tsx';
+import { useThemedStyles } from '../appearance/AppearanceProvider.tsx';
 import { colors } from '../theme.ts';
 
 /** Providers come first; email remains available even when provider discovery fails. */
 export function AuthOptions({ children }: { children: ReactNode }) {
   const [emailOpen, setEmailOpen] = useState(false);
+  const styles = useThemedStyles(baseStyles);
   return <View style={styles.options}>
     <OAuthButtons />
     <Pressable accessibilityRole="button" accessibilityLabel="Continue with email" accessibilityState={{ expanded: emailOpen }} aria-expanded={emailOpen} onPress={() => setEmailOpen(value => !value)} style={({ pressed }) => [styles.email, pressed && { opacity: .7 }]}>
@@ -18,7 +20,7 @@ export function AuthOptions({ children }: { children: ReactNode }) {
     {emailOpen ? <View style={styles.fields}>{children}</View> : null}
   </View>;
 }
-const styles = StyleSheet.create({
+const baseStyles = StyleSheet.create({
   options: { gap: 10 },
   email: { minHeight: 52, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 18, gap: 12, borderRadius: 13, borderWidth: 1, borderColor: colors.line },
   label: { flex: 1, color: colors.ink, fontSize: 15, fontWeight: '600' },

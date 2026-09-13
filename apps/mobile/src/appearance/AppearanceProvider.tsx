@@ -1,8 +1,8 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Appearance, Platform, useColorScheme } from 'react-native';
 import * as SecureStore from 'expo-secure-store';
 import { getEnvironment } from '../environment.ts';
-import { appearanceStorageKey, normalizeAppearance, resolvedAppearance, type AppearancePreference } from './preferences.ts';
+import { appearanceStorageKey, normalizeAppearance, resolvedAppearance, resolvedThemeStyle, type AppearancePreference } from './preferences.ts';
 const Context = createContext({preference:'system' as AppearancePreference,scheme:'light' as 'light'|'dark',setPreference:async (_value:AppearancePreference)=>{}});
 export function AppearanceProvider({children}:{children:ReactNode}) {
   const [preference,setValue] = useState<AppearancePreference>('system');
@@ -22,3 +22,7 @@ export function AppearanceProvider({children}:{children:ReactNode}) {
   return <Context.Provider value={{preference,scheme:resolvedAppearance(preference,system),setPreference}}>{children}</Context.Provider>;
 }
 export const useAppearance=()=>useContext(Context);
+export function useThemedStyles<T extends Record<string, unknown>>(styles: T): T {
+  const { scheme } = useAppearance();
+  return useMemo(() => Object.fromEntries(Object.entries(styles).map(([name, style]) => [name, resolvedThemeStyle(style, scheme)])) as T, [scheme, styles]);
+}

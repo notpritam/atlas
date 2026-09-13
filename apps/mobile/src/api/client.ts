@@ -6,6 +6,15 @@ import type { OAuthIntent, OAuthProvider } from '../auth-oauth.ts';
 
 const REQUEST_TIMEOUT = 15_000;
 
+function appNoteProvenance(capturedAt: number) {
+  return {
+    schemaVersion: 1, captureMethod: `${getMobilePlatform()}-app-note`, pageUrl: null, canonicalUrl: null,
+    pageTitle: null, siteName: null, description: null, authors: [], publishedAt: null, modifiedAt: null,
+    language: null, leadImageUrl: null, faviconUrl: null, targetUrl: null, headings: [], capturedAt,
+    extractedAt: capturedAt, extractorVersion: 1, contentHash: null, extractionStatus: 'complete', extractionError: null,
+  };
+}
+
 export class FoundkeepApiError extends Error {
   readonly status: number;
   readonly code: string;
@@ -144,7 +153,7 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
       return json<CaptureList>(`/api/mobile/captures?${query}`, { cacheMs: 10_000, ...options });
     },
     createNote(value: { clientId: string; noteText: string; capturedAt: number; folderId?: string | null; userTags?: string[] }) {
-      return json<{ capture: Capture; duplicate: boolean }>('/api/captures', { method: 'POST', body: { ...value, type: 'note' } });
+      return json<{ capture: Capture; duplicate: boolean }>('/api/captures', { method: 'POST', body: { ...value, type: 'note', provenance: appNoteProvenance(value.capturedAt) } });
     },
     getCapture: (id: string, options: ReadOptions = {}) => json<{ capture: Capture }>(`/api/mobile/captures/${encodeURIComponent(id)}`, { cacheMs: 20_000, ...options }),
     relatedCaptures: (id: string, options: ReadOptions = {}) => json<{ items: RelatedSave[] }>(`/api/mobile/captures/${encodeURIComponent(id)}/related`, { cacheMs: 10_000, ...options }),

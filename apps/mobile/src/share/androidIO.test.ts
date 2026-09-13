@@ -9,12 +9,19 @@ test('filenames use local content metadata and sanitize path/control characters'
  await assert.rejects(localFileName('https://external.example/photo',async()=>{throw Error('must not fetch');},'photo'),'Only local files');
  assert.equal(safeDisplayName('..\\photo.jpg'),'photo.jpg');
 });
-test('content-provider copy finishes before the private payload is validated',async()=>{
+test('local file copy finishes before the private payload is validated',async()=>{
  const copyIncomingFile=(androidIO as unknown as {copyIncomingFile?: (sourceSize:number,target:{exists:boolean;size:number},limit:number,copy:()=>Promise<void>)=>Promise<number>}).copyIncomingFile;
  assert.equal(typeof copyIncomingFile,'function');
  const target={exists:false,size:0};
  const source={size:11_455,copy:async()=>{await Promise.resolve();target.exists=true;target.size=11_455;}};
  assert.equal(await copyIncomingFile?.(source.size,target,50_000,()=>source.copy()),11_455);
+});
+test('content-provider payloads use the bounded native stream adapter instead of File.copy',async()=>{
+ const copySharedPayload=(androidIO as unknown as {copySharedPayload?: (uri:string,sourceSize:number,target:{exists:boolean;size:number},limit:number,fileCopy:()=>Promise<void>,contentCopy:(uri:string,limit:number)=>Promise<number>)=>Promise<number>}).copySharedPayload;
+ assert.equal(typeof copySharedPayload,'function');
+ const target={exists:false,size:0};let fileCopies=0,nativeCopies=0;
+ const bytes=await copySharedPayload?.('content://media/external/images/media/20',11_455,target,50_000,async()=>{fileCopies++;},async(uri,limit)=>{nativeCopies++;assert.equal(uri,'content://media/external/images/media/20');assert.equal(limit,50_000);target.exists=true;target.size=11_455;return 11_455;});
+ assert.equal(bytes,11_455);assert.equal(fileCopies,0);assert.equal(nativeCopies,1);
 });
 test('upload response parsing retains folder errors and consumes UTF-8 chunks',async()=>{
  const bytes=new TextEncoder().encode('{"error":"folder_not_found"}');let read=false;

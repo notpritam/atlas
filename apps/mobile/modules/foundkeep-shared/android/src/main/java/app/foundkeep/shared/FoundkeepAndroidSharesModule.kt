@@ -9,6 +9,8 @@ import expo.modules.kotlin.functions.Queues
 import expo.modules.kotlin.modules.Module
 import expo.modules.kotlin.modules.ModuleDefinition
 import expo.modules.sharing.SharingSingleton
+import java.io.File
+import java.io.FileOutputStream
 import java.util.UUID
 import java.util.WeakHashMap
 
@@ -52,6 +54,40 @@ class FoundkeepAndroidSharesModule : Module() {
       context.contentResolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)?.use { cursor ->
         val column = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
         if (column >= 0 && cursor.moveToFirst() && !cursor.isNull(column)) cursor.getString(column) else null
+      }
+    }
+    AsyncFunction("copyContentUri") { sourceValue: String, destinationValue: String, limitValue: Double ->
+      val source = Uri.parse(sourceValue)
+      val destinationUri = Uri.parse(destinationValue)
+      require(source.scheme == "content") { "Only a local content URI can be copied." }
+      require(destinationUri.scheme == "file") { "The private destination must be a file URI." }
+      require(limitValue.isFinite() && limitValue >= 1 && limitValue <= Long.MAX_VALUE.toDouble()) { "The file limit is invalid." }
+      val root = appContext.persistentFilesDirectory.canonicalFile
+      val destination = File(requireNotNull(destinationUri.path) { "The private destination is invalid." }).canonicalFile
+      require(destination.path.startsWith(root.path + File.separator)) { "The private destination is outside app storage." }
+      require(!destination.exists()) { "The private destination already exists." }
+      val limit = limitValue.toLong()
+      try {
+        val input = context.contentResolver.openInputStream(source) ?: error("The shared file could not be opened.")
+        var total = 0L
+        input.use { stream ->
+          FileOutputStream(destination, false).use { output ->
+            val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+            while (true) {
+              val count = stream.read(buffer)
+              if (count < 0) break
+              val next = total + count
+              require(next <= limit) { "This file exceeds the saving limit." }
+              output.write(buffer, 0, count)
+              total = next
+            }
+          }
+        }
+        require(total > 0) { "This file is empty." }
+        total
+      } catch (error: Throwable) {
+        destination.delete()
+        throw error
       }
     }
   }
