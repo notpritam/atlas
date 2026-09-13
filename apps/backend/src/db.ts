@@ -540,6 +540,8 @@ const MIGRATIONS: string[] = [
    ALTER TABLE customer_automation ADD COLUMN interval_hours INTEGER NOT NULL DEFAULT 24;
    ALTER TABLE customer_automation ADD COLUMN monthly_limit INTEGER NOT NULL DEFAULT 500;
    ALTER TABLE customer_automation ADD COLUMN next_run_at INTEGER;`,
+  // A due scheduled cohort survives bounded pages, quota holds and worker restarts.
+  `ALTER TABLE customer_automation ADD COLUMN scheduled_cutoff INTEGER;`,
 ];
 
 export const DATABASE_SCHEMA_VERSION = MIGRATIONS.length;

@@ -22,7 +22,7 @@
     "verify:ios": "node scripts/verify-ios-project.mjs",
     "store:screenshots": "expo export --platform web --output-dir dist-store-preview && node scripts/render-store-screenshots.mjs",
     "typecheck": "node scripts/generate-routes.mjs && tsc --noEmit",
-    "test": "node --test scripts/config.test.mjs scripts/runtime.test.mjs src/api/client.test.ts src/auth-oauth.test.ts src/collection/model.test.ts src/collection/scrollChrome.test.ts src/collection/preview.test.ts src/collection/organization.test.ts src/linking/deepLinks.test.ts src/policy/mobilePolicy.test.ts src/share/queue.test.ts src/share/safariPreprocessor.test.mjs src/billing/controller.test.ts src/environment.test.ts src/share/androidRuntime.test.ts src/billing/automation.test.ts src/appearance/preferences.test.ts src/share/incomingReceipts.test.ts src/share/androidIO.test.ts"
+    "test": "node --test scripts/config.test.mjs scripts/runtime.test.mjs src/api/client.test.ts src/auth-oauth.test.ts src/collection/model.test.ts src/collection/scrollChrome.test.ts src/collection/preview.test.ts src/collection/organization.test.ts src/linking/deepLinks.test.ts src/policy/mobilePolicy.test.ts src/share/queue.test.ts src/share/safariPreprocessor.test.mjs src/billing/controller.test.ts src/environment.test.ts src/share/androidRuntime.test.ts src/billing/automation.test.ts src/billing/processingObserver.test.ts src/appearance/preferences.test.ts src/share/incomingReceipts.test.ts src/share/androidIO.test.ts"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.1.1",

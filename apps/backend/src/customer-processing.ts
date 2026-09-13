@@ -19,7 +19,7 @@ const LEASE_MS=360_000;
 const FAILURE='Processing could not finish. Your original is safe.';
 type Save={id:string;account_id:string;type:string;source_title:string|null;source_url:string|null;note_text:string|null;selection_text:string|null;article_text:string|null;ocr_text:string|null;blob_data:Uint8Array|null;blob_mime:string|null;file_path:string|null;file_mime:string|null;file_bytes:number;summary:string|null;category:string|null;tags:string;storage_bytes:number;status:string;enrich_attempts:number;created_at:number;provenance_json:string|null;updated_at:number};
 type Job={id:string;account_id:string;capture_id:string;source_hash:string;status:string;attempts:number;cycle:string;credit:number;lease_token:string|null;reason:string};
-type SettingsRow={enabled:number;fetch_links:number;images:number;consent_version:string|null;enabled_at:number;mode:'instant'|'scheduled'|'manual'|'paused';interval_hours:number;monthly_limit:number;next_run_at:number|null};
+type SettingsRow={enabled:number;fetch_links:number;images:number;consent_version:string|null;enabled_at:number;mode:'instant'|'scheduled'|'manual'|'paused';interval_hours:number;monthly_limit:number;next_run_at:number|null;scheduled_cutoff:number|null};
 type Options={root?:string;remote?:RemoteDownloader;ai?:{available:boolean;model:string;organize(input:AiInput):Promise<AiResult>};source?:(url:string)=>Promise<SourceSnapshot>;now?:()=>number;globalMaxBytes?:number;dailyAttempts?:number;media?:(save:Save)=>Promise<MediaResult>};
 const bytes=(value:unknown)=>Buffer.byteLength(typeof value==='string'?value:JSON.stringify(value),'utf8');
 function fingerprint(row:Save){return createHash('sha256').update(JSON.stringify([row.type,row.source_title,row.source_url,row.note_text,row.selection_text,row.article_text,row.ocr_text,row.file_path,row.file_bytes,row.blob_mime])).update(row.blob_data||new Uint8Array()).digest('hex');}
@@ -50,10 +50,16 @@ export function createProcessingService(db:Database,options:Options={}){
    if(enabled&&value.consentVersion!==CONSENT_VERSION&&previous?.consent_version!==CONSENT_VERSION)moduleFail(400,'consent_required','Confirm that selected content can be sent to OpenAI for organization.');
    const mode=String(value.mode??previous?.mode??'instant'),interval=Number(value.intervalHours??previous?.interval_hours??24),limit=Number(value.monthlyLimit??previous?.monthly_limit??500);
    const resetSchedule=enabled&&(!previous?.enabled||previous.mode!==mode||previous.interval_hours!==interval);
-   const nextRun=enabled&&mode==='scheduled'?(resetSchedule?now()+interval*3600_000:previous?.next_run_at??now()+interval*3600_000):null;
+   let nextRun:number|null=null;
+   if(enabled&&mode==='scheduled'){
+    const cutoff=previous?.scheduled_cutoff;
+    nextRun=cutoff!=null?previous?.next_run_at??cutoff+interval*3600_000:
+     resetSchedule?now()+interval*3600_000:previous?.next_run_at??now()+interval*3600_000;
+   }else if(enabled&&mode==='paused')nextRun=previous?.next_run_at??null;
    db.query(`INSERT INTO customer_automation(account_id,enabled,fetch_links,images,consent_version,enabled_at,updated_at,mode,interval_hours,monthly_limit,next_run_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)
      ON CONFLICT(account_id) DO UPDATE SET enabled=excluded.enabled,fetch_links=excluded.fetch_links,images=excluded.images,consent_version=excluded.consent_version,enabled_at=excluded.enabled_at,updated_at=excluded.updated_at,mode=excluded.mode,interval_hours=excluded.interval_hours,monthly_limit=excluded.monthly_limit,next_run_at=excluded.next_run_at`)
     .run(owner,Number(enabled),Number(value.fetchLinks??!!previous?.fetch_links),Number(value.images??!!previous?.images),enabled?CONSENT_VERSION:previous?.consent_version||null,enabled&&!previous?.enabled?now():previous?.enabled_at??now(),now(),mode,interval,limit,nextRun);
+   if(!enabled||mode==='instant'||mode==='manual')db.query('UPDATE customer_automation SET scheduled_cutoff=NULL WHERE account_id=?').run(owner);
    const withdrawn=!enabled||!!previous?.fetch_links&&value.fetchLinks===false||!!previous?.images&&value.images===false;
    const jobs=db.query("SELECT * FROM customer_processing_jobs WHERE account_id=? AND status IN ('pending','running','paused')").all(owner) as Job[];
    for(const job of jobs){
@@ -106,14 +112,38 @@ export function createProcessingService(db:Database,options:Options={}){
    for(const owner of owners)db.transaction(()=>{
     if(!accountPlan(db,owner.account_id,now()).pro)return;
     const preference=prefs(owner.account_id)!;
-    const automatic=preference.mode==='instant'||preference.mode==='scheduled'&&(preference.next_run_at??Infinity)<=now();
-    const held=db.query("SELECT capture_id,reason FROM customer_processing_jobs WHERE account_id=? AND status='paused' ORDER BY created_at LIMIT 20").all(owner.account_id) as {capture_id:string;reason:'manual'|'agent'|'new-save'}[];
-    for(const job of held)if(job.reason!=='new-save'||automatic){try{enqueue(owner.account_id,job.capture_id,job.reason);}catch{break;}}
-    if(!automatic)return;
-    const saves=db.query(`SELECT id FROM customer_captures c WHERE account_id=? AND created_at>=? AND (status='done' OR (status='failed' AND enrich_attempts>=3))
-      AND NOT EXISTS(SELECT 1 FROM customer_processing_jobs j WHERE j.capture_id=c.id) ORDER BY created_at LIMIT 20`).all(owner.account_id,preference.enabled_at) as {id:string}[];
-    for(const save of saves){try{enqueue(owner.account_id,save.id,'new-save');}catch{break;}}
-    if(preference.mode==='scheduled')db.query('UPDATE customer_automation SET next_run_at=? WHERE account_id=?').run(now()+preference.interval_hours*3600_000,owner.account_id);
+    const cutoff=preference.mode==='scheduled'?(preference.scheduled_cutoff??((preference.next_run_at??Infinity)<=now()?preference.next_run_at:null)):null;
+    if(cutoff!==null&&preference.scheduled_cutoff===null)db.query('UPDATE customer_automation SET scheduled_cutoff=? WHERE account_id=?').run(cutoff,owner.account_id);
+    const automatic=preference.mode==='instant'||cutoff!==null;
+    const upper=cutoff??Number.MAX_SAFE_INTEGER;
+    // Filter before paging so ineligible automatic jobs cannot block manual work.
+    const held=db.query(`SELECT j.capture_id,j.reason FROM customer_processing_jobs j JOIN customer_captures c ON c.id=j.capture_id AND c.account_id=j.account_id
+      WHERE j.account_id=? AND j.status='paused' AND (j.reason<>'new-save' OR (? AND c.created_at<=?))
+      AND (c.status='done' OR (c.status='failed' AND c.enrich_attempts>=3)) ORDER BY j.created_at,j.id LIMIT 20`).all(owner.account_id,Number(automatic),upper) as {capture_id:string;reason:'manual'|'agent'|'new-save'}[];
+    const saves=automatic?db.query(`SELECT id FROM customer_captures c WHERE account_id=? AND created_at>=? AND created_at<=? AND (status='done' OR (status='failed' AND enrich_attempts>=3))
+      AND NOT EXISTS(SELECT 1 FROM customer_processing_jobs j WHERE j.capture_id=c.id) ORDER BY created_at,id LIMIT 20`).all(owner.account_id,preference.enabled_at,upper) as {id:string}[]:[];
+    const cycle=new Date(now()).toISOString().slice(0,7);
+    const usage=db.query('SELECT used,reserved FROM customer_processing_usage WHERE account_id=? AND cycle=?').get(owner.account_id,cycle) as {used:number;reserved:number}|null;
+    let remaining=Math.min(preference.monthly_limit,accountPlan(db,owner.account_id,now()).limits.monthlyProcessing)-(usage?.used||0)-(usage?.reserved||0);
+    // A full allowance leaves the cohort intact without repeatedly attempting reservations.
+    for(const item of [...held.map(job=>({id:job.capture_id,reason:job.reason})),...saves.map(save=>({...save,reason:'new-save' as const}))]){
+     if(remaining<=0)break;
+     try{enqueue(owner.account_id,item.id,item.reason);remaining--;}catch{break;}
+    }
+    if(cutoff!==null){
+     const waiting=db.query(`SELECT 1 FROM customer_captures c WHERE c.account_id=? AND c.created_at<=? AND (c.status='done' OR (c.status='failed' AND c.enrich_attempts>=3))
+       AND ((c.created_at>=? AND NOT EXISTS(SELECT 1 FROM customer_processing_jobs j WHERE j.capture_id=c.id))
+         OR EXISTS(SELECT 1 FROM customer_processing_jobs j WHERE j.capture_id=c.id AND j.status='paused' AND j.reason='new-save')) LIMIT 1`).get(owner.account_id,cutoff,preference.enabled_at);
+     if(!waiting){
+      const interval=preference.interval_hours*3600_000;
+      const next=cutoff+(Math.floor(Math.max(0,now()-cutoff)/interval)+1)*interval;
+      // Keep the cutoff while queued work settles: a later pause/cap reduction
+      // must resume that same cohort, even after every page was reserved.
+      const active=db.query(`SELECT 1 FROM customer_processing_jobs j JOIN customer_captures c ON c.id=j.capture_id AND c.account_id=j.account_id
+        WHERE j.account_id=? AND j.reason='new-save' AND j.status IN ('pending','running') AND c.created_at<=? LIMIT 1`).get(owner.account_id,cutoff);
+      db.query('UPDATE customer_automation SET next_run_at=?,scheduled_cutoff=? WHERE account_id=?').run((preference.next_run_at??0)>cutoff?preference.next_run_at:next,active?cutoff:null,owner.account_id);
+     }
+    }
    }).immediate();
    const job=db.transaction(()=>{
     const stale=db.query("SELECT * FROM customer_processing_jobs WHERE status='running' AND lease_until<? AND attempts>=3").all(now()) as Job[];for(const row of stale)settle(row,'failed',FAILURE);

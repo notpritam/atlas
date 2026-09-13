@@ -54,7 +54,7 @@ export default function CaptureDetail() {
     const appState = AppState.addEventListener('change', state => { if (state === 'active') void load(true); });
     const poll = setInterval(() => { if (AppState.currentState === 'active' && pending.current) void load(true); }, 5_000);
     return () => { live = false; request++; clearInterval(poll); unsubscribe(); appState.remove(); };
-  }, [client, id, retry]));
+  }, [client, account?.id, token, id, retry]));
   const remove = () => Alert.alert('Delete this save?', 'This permanently removes it from your Foundkeep account.', [{ text: 'Keep it', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => { try { await client.deleteCapture(id); router.replace('/(app)/(tabs)/collection'); } catch (value) { setError((value as Error).message); } } }]);
   const openFile = async () => {
     if (!capture?.fileName) return;
@@ -130,8 +130,8 @@ export default function CaptureDetail() {
         </View> : null}
       </FrostedPanel>
       <Message error>{error}</Message>
-      <ProcessCapture key={capture.id} id={capture.id} status={capture.status} onProcessed={()=>client.invalidate()} />
-      <RelatedSaves key={capture.id} capture={capture} />
+      <ProcessCapture key={`${account?.id}:${capture.id}`} id={capture.id} status={capture.status} onProcessed={()=>client.invalidate()} />
+      <RelatedSaves key={`${account?.id}:${capture.id}`} capture={capture} />
     </ScrollView>
     {editing ? <EditCaptureSheet capture={editing} onClose={() => setEditing(null)} /> : null}
   </Screen>;

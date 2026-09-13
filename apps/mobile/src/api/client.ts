@@ -1,7 +1,7 @@
 import { normalizeAutomation } from '../billing/automation.ts';
 import { getEnvironment, getMobilePlatform } from '../environment.ts';
 import type { Account, Capture, CaptureList, Folder, Organization, NativeSession, Usage, RelatedSave } from './types.ts';
-import type { Plan, AutomationState } from '../billing/types.ts';
+import type { Plan, AutomationState, ProcessingState } from '../billing/types.ts';
 import type { OAuthIntent, OAuthProvider } from '../auth-oauth.ts';
 
 const REQUEST_TIMEOUT = 15_000;
@@ -26,7 +26,7 @@ export class FoundkeepApiError extends Error {
 }
 
 type ClientOptions = { getToken: () => Promise<string | null>; fetcher?: typeof fetch };
-type JsonOptions = { method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; body?: unknown; authenticated?: boolean; cacheMs?: number; reload?: boolean };
+type JsonOptions = { method?: 'GET' | 'POST' | 'PUT' | 'DELETE'; body?: unknown; authenticated?: boolean; cacheMs?: number; reload?: boolean; signal?: AbortSignal };
 type ReadOptions = { reload?: boolean };
 
 export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptions) {
@@ -53,6 +53,9 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
   async function request<T>(path: string, options: JsonOptions, token: string | null): Promise<{ value: T; bytes: number }> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT);
+    const abort = () => controller.abort();
+    options.signal?.addEventListener('abort', abort, { once: true });
+    if (options.signal?.aborted) controller.abort();
     try {
       const headers = new Headers({ accept: 'application/json' });
       if (options.body !== undefined) headers.set('content-type', 'application/json');
@@ -78,7 +81,7 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
       if (error instanceof FoundkeepApiError) throw error;
       if ((error as Error)?.name === 'AbortError') throw new FoundkeepApiError(0, 'timeout', 'Foundkeep took too long to respond. Try again.');
       throw new FoundkeepApiError(0, 'offline', 'Foundkeep could not connect. Check your internet connection and try again.');
-    } finally { clearTimeout(timer); }
+    } finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
   }
 
   async function json<T>(path: string, options: JsonOptions = {}): Promise<T> {
@@ -89,6 +92,13 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
       clearCache();
       try { return (await request<T>(path, options, token)).value; }
       finally { invalidate(); }
+    }
+    // Lifecycle-owned reads must be independently cancellable and cannot reuse a
+    // request from an earlier focus/account. They never populate the detail cache.
+    if (options.signal) {
+      const result = await request<T>(path, options, token);
+      if (options.signal.aborted || token !== await getToken()) throw new FoundkeepApiError(0, 'account_changed', 'The active account changed.');
+      return result.value;
     }
     const cached = cache.get(path);
     if (!options.reload && cached && cached.expiresAt > Date.now()) {
@@ -117,6 +127,7 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
     cancelMobilePurchase: (attemptId:string) => json('/api/billing/revenuecat/purchase-cancelled',{method:'POST',body:{attemptId}}),
     automation: async () => normalizeAutomation(await json<AutomationState>('/api/automation')),
     updateAutomation: (value:Partial<Pick<AutomationState,'enabled'|'fetchLinks'|'images'|'consentVersion'|'mode'|'intervalHours'|'monthlyLimit'>>) => json<AutomationState>('/api/automation', {method:'PUT',body:value}).then(normalizeAutomation),
+    processingState: (id:string, signal:AbortSignal) => json<ProcessingState>('/api/captures/'+encodeURIComponent(id)+'/processing',{signal}),
     processCapture: (id:string) => json<{id:string;status:string}>('/api/captures/'+encodeURIComponent(id)+'/process',{method:'POST',body:{}}),
     syncRevenueCat: () => json<Omit<Plan, 'billing'>>('/api/billing/revenuecat/sync', { method: 'POST' }),
     subscribeInvalidation(listener: () => void) { listeners.add(listener); return () => { listeners.delete(listener); }; },

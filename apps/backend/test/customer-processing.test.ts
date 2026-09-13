@@ -146,3 +146,50 @@ test('edited paused saves retire obsolete jobs so the twenty-first save resumes 
  for(const id of ids){expect(s.enqueue(owner,id,'manual').status).toBe('done');expect(db.query("SELECT COUNT(*) n FROM customer_processing_jobs WHERE capture_id=? AND status='done'").get(id)).toEqual({n:1});}
  expect(s.settings(owner).usage).toMatchObject({used:21,reserved:0});
 });
+
+function scheduledCohort(count=27) {
+ let clock=Date.now();const start=clock;let calls=0;
+ writeSubscription(db,owner,'revenuecat',{status:'active',expiresAt:clock+72*3600_000,renews:true,sandbox:false});
+ const s=createProcessingService(db,{ai:{available:true,model:'test',organize:async()=>{calls++;return result;}},now:()=>clock});
+ s.configure(owner,{enabled:true,consentVersion:CONSENT_VERSION,mode:'scheduled',intervalHours:1});
+ db.query('DELETE FROM customer_captures WHERE id=?').run(capture);
+ const add=(id:string,createdAt:number)=>db.query("INSERT INTO customer_captures(id,account_id,client_id,type,status,note_text,storage_bytes,captured_at,created_at,updated_at) VALUES(?,?,?,'note','done','Cohort note',10,?,?,?)").run(id,owner,id,createdAt,createdAt,createdAt);
+ const ids=Array.from({length:count},(_,i)=>'cohort-'+i);for(const id of ids)add(id,start);
+ return {s,ids,start,add,setClock:(value:number)=>{clock=value;},calls:()=>calls};
+}
+test('scheduled cohorts drain bounded pages exactly once and defer arrivals after the due cutoff',async()=>{
+ const f=scheduledCohort();const due=f.start+3600_000;f.setClock(due);await f.s.tick();
+ expect(db.query('SELECT COUNT(*) n FROM customer_processing_jobs').get()).toEqual({n:20});
+ f.add('later-arrival',due+1);f.setClock(due+1000);
+ for(let i=0;i<32;i++)await f.s.tick();
+ expect(f.calls()).toBe(27);expect(f.s.settings(owner).usage).toMatchObject({used:27,reserved:0});
+ expect(f.s.settings(owner).nextRunAt).toBe(due+3600_000);
+ expect(db.query('SELECT COUNT(*) n FROM customer_processing_jobs WHERE capture_id=?').get('later-arrival')).toEqual({n:0});
+ for(const id of f.ids)expect(db.query("SELECT COUNT(*) n FROM customer_processing_jobs WHERE capture_id=? AND status='done'").get(id)).toEqual({n:1});
+ f.setClock(due+3600_000);await f.s.tick();expect(f.s.details(owner,'later-arrival')).not.toBeNull();
+});
+test('more than twenty held automatic jobs drain at their due boundary',async()=>{
+ const f=scheduledCohort();f.s.configure(owner,{mode:'instant'});
+ for(const id of f.ids)f.s.enqueue(owner,id,'new-save');
+ f.s.configure(owner,{mode:'scheduled'});const due=f.start+3600_000;
+ f.setClock(due);for(let i=0;i<32;i++)await f.s.tick();
+ expect(f.calls()).toBe(27);expect(f.s.settings(owner).usage).toMatchObject({used:27,reserved:0});
+ expect(f.s.settings(owner).nextRunAt).toBe(due+3600_000);
+});
+test('a scheduled cohort survives quota holds and pause without admitting later saves or waiting another interval',async()=>{
+ const f=scheduledCohort();f.s.configure(owner,{monthlyLimit:2});const due=f.start+3600_000;f.setClock(due);
+ for(let i=0;i<6;i++)await f.s.tick();expect(f.calls()).toBe(2);
+ f.s.configure(owner,{mode:'paused'});f.add('later-arrival',due+1);f.setClock(due+1000);
+ for(let i=0;i<3;i++)await f.s.tick();expect(f.calls()).toBe(2);
+ f.s.configure(owner,{mode:'scheduled',monthlyLimit:500});
+ for(let i=0;i<32;i++)await f.s.tick();
+ expect(f.calls()).toBe(27);expect(f.s.settings(owner).usage).toMatchObject({used:27,reserved:0});
+ expect(f.s.settings(owner).nextRunAt).toBe(due+3600_000);expect(f.s.details(owner,'later-arrival')).toBeNull();
+});
+test('pausing a fully queued scheduled cohort does not delay its remaining jobs to a new interval',async()=>{
+ const f=scheduledCohort();const due=f.start+3600_000;f.setClock(due);
+ await f.s.tick();await f.s.tick();expect(db.query('SELECT COUNT(*) n FROM customer_processing_jobs').get()).toEqual({n:27});
+ f.s.configure(owner,{mode:'paused'});f.setClock(due+1000);f.s.configure(owner,{mode:'scheduled'});
+ for(let i=0;i<32;i++)await f.s.tick();
+ expect(f.calls()).toBe(27);expect(f.s.settings(owner).nextRunAt).toBe(due+3600_000);
+});

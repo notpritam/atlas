@@ -7,3 +7,8 @@ export type Plan = {
 };
 
 export type AutomationState={available:boolean;enabled:boolean;fetchLinks:boolean;images:boolean;consentVersion:string;pro:boolean;mode:'instant'|'scheduled'|'manual'|'paused';intervalHours:1|6|24;monthlyLimit:number;nextRunAt:number|null;usage:{used:number;reserved:number;limit:number;monthlyLimit:number}};
+
+export type ProcessingState = {
+  job: {id:string;status:string;error:string|null;updatedAt:number} | null;
+  processing: {processedAt:number;result:{download?:{status:string;transcriptStatus?:string;notice?:string}|null;sourceError?:string|null}} | null;
+};
