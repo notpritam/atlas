@@ -79,7 +79,7 @@ test.each(['global','account'])('%s quota race after staging removes the file wi
  s.enqueue(owner,capture,'manual');await s.tick();expect(saved().file_path).toBeNull();expect(files()).toHaveLength(0);expect(s.details(owner,capture)).toBeNull();expect(s.settings(owner).usage).toMatchObject({used:0,reserved:0});
 });
 test('subtitles and description can organize a preserved file but no video bytes become AI input',async()=>{
- const s=service({remote:async()=>downloaded({description:'Filmed by the author.',subtitles:[{language:'en',automatic:false,text:'The actual spoken words.'}]})});s.enqueue(owner,capture,'manual');await s.tick();expect(saved().summary).toBe(organized.summary);expect(readFileSync(join(root,saved().file_path))).toEqual(data);expect(inputs[0]?.text).toContain('The actual spoken words.');expect(inputs[0]?.sourceEvidence?.transcript).toBe('available');expect(inputs[0]?.image).toBeUndefined();expect(JSON.stringify(s.details(owner,capture))).not.toContain(root);expect(s.settings(owner).usage.used).toBe(1);
+ const s=service({remote:async()=>downloaded({description:'Filmed by the author.',subtitles:[{language:'en',automatic:false,text:'The actual spoken words.'}]})});s.enqueue(owner,capture,'manual');await s.tick();expect(saved().summary).toBe(organized.summary);expect(readFileSync(join(root,saved().file_path))).toEqual(data);expect(inputs[0]?.text).toContain('The actual spoken words.');expect(inputs[0]?.sourceEvidence?.transcript).toBe('available');expect(inputs[0]?.analysis).toEqual({text:true,image:false,transcript:true});expect(inputs[0]?.image).toBeUndefined();expect(JSON.stringify(s.details(owner,capture))).not.toContain(root);expect(s.settings(owner).usage.used).toBe(1);
 });
 test('source refusal with readable text records sanitized evidence; no input still fails without invented transcript',async()=>{
  const s=service({remote:async()=>({status:'unavailable',reason:'/private/tmp/secret signed.cdn?token=secret'})});s.enqueue(owner,capture,'manual');await s.tick();expect(inputs).toHaveLength(0);expect(s.settings(owner).usage.used).toBe(0);
@@ -89,7 +89,7 @@ test('provider exception removes staging and a retry attaches once',async()=>{
  let fails=true;const s=service({remote:async()=>downloaded({description:'Real description'}),ai:{available:true,model:'test',organize:async()=>{if(fails)throw new Error('private provider details');return organized;}}});const job=s.enqueue(owner,capture,'manual');await s.tick();expect(files()).toHaveLength(0);expect(saved().file_path).toBeNull();expect(s.settings(owner).usage.used).toBe(0);fails=false;db.query('UPDATE customer_processing_jobs SET updated_at=0 WHERE id=?').run(job.id);await s.tick();expect(files()).toHaveLength(1);expect(s.enqueue(owner,capture,'manual').id).toBe(job.id);expect(s.settings(owner).usage).toMatchObject({used:1,reserved:0});
 });
 test('uploaded originals and ordinary readable blogs never invoke the remote downloader',async()=>{
- const s=service({remote:async()=>{throw new Error('must not download');}});db.query("UPDATE customer_captures SET file_path='customer-files/original',file_mime='video/mp4',file_bytes=7,note_text='Original text' WHERE id=?").run(capture);s.enqueue(owner,capture,'manual');await s.tick();expect(saved().file_path).toBe('customer-files/original');expect(s.settings(owner).usage.used).toBe(1);
+ const s=service({remote:async()=>{throw new Error('must not download');}});db.query("UPDATE customer_captures SET file_path='customer-files/original',file_mime='video/mp4',file_bytes=7,note_text='Original text' WHERE id=?").run(capture);s.enqueue(owner,capture,'manual');await s.tick();expect(saved().file_path).toBe('customer-files/original');expect(inputs[0]?.preservation).toEqual({status:'existing-file',bytes:7,mime:'video/mp4'});expect(s.settings(owner).usage.used).toBe(1);
  db.query("UPDATE customer_captures SET file_path=NULL,file_mime=NULL,file_bytes=0,source_url='https://example.com/blog' WHERE id=?").run(capture);s.enqueue(owner,capture,'manual');await s.tick();expect(s.settings(owner).usage.used).toBe(2);
 });
 test('an expired lease cannot overwrite a replacement worker or leave its staged file',async()=>{
@@ -137,4 +137,24 @@ test('reader follows a retried older source job instead of an obsolete newer job
  db.query("UPDATE customer_captures SET note_text='New source' WHERE id=?").run(capture);const edited=s.enqueue(owner,capture,'manual');db.query('UPDATE customer_processing_jobs SET attempts=2 WHERE id=?').run(edited.id);await s.tick();clock++;
  db.query('UPDATE customer_captures SET note_text=NULL WHERE id=?').run(capture);expect(s.enqueue(owner,capture,'manual').id).toBe(original.id);
  const response=await createApp(db).request('https://foundkeep.app/api/captures/'+capture+'/processing',{headers:{cookie:'__Host-atlas_session='+(owner+'-token').padEnd(43,'x')}});expect(await response.json()).toMatchObject({job:{id:original.id,status:'pending'}});
+});
+test.each(['empty','note','downloaded'])('generic YouTube shell with %s preserves only real evidence and charges only successful work',async mode=>{
+ const {extractSource}=await import('../src/customer-source.ts');const html=await Bun.file(new URL('./fixtures/youtube-generic-fi.html',import.meta.url)).text();
+ db.query("UPDATE customer_captures SET source_url='https://www.youtube.com/watch?v=YE7VzlLtp-4',note_text=? WHERE id=?").run(mode==='note'?'My actual note about this video':null,capture);
+ const s=service({source:async(sourceUrl:string)=>({...extractSource(html,sourceUrl),requestedUrl:sourceUrl,contentHash:'observed-fixture',fetchedAt:Date.now()}),remote:async()=>mode==='downloaded'?downloaded():{status:'unavailable',reason:'Public copy unavailable'}});
+ s.enqueue(owner,capture,'manual');await s.tick();
+ expect(s.settings(owner).usage).toMatchObject({used:mode==='empty'?0:1,reserved:0});
+ if(mode==='empty'){expect(inputs).toHaveLength(0);expect(s.details(owner,capture)).toBeNull();expect(saved().file_path).toBeNull();}
+ if(mode==='note'){expect(inputs).toHaveLength(1);expect(inputs[0]?.text).toBe('My actual note about this video');expect(saved().summary).toBe(organized.summary);}
+ if(mode==='downloaded'){expect(inputs).toHaveLength(0);expect(s.details(owner,capture)?.model).toBe('media-preservation');expect(saved().summary).toBe('Keep summary');expect(readFileSync(join(root,saved().file_path))).toEqual(data);}
+});
+test.each(['downloaded','unavailable'])('AI distinguishes %s preservation from actual text, transcript and image analysis',async status=>{
+ const s=service({remote:async()=>status==='downloaded'?downloaded({description:'A real source description'}):{status:'unavailable',reason:'Private diagnostic'},media:async()=>({image:{mime:'image/webp',base64:'AAAA'}})});
+ db.query("UPDATE customer_captures SET note_text='My saved observation' WHERE id=?").run(capture);s.enqueue(owner,capture,'manual');await s.tick();
+ expect(inputs[0]).toMatchObject({preservation:status==='downloaded'?{status,bytes:data.length,mime:'video/mp4'}:{status},analysis:{text:true,transcript:false,image:false}});
+ expect(JSON.stringify(inputs[0])).not.toContain('Private diagnostic');expect(inputs[0]?.image).toBeUndefined();
+});
+test('consented preview is analysis input while preserved video bytes remain separate evidence',async()=>{
+ const s=service({media:async()=>({image:{mime:'image/webp',base64:'AAAA'}})});s.configure(owner,{images:true});s.enqueue(owner,capture,'manual');await s.tick();
+ expect(inputs[0]).toMatchObject({preservation:{status:'downloaded',bytes:data.length,mime:'video/mp4'},analysis:{text:false,image:true,transcript:false},image:{mime:'image/webp',base64:'AAAA'}});expect(s.settings(owner).usage.used).toBe(1);
 });

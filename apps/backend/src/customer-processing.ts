@@ -154,12 +154,15 @@ export function createProcessingService(db:Database,options:Options={}){
     if(source?.extractionStatus)input.sourceEvidence={status:source.extractionStatus,notice:source.notice||null,transcript:source.transcriptStatus||null};
     else if(row.source_url&&!source)input.sourceEvidence={status:'unavailable',notice:sourceError||'Source fetching is disabled. Only the saved content is available.',transcript:null};
     if(preservation?.text)input.sourceEvidence={status:preservation.evidence.transcriptStatus==='available'?'readable':'metadata-only',notice:preservation.evidence.notice,transcript:preservation.evidence.transcriptStatus};
+    if(preservation)input.preservation={status:preservation.evidence.status,...(staged?{bytes:staged.bytes,mime:staged.mime}:{})};
+    else if(row.file_path)input.preservation={status:'existing-file',bytes:row.file_bytes,mime:row.file_mime||'application/octet-stream'};
     if(preference.images){
      const supportedImage=(image:MediaResult['image'])=>image&&['image/png','image/jpeg','image/webp'].includes(image.mime)&&image.base64.length>0&&image.base64.length<5_600_000;
      if(supportedImage(media.image))input.image=media.image;
      else if(row.blob_data?.byteLength&&row.blob_data.byteLength<=4*1024*1024&&row.blob_mime&&['image/png','image/jpeg','image/webp'].includes(row.blob_mime))input.image={mime:row.blob_mime,base64:Buffer.from(row.blob_data).toString('base64')};
     }
     if(!valid()){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
+    input.analysis={text:!!input.text.trim(),image:!!input.image,transcript:!!(preservation?.text&&preservation.evidence.transcriptStatus==='available'||!row.article_text&&source?.text&&source.transcriptStatus==='available')};
     const mediaOnly=!input.text.trim()&&!input.image&&!!staged;
     if(!input.text.trim()&&!input.image&&!staged){
      db.transaction(()=>settle(job,'failed',(preservation?preservation.evidence.notice+' ':'')+'No readable content was available. Add page text with the extension or a note, then retry.')).immediate();return 1;

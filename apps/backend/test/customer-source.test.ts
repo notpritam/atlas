@@ -53,3 +53,27 @@ test('blocked-route detection cannot bypass public-address validation on redirec
 test('a web heading that only repeats the title is preview metadata, not article evidence',()=>{
  expect(extractSource('<html><head><title>Saved article</title></head><body><h1>Saved article</h1></body></html>','https://example.com/article')).toMatchObject({title:'Saved article',text:'',extractionStatus:'metadata-only'});
 });
+
+test('observed Finnish YouTube platform metadata is unavailable item evidence',async()=>{
+ const html=await Bun.file(new URL('./fixtures/youtube-generic-fi.html',import.meta.url)).text();
+ expect(extractSource(html,'https://www.youtube.com/watch?v=YE7VzlLtp-4')).toMatchObject({platform:'youtube',contentKind:'video',title:null,description:null,text:'',extractionStatus:'unavailable',transcriptStatus:'unavailable'});
+});
+test.each([
+ ['https://youtube.com/watch?v=abc','— YouTube','Découvrez des vidéos et partagez vos contenus.'],
+ ['https://youtube.com/watch?v=abc','YouTube','वीडियो देखें और साझा करें।'],
+ ['https://instagram.com/reel/abc/','Instagram','Descubre fotos y vídeos de todo el mundo.'],
+ ['https://x.com/alex/status/123','X / X','世界中で起きていることを見つけましょう。'],
+])('generic platform title identifies %s shells independently of description language', (url,title,description)=>{
+ expect(extractSource(`<title>${title}</title><meta name="description" content="${description}">`,url)).toMatchObject({title:null,description:null,text:'',extractionStatus:'unavailable'});
+});
+test('a real item title preserves item-specific metadata even without image, author or date',()=>{
+ const result=extractSource('<title>How we filmed the falling leaves - YouTube</title><meta name="description" content="We used a slow shutter to capture autumn leaves.">','https://youtube.com/watch?v=abc');
+ expect(result).toMatchObject({title:'How we filmed the falling leaves - YouTube',description:'We used a slow shutter to capture autumn leaves.',text:'We used a slow shutter to capture autumn leaves.',extractionStatus:'metadata-only'});
+});
+test('structured item metadata replaces generic platform head metadata rather than discarding actual evidence',()=>{
+ const item={'@type':'VideoObject',name:'Falling leaves',description:'An autumn scene filmed in the park.',transcript:'The leaves drift down from the tree.'};
+ const result=extractSource('<title>- YouTube</title><meta name="description" content="Generic platform marketing"><script type="application/ld+json">'+JSON.stringify(item)+'</script>','https://youtube.com/watch?v=abc');
+ expect(result).toMatchObject({title:'Falling leaves',description:item.description,text:item.transcript,extractionStatus:'readable',transcriptStatus:'available'});
+ const preview=extractSource('<title>- YouTube</title><meta name="description" content="Generic platform marketing"><script type="application/ld+json">'+JSON.stringify({...item,transcript:undefined})+'</script>','https://youtube.com/watch?v=abc');
+ expect(preview).toMatchObject({title:'Falling leaves',text:item.description,extractionStatus:'metadata-only'});
+});

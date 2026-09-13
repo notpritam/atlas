@@ -19,3 +19,11 @@ test('missing configuration, provider errors and invalid structured output fail 
  const ai=createCustomerAi({OPENAI_API_KEY:'test-server-key'},async()=>new Response('a sensitive provider diagnostic',{status:429}));
  await expect(ai.organize({title:'a',url:null,text:'b',candidates:[]})).rejects.toThrow('temporarily unavailable');
 });
+test('provider receives preservation independently of analysis evidence without private file locations',async()=>{
+ let payload:any;
+ const ai=createCustomerAi({OPENAI_API_KEY:'test-key'},async(_url,init)=>{payload=JSON.parse(String(init?.body));return Response.json({status:'completed',output:[{content:[{type:'output_text',text:JSON.stringify({summary:'The supplied description concerns a garden scene.',category:'Video',tags:[],relatedIds:[]})}]}]});});
+ await ai.organize({title:'Garden',url:'https://example.com/garden.mp4',text:'A description of a garden.',candidates:[],sourceEvidence:{status:'metadata-only',notice:'No transcript was supplied.',transcript:'unavailable'},preservation:{status:'downloaded',bytes:123,mime:'video/mp4'},analysis:{text:true,image:false,transcript:false}});
+ const supplied=JSON.parse(payload.input[1].content);
+ expect(supplied).toMatchObject({preservation:{status:'downloaded',bytes:123,mime:'video/mp4'},analysis:{text:true,image:false,transcript:false},sourceEvidence:{status:'metadata-only',transcript:'unavailable'}});
+ expect(payload.input[0].content).toContain('preservation');expect(payload.input[0].content).toContain('Never claim to have watched');
+});

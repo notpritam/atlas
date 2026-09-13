@@ -9,6 +9,13 @@ function sourcePlatform(url:string):NonNullable<SourceSnapshot['platform']>{
  const host=new URL(url).hostname.toLowerCase(),isHost=(domain:string)=>host===domain||host.endsWith('.'+domain);
  return isHost('youtube.com')||isHost('youtu.be')?'youtube':isHost('instagram.com')?'instagram':isHost('x.com')||isHost('twitter.com')?'x':'web';
 }
+/** Platform-only titles identify application shells independently of the description's language.
+ * Item-specific JSON-LD still supplies its own evidence when the page head is generic. */
+function platformOnlyTitle(title:string|null,platform:NonNullable<SourceSnapshot['platform']>){
+ if(!title||platform==='web')return false;
+ const label=title.normalize('NFKC').toLowerCase().replace(/[\s\p{P}\p{S}]/gu,'');
+ return platform==='youtube'?label==='youtube':platform==='instagram'?label==='instagram':/^(?:x|twitter|xx|xtwitter|twitterx)$/.test(label);
+}
 function blockedRoute(url:string){
  // Route evidence is language-independent and does not reject ordinary cross-host redirects.
  const path=new URL(url).pathname;
@@ -28,14 +35,17 @@ export function extractSource(html:string,url:string,requestedUrl=url):Omit<Sour
   const {document}=parseHTML(html),data=structuredContent(document);
   const meta=(name:string)=>document.querySelector(`meta[property="${name}"],meta[name="${name}"]`)?.getAttribute('content');
   const usable=(value:unknown,max:number)=>{const text=cleaned(value,max);return shell(text)?null:text;};
-  const title=usable(meta('og:title')||meta('twitter:title')||data.headline||data.name||document.querySelector('title')?.textContent,1000);
-  const description=usable(meta('og:description')||meta('twitter:description')||meta('description')||data.description,2000);
+  const platform=sourcePlatform(url);
+  const headTitle=cleaned(meta('og:title')||meta('twitter:title')||document.querySelector('title')?.textContent,1000);
+  const rawTitle=cleaned(meta('og:title')||meta('twitter:title')||data.headline||data.name||headTitle,1000);
+  const genericHead=platformOnlyTitle(headTitle,platform);
+  const title=usable(genericHead?data.headline||data.name:rawTitle,1000);
+  const description=usable(genericHead?data.description:meta('og:description')||meta('twitter:description')||meta('description')||data.description,2000);
   const dataImage=Array.isArray(data.image)?data.image[0]:data.image;
   const image=meta('og:image')||meta('twitter:image')||cleaned(typeof dataImage==='object'&&dataImage?(dataImage as Record<string,unknown>).url:dataImage,4096);let imageUrl:string|null=null;
   try{imageUrl=image?previewSourceUrl(new URL(image,url).href)?.href||null:null;}catch{}
   const dataAuthor=Array.isArray(data.author)?data.author[0]:data.author;
   const author=cleaned(meta('author')||meta('article:author')||(typeof dataAuthor==='object'&&dataAuthor?(dataAuthor as Record<string,unknown>).name:dataAuthor),200),publishedAt=cleaned(meta('article:published_time')||data.datePublished||data.uploadDate,100),siteName=cleaned(meta('og:site_name'),200);
-  const platform=sourcePlatform(url);
   const types=[data['@type']].flat(),video=platform==='youtube'||platform==='instagram'&&/^\/(reel|reels|tv)\//.test(new URL(url).pathname)||types.includes('VideoObject')||meta('og:type')?.startsWith('video');
   const transcript=usable(data.transcript,100_000),article=usable(data.articleBody||data.text,100_000);
   const contentKind:NonNullable<SourceSnapshot['contentKind']>=video?'video':types.includes('ImageObject')?'image':platform==='x'||platform==='instagram'?'post':types.some(type=>typeof type==='string'&&/Article|BlogPosting/.test(type))||document.querySelector('article')?'article':'page';
