@@ -1,4 +1,16 @@
 {
-  "platforms": ["apple"],
-  "apple": { "modules": ["FoundkeepSharedModule"] }
+  "platforms": [
+    "apple",
+    "android"
+  ],
+  "apple": {
+    "modules": [
+      "FoundkeepSharedModule"
+    ]
+  },
+  "android": {
+    "modules": [
+      "app.foundkeep.shared.FoundkeepAndroidSharesModule"
+    ]
+  }
 }

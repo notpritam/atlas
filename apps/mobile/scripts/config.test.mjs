@@ -50,7 +50,7 @@ test('EAS profiles separate development, preview and production update channels'
 test('resolved dev config isolates bundle, group, keychain, Android, OTA channel and submission', async () => {
   const { execFileSync } = await import('node:child_process');
   const cwd = new URL('..', import.meta.url);
-  const config = env => JSON.parse(execFileSync('bunx', ['expo','config','--type','public','--json'], {cwd,env:{...process.env,FOUNDKEEP_APP_ENV:env},encoding:'utf8'}));
+  const config = env => JSON.parse(execFileSync('bunx', ['expo','config','--type','public','--json'], {cwd,env:{...process.env,FOUNDKEEP_APP_ENV:env},encoding:'utf8',stdio:['ignore','pipe','pipe']}));
   const prod=config('prod'),dev=config('dev');
   assert.equal(prod.ios.bundleIdentifier,'app.foundkeep.ios');assert.equal(prod.scheme,'foundkeep');
   assert.equal(dev.name,'FoundKeep Dev');assert.equal(dev.ios.bundleIdentifier,'app.foundkeep.ios');assert.equal(dev.android.package,'app.foundkeep.android');assert.equal(prod.android.package,'app.foundkeep.android');

@@ -1,3 +1,5 @@
+import AndroidShares from './androidShares.ts';
+import { localFileName, withTransferTimeout, consumeUploadResponse, saveDownloadedBody } from '../../../src/share/androidIO.ts';
 import * as SecureStore from 'expo-secure-store';
 import { File, Directory, Paths } from 'expo-file-system';
 import { fetch } from 'expo/fetch';
@@ -22,10 +24,8 @@ function base64url(value: string) {
   for (const byte of bytes) binary += String.fromCharCode(byte);
   return btoa(binary).replaceAll('+','-').replaceAll('/','_').replace(/=+$/,'');
 }
-async function request(path: string, token: string, init: RequestInit = {}, seconds = 30) {
-  const controller = new AbortController(); const timer = setTimeout(() => controller.abort(), seconds*1000);
-  try { return await fetch(`${variant.origin}${path}`, { ...init, headers: { ...init.headers, authorization: `Bearer ${token}` }, redirect: 'error', credentials: 'omit', signal: controller.signal }); }
-  finally { clearTimeout(timer); }
+function request(path: string, token: string, signal: AbortSignal, init: RequestInit = {}) {
+  return fetch(`${variant.origin}${path}`, { ...init, headers: { ...init.headers, authorization: `Bearer ${token}` }, redirect: 'error', credentials: 'omit', signal });
 }
 const runtime = createAndroidRuntime({
   async credential() {
@@ -55,31 +55,31 @@ const runtime = createAndroidRuntime({
       if (source.size > limit) throw new Error('This file exceeds the saving limit.');
       source.copy(target);
       if (!target.exists || target.size <= 0 || target.size > limit) throw new Error('This file is empty or exceeds the saving limit.');
-      return { path: id, name: (source.name || 'Shared file').replace(/[\u0000-\u001f\u007f]/g,'').slice(0,180), bytes: target.size };
+      const name = await localFileName(uri, value => AndroidShares.localDisplayName(value), source.name);
+      return { path: id, name, bytes: target.size };
     } catch (error) { removeFile(target); throw error; }
   },
   async policy() { ensure(); const file = new File(root, 'policy.json'); return file.exists ? file.text() : null; },
   async setPolicy(value) { ensure(); atomic(new File(root,'policy.json'), value); },
   async upload(record, token, timeout) {
     const metadata = JSON.stringify({ ...record.metadata, clientId: record.clientId });
-    const response = record.payloadPath
-      ? await request('/api/mobile/captures/file', token, { method:'POST', headers:{ 'content-type': String(record.metadata.declaredMime || 'application/octet-stream'), 'X-Foundkeep-Capture': base64url(metadata) }, body: payload(record.payloadPath) }, timeout)
-      : await request('/api/captures', token, { method:'POST', headers:{ 'content-type':'application/json' }, body: metadata }, timeout);
-    let error: string | undefined; try { error = (await response.json()).error; } catch {}
-    return { status: response.status, error };
+    return withTransferTimeout(timeout*1000, async (signal, wait) => {
+      const response = await wait(record.payloadPath
+        ? request('/api/mobile/captures/file', token, signal, { method:'POST', headers:{ 'content-type': String(record.metadata.declaredMime || 'application/octet-stream'), 'X-Foundkeep-Capture': base64url(metadata) }, body: payload(record.payloadPath) })
+        : request('/api/captures', token, signal, { method:'POST', headers:{ 'content-type':'application/json' }, body: metadata }));
+      return consumeUploadResponse(response, signal, wait);
+    });
   },
   async download(id, name, token) {
-    ensure(); const response = await request(`/api/mobile/captures/${encodeURIComponent(id)}/file`, token);
-    if (!response.ok) throw new Error('The original file could not be downloaded.');
-    // Stream to private storage to avoid loading large originals into JS memory.
-    const file = new File(exportDirectory, `${randomUUID()}-${name}`); file.create(); const handle = file.open();
-    try {
-      if (!response.body) throw new Error('Empty file response.');
-      const reader = response.body.getReader();
-      try { while (true) { const {done,value} = await reader.read(); if (done) break; handle.writeBytes(value); } }
-      finally { reader.releaseLock(); }
-    } catch (error) { handle.close(); removeFile(file); throw error; }
-    handle.close(); return file.uri;
+    ensure();
+    return withTransferTimeout(30_000, async (signal, wait) => {
+      const response = await wait(request(`/api/mobile/captures/${encodeURIComponent(id)}/file`, token, signal));
+      const file = new File(exportDirectory, `${randomUUID()}-${name}`);
+      // The body deadline remains live while bytes are streamed into private storage.
+      return saveDownloadedBody(response, signal, wait, {
+        uri: file.uri, open: () => { file.create(); return file.open(); }, remove: () => removeFile(file),
+      });
+    });
   },
   uuid: randomUUID,
 });

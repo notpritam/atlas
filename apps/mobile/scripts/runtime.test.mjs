@@ -30,3 +30,16 @@ test('native share changes require a new OTA runtime; app UI and test changes do
     assert.equal(changed.hash !== baseline.hash, native, filePath);
   }
 });
+
+test('Android receipt bridge changes require a new native runtime', async () => {
+  const baseline = await createFingerprintAsync(projectRoot, { platforms: ['android'] });
+  const filePath = 'modules/foundkeep-shared/android/src/main/java/app/foundkeep/shared/FoundkeepAndroidSharesModule.kt';
+  const changed = await createFingerprintAsync(projectRoot, {
+    platforms: ['android'],
+    fileHookTransform(source, chunk, end) {
+      return source.type === 'file' && source.filePath === filePath && end
+        ? Buffer.concat([Buffer.from(chunk ?? ''), Buffer.from('\nchanged-for-android-receipt-regression')]) : chunk;
+    },
+  });
+  assert.notEqual(changed.hash, baseline.hash);
+});

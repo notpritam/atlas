@@ -54,3 +54,24 @@ test('original downloads require a session and sanitize the display filename',as
  const f=fixture();await assert.rejects(f.runtime.downloadCaptureFile('id','x'),/Sign in/);await f.runtime.setSession('a',account('a'));
  assert.equal(await f.runtime.downloadCaptureFile('id','../../secret\n.txt'),'a/secret.txt');await assert.rejects(f.runtime.downloadCaptureFile('../other','x'),/Invalid capture/);
 });
+
+test('opaque content-provider URI keeps the local display filename in queued metadata',async()=>{
+ const {localFileName}=await import('./androidIO.ts');const f=fixture();await f.runtime.setSession('a',account('a'));
+ f.storage.copy=async(uri,id)=>({path:id,name:await localFileName(uri,async queried=>{assert.equal(queried,'content://media/external/images/media/12345');return 'photo.jpg';},'12345'),bytes:10});
+ await f.runtime.enqueueShares([{shareType:'image',value:'content://media/external/images/media/12345',mimeType:'image/jpeg'}],'a');
+ assert.equal([...f.records.values()][0]?.metadata.fileName,'photo.jpg');
+});
+test('stalled upload response body times out, cancels, retains queue, and releases logout',async()=>{
+ const {withTransferTimeout,consumeUploadResponse}=await import('./androidIO.ts');const f=fixture();let cancelled=0;
+ await f.runtime.setSession('a',account('a'));await f.runtime.enqueueShares([{shareType:'text',value:'Keep me'}],'a');
+ f.storage.upload=async()=>withTransferTimeout(10,async(signal,wait)=>consumeUploadResponse({status:201,body:{getReader:()=>({read:()=>new Promise(()=>{}),cancel:()=>{cancelled++;return new Promise(()=>{});},releaseLock:()=>{}})}},signal,wait));
+ const upload=f.runtime.retryPending();const logout=f.runtime.clearSession();await Promise.all([upload,logout]);
+ assert.ok(cancelled>0);assert.equal(await f.runtime.getToken(),null);assert.equal(f.records.size,1);assert.equal([...f.records.values()][0]?.attempts,1);
+});
+test('stalled download body removes partial file and releases the session serializer',async()=>{
+ const {withTransferTimeout,saveDownloadedBody}=await import('./androidIO.ts');const f=fixture();let reads=0,written=0,closed=false,removed=false,cancelled=false;
+ await f.runtime.setSession('a',account('a'));
+ f.storage.download=async()=>withTransferTimeout(10,async(signal,wait)=>saveDownloadedBody({ok:true,body:{getReader:()=>({read:async()=>{if(reads++===0)return {done:false,value:new Uint8Array([1,2])};return new Promise(()=>{});},cancel:async()=>{cancelled=true;},releaseLock:()=>{}})}},signal,wait,{uri:'private/partial',open:()=>({writeBytes:bytes=>{written+=bytes.length;},close:()=>{closed=true;}}),remove:()=>{removed=true;}}));
+ const download=f.runtime.downloadCaptureFile('capture','photo.jpg');const logout=f.runtime.clearSession();await assert.rejects(download,/transfer took too long/);await logout;
+ assert.equal(written,2);assert.equal(closed,true);assert.equal(removed,true);assert.equal(cancelled,true);assert.equal(await f.runtime.getToken(),null);
+});
