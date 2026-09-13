@@ -6,6 +6,7 @@ import {createMcpOperations} from '../src/customer-mcp.ts';
 import {customerChanges} from '../src/customer-changes.ts';
 import {Client} from '@modelcontextprotocol/sdk/client/index.js';
 import {StreamableHTTPClientTransport} from '@modelcontextprotocol/sdk/client/streamableHttp.js';
+import {config} from '../src/config.ts';
 let db:ReturnType<typeof openDb>;let owner:string;let capture:string;let token:string;
 beforeEach(()=>{
  db=openDb(':memory:');owner=crypto.randomUUID();capture=crypto.randomUUID();
@@ -22,6 +23,11 @@ test('agent tokens are hashed, scoped, expiring and revocable; browser tokens ar
  await expect(ops.call('organize_save',{id:capture,expectedRevision:1,userTags:['test']})).rejects.toThrow('permission');
  db.query('UPDATE customer_agent_tokens SET expires_at=0 WHERE id=?').run(reader.id);expect(()=>agentAccess(db,'Bearer '+reader.token)).toThrow('expired');
  db.query('DELETE FROM customer_agent_tokens').run();expect(()=>agentAccess(db,'Bearer '+token)).toThrow('revoked');
+});
+test('agent setup returns the configured environment MCP endpoint',()=>{
+ const issued=createAgentToken(db,owner,{name:'Dev agent',scopes:['library:read']},'https://dev.foundkeep.app');
+ expect(issued.endpoint).toBe('https://dev.foundkeep.app/api/mcp');
+ expect(createAgentToken(db,owner,{name:'Default agent',scopes:['library:read']}).endpoint).toBe(config.customerOrigin+'/api/mcp');
 });
 test('owned reads, revision guarded writes and file chunks cannot reach another account',async()=>{
  const ops=createMcpOperations(db,'Bearer '+token);const other=crypto.randomUUID();
@@ -47,8 +53,9 @@ test('official MCP client initializes, discovers tools, reads resources and call
  const app=createApp(db);const transport=new StreamableHTTPClientTransport(new URL('https://foundkeep.app/api/mcp'),{requestInit:{headers:{Authorization:'Bearer '+token}},fetch:async(input,init)=>await app.fetch(input instanceof Request ? new Request(input,init as RequestInit) : new Request(String(input),init as RequestInit))});
  const client=new Client({name:'Foundkeep integration test',version:'1.0.0'});
  try{
-  await client.connect(transport);const tools=await client.listTools();expect(tools.tools.some(tool=>tool.name==='list_saves')).toBe(true);
+  await client.connect(transport);const tools=await client.listTools();expect(tools.tools.some(tool=>tool.name==='list_saves')).toBe(true);expect(tools.tools.some(tool=>tool.name==='create_save')).toBe(true);
   const result=await client.callTool({name:'read_save',arguments:{id:capture}});expect(result.isError).not.toBe(true);expect(JSON.stringify(result.content)).toContain('Read me');
+  const rich=await client.callTool({name:'create_save',arguments:{clientId:'sdk-rich-save',type:'bookmark',articleText:'x'.repeat(70_000)}});expect(rich.isError).not.toBe(true);
   const resource=await client.readResource({uri:'foundkeep://organization'});expect(resource.contents).toHaveLength(1);
   const request=await app.fetch(new Request('https://foundkeep.app/api/mcp',{method:'POST',headers:{Authorization:'Bearer '+token,Origin:'https://evil.example','Content-Type':'application/json'},body:'{}'}));expect(request.status).toBe(403);
  }finally{await client.close();}

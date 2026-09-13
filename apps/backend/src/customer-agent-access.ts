@@ -4,6 +4,7 @@ import type {Hono} from 'hono';
 import type {CustomerEnv} from './customer.ts';
 import {moduleFail,type CustomerServices} from './customer-modules.ts';
 import {organizationName} from './customer-organization.ts';
+import {config} from './config.ts';
 export const AGENT_SCOPES=['library:read','files:read','library:write'] as const;
 export type AgentScope=typeof AGENT_SCOPES[number];
 export type AgentAccess={id:string;accountId:string;scopes:AgentScope[]};
@@ -18,7 +19,7 @@ export function agentAccess(db:Database,header:string|undefined,scope:AgentScope
  db.query('UPDATE customer_agent_tokens SET last_seen_at=? WHERE id=?').run(Date.now(),row.id);
  return {id:row.id,accountId:row.account_id,scopes};
 }
-export function createAgentToken(db:Database,owner:string,body:Record<string,unknown>){
+export function createAgentToken(db:Database,owner:string,body:Record<string,unknown>,customerOrigin=config.customerOrigin){
  const name=organizationName(body.name,60,'An agent name');
  if(!Array.isArray(body.scopes)||!body.scopes.includes('library:read')||body.scopes.some(value=>!AGENT_SCOPES.includes(value as AgentScope)))moduleFail(400,'invalid_scope','Choose library read access and any optional permissions.');
  const scopes=[...new Set(body.scopes as string[])];
@@ -29,7 +30,7 @@ export function createAgentToken(db:Database,owner:string,body:Record<string,unk
   if(count.n>=10)moduleFail(409,'agent_limit','Revoke an unused agent before connecting another.');
   const token='fk_mcp_'+randomBytes(32).toString('base64url'),id=randomUUID(),expiresAt=Date.now()+Number(days)*86_400_000;
   db.query('INSERT INTO customer_agent_tokens(id,account_id,name,token_hash,scopes_json,created_at,expires_at) VALUES(?,?,?,?,?,?,?)').run(id,owner,name,hash(token),JSON.stringify(scopes),Date.now(),expiresAt);
-  return {id,name,token,expiresAt,endpoint:'https://foundkeep.app/api/mcp'};
+  return {id,name,token,expiresAt,endpoint:customerOrigin+'/api/mcp'};
  }).immediate();
 }
 export function registerAgentAccess(app:Hono<CustomerEnv>,db:Database,services:CustomerServices){

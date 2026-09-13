@@ -12,6 +12,7 @@ const METHODS = new Set([
   "popup-highlight", "keyboard-highlight", "popup-region", "keyboard-region", "popup-full-page",
   "keyboard-full-page", "context-save-page", "context-region", "context-full-page",
   "extension-note", "library-note", "twitter-action", "bookmark-import",
+  "agent-create",
   "ios-share-url", "ios-share-text", "ios-share-image", "ios-share-video",
   "ios-share-audio", "ios-share-document", "ios-share-file", "ios-app-note",
 ]);
