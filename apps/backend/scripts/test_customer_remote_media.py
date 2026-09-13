@@ -142,6 +142,143 @@ else: raise AssertionError('extractor subprocess accepted')
         unknown[2].pop('tbr')
         self.assertEqual(select(unknown, 50 * mib), '720p')
 
+    def test_silent_progressive_source_is_allowed_but_separate_audio_is_not_dropped(self):
+        silent = {'format_id': 'silent', 'url': 'https://cdn.example.com/silent.mp4',
+                  'protocol': 'https', 'ext': 'mp4', 'vcodec': 'avc1.64001f', 'acodec': 'none',
+                  'width': 480, 'height': 854, 'filesize': 918120}
+        self.assertEqual(list(media.select_progressive_format({'formats': [silent]}, 50 * 1024 * 1024)), [silent])
+        audio = {'format_id': 'audio', 'url': 'https://cdn.example.com/audio.m4a',
+                 'protocol': 'https', 'ext': 'm4a', 'vcodec': 'none', 'acodec': 'mp4a.40.2'}
+        self.assertEqual(list(media.select_progressive_format({'formats': [silent, audio]}, 50 * 1024 * 1024)), [])
+        adaptive = {**silent, 'container': 'mp4_dash', 'manifest_url': 'https://cdn.example.com/manifest.mpd'}
+        self.assertEqual(list(media.select_progressive_format({'formats': [adaptive]}, 50 * 1024 * 1024)), [])
+
+    def test_real_direct_and_ytdlp_redirect_bodies_share_the_early_budget(self):
+        from email.message import Message
+        from yt_dlp.networking import Request
+        import urllib.request
+        for platform in (False, True):
+            with self.subTest(platform=platform):
+                bodies = []
+                def transport(handler, connection, request, **kwargs):
+                    headers = Message()
+                    is_redirect = request.full_url.endswith('/start')
+                    if is_redirect:
+                        headers['Location'] = 'https://cdn.example.com/final'
+                    body = io.BytesIO(b'x' * 65 if is_redirect else b'ok')
+                    bodies.append(body)
+                    result = urllib.request.addinfourl(body, headers, request.full_url, 302 if is_redirect else 200)
+                    result.msg = 'Found' if is_redirect else 'OK'
+                    return result
+                budget = media.Budget()
+                with patch.object(media, 'MAX_NETWORK_BYTES', 64), patch.object(urllib.request.AbstractHTTPHandler, 'do_open', transport):
+                    with self.assertRaises(media.TooLarge):
+                        if platform:
+                            with media.public_request_handler(budget)(logger=media.QuietLogger(), proxies={}) as handler:
+                                handler.send(Request('https://example.com/start'))
+                        else:
+                            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), media.PublicRedirectHandler(), media.ResponseBudgetHandler(budget))
+                            opener.open('https://example.com/start')
+                    self.assertEqual(budget.wire_bytes, 65)
+                    self.assertEqual(len(bodies), 1)
+                    self.assertTrue(bodies[0].closed)
+
+    def test_real_error_responses_remain_bounded_when_consumed_by_extractors(self):
+        from email.message import Message
+        from yt_dlp.networking import Request
+        from yt_dlp.networking.exceptions import HTTPError
+        import urllib.error
+        import urllib.request
+        for platform in (False, True):
+            with self.subTest(platform=platform):
+                def transport(handler, connection, request, **kwargs):
+                    response = urllib.request.addinfourl(io.BytesIO(b'x' * 65), Message(), request.full_url, 403)
+                    response.msg = 'Forbidden'
+                    return response
+                budget = media.Budget()
+                with patch.object(media, 'MAX_NETWORK_BYTES', 64), patch.object(urllib.request.AbstractHTTPHandler, 'do_open', transport):
+                    if platform:
+                        with media.public_request_handler(budget)(logger=media.QuietLogger(), proxies={}) as handler:
+                            with self.assertRaises(HTTPError) as error:
+                                handler.send(Request('https://example.com/error'))
+                            response = error.exception.response
+                    else:
+                        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), media.PublicRedirectHandler(), media.ResponseBudgetHandler(budget))
+                        with self.assertRaises(urllib.error.HTTPError) as error:
+                            opener.open('https://example.com/error')
+                        response = error.exception
+                    with self.assertRaises(media.TooLarge):
+                        response.read()
+                    self.assertEqual(budget.wire_bytes, 65)
+                    response.close()
+
+    def test_compressed_response_is_bounded_before_ytdlp_eager_decompression(self):
+        import gzip
+        from email.message import Message
+        from yt_dlp.networking import Request
+        import urllib.request
+        compressed = gzip.compress(b'x' * 1024)
+        for platform in (False, True):
+            with self.subTest(platform=platform):
+                def transport(handler, connection, request, **kwargs):
+                    headers = Message()
+                    headers['Content-Encoding'] = 'gzip'
+                    headers['Content-Length'] = str(len(compressed))
+                    response = urllib.request.addinfourl(io.BytesIO(compressed), headers, request.full_url, 200)
+                    response.msg = 'OK'
+                    return response
+                budget = media.Budget()
+                with patch.object(media, 'MAX_NETWORK_BYTES', 64), patch.object(urllib.request.AbstractHTTPHandler, 'do_open', transport):
+                    with self.assertRaises(media.TooLarge):
+                        if platform:
+                            with media.public_request_handler(budget)(logger=media.QuietLogger(), proxies={}) as handler:
+                                with handler.send(Request('https://example.com/compressed')) as response:
+                                    response.read()
+                        else:
+                            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), media.PublicRedirectHandler(), media.ResponseBudgetHandler(budget))
+                            with opener.open('https://example.com/compressed') as response:
+                                response.read()
+                    self.assertEqual(budget.bytes, 65)
+
+    def test_ordinary_redirects_and_compression_preserve_exact_bodies_and_accounting(self):
+        import gzip
+        import zlib
+        from email.message import Message
+        from yt_dlp.networking import Request
+        import urllib.request
+        plain = b'normal response body'
+        compressed_bodies = [('gzip', gzip.compress(plain)), ('deflate', zlib.compress(plain)), ('deflate', zlib.compress(plain)[2:-4])]
+        for platform in (False, True):
+            for encoding, compressed in compressed_bodies:
+                with self.subTest(platform=platform, encoding=encoding, compressed=compressed):
+                    def transport(handler, connection, request, **kwargs):
+                        headers = Message()
+                        redirect = request.full_url.endswith('/start')
+                        if redirect:
+                            headers['Location'] = 'https://cdn.example.com/final'
+                            body = b'redirect'
+                        else:
+                            headers['Content-Encoding'] = encoding
+                            headers['Content-Length'] = str(len(compressed))
+                            body = compressed
+                        response = urllib.request.addinfourl(io.BytesIO(body), headers, request.full_url, 302 if redirect else 200)
+                        response.msg = 'Found' if redirect else 'OK'
+                        return response
+                    budget = media.Budget()
+                    with patch.object(urllib.request.AbstractHTTPHandler, 'do_open', transport):
+                        if platform:
+                            with media.public_request_handler(budget)(logger=media.QuietLogger(), proxies={}) as handler:
+                                with handler.send(Request('https://example.com/start')) as response:
+                                    self.assertEqual(response.read(), plain)
+                                    self.assertIsNone(response.headers.get('Content-Length'))
+                        else:
+                            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), media.PublicRedirectHandler(), media.ResponseBudgetHandler(budget))
+                            with opener.open('https://example.com/start') as response:
+                                self.assertEqual(response.read(), plain)
+                                self.assertIsNone(response.headers.get('Content-Length'))
+                    self.assertEqual(budget.bytes, len(b'redirect') + len(plain))
+                    self.assertEqual(budget.wire_bytes, len(b'redirect') + len(compressed))
+
     def test_shared_response_budget_rejects_oversized_extractor_body(self):
         budget = media.Budget()
         budget.bytes = media.MAX_NETWORK_BYTES - 2

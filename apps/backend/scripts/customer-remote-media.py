@@ -4,7 +4,9 @@ All Python networking is checked at the actual numeric socket connection, not
 merely at source validation. No native request handlers, plugins or subprocesses
 are permitted. The parent kills this process group on deadline/cancellation.
 """
+import copy
 import functools
+import io
 import ipaddress
 import json
 import math
@@ -15,6 +17,7 @@ import socket
 import sys
 import urllib.parse
 import urllib.request
+import zlib
 
 MAX_BYTES = 50 * 1024 * 1024
 MAX_DURATION = 1800
@@ -163,12 +166,25 @@ def select_progressive_format(context, maximum):
     def codec_matches(value, prefixes):
         return value in (None, 'unknown') or any(str(value).startswith(prefix) for prefix in prefixes)
 
+    source_has_audio = any(
+        entry.get('acodec') not in (None, 'unknown', 'none')
+        or (entry.get('vcodec') == 'none' and entry.get('acodec') != 'none')
+        or positive(entry.get('audio_channels'))
+        for entry in context['formats'])
     candidates = []
     oversized = False
     for candidate in context['formats']:
         if candidate.get('ext') != 'mp4' or candidate.get('protocol') not in ('http', 'https'):
             continue
-        if not codec_matches(candidate.get('vcodec'), ('avc1', 'avc3', 'h264')) or not codec_matches(candidate.get('acodec'), ('mp4a.40', 'aac')):
+        if not codec_matches(candidate.get('vcodec'), ('avc1', 'avc3', 'h264')):
+            continue
+        silent = candidate.get('acodec') == 'none'
+        if silent:
+            # A complete silent original is playable. Do not mistake an adaptive
+            # video track for that original when the source has audio evidence.
+            if source_has_audio or candidate.get('manifest_url') or candidate.get('fragments') or 'dash' in str(candidate.get('container', '')):
+                continue
+        elif not codec_matches(candidate.get('acodec'), ('mp4a.40', 'aac')):
             continue
         size = positive(candidate.get('filesize')) or positive(candidate.get('filesize_approx'))
         if size is not None and size > maximum:
@@ -221,28 +237,159 @@ def validate_info(info, duration):
 class Budget:
     def __init__(self):
         self.bytes = 0
+        self.wire_bytes = 0
         self.requests = 0
+
+
+class InflateReader(io.RawIOBase):
+    """Incremental gzip/deflate decoder; never inflate an entire hostile body."""
+    def __init__(self, source, encoding):
+        super().__init__()
+        self.source = source
+        self.encoding = encoding
+        self.inflater = zlib.decompressobj(31 if encoding == 'gzip' else zlib.MAX_WBITS)
+        self.pending = b''
+        self.first = True
+
+    def readable(self):
+        return True
+
+    def readinto(self, buffer):
+        if not buffer or self.inflater.eof:
+            return 0
+        while True:
+            if not self.pending:
+                self.pending = self.source.read(64 * 1024)
+                if not self.pending:
+                    raise BoundaryError('Truncated compressed response')
+            try:
+                data = self.inflater.decompress(self.pending, len(buffer))
+            except zlib.error as error:
+                if self.first and self.encoding == 'deflate':
+                    self.inflater = zlib.decompressobj(-zlib.MAX_WBITS)
+                    self.encoding = 'raw-deflate'
+                    continue
+                raise BoundaryError('Invalid compressed response') from error
+            self.first = False
+            self.pending = self.inflater.unconsumed_tail
+            if data:
+                buffer[:len(data)] = data
+                return len(data)
+            if self.inflater.eof:
+                return 0
+
+    def close(self):
+        self.source.close()
+        super().close()
+
+
+class ResponseBudgetHandler(urllib.request.BaseHandler):
+    # Run before yt-dlp HTTPHandler (500), cookie processing, and urllib's
+    # HTTPErrorProcessor (1000). Redirect drains and exception bodies therefore
+    # see only bounded streams, including during decompression.
+    handler_order = 0
+
+    def __init__(self, budget):
+        self.budget = budget
+
+    def http_response(self, request, response):
+        raw = BoundedResponse(response, self.budget, 'wire_bytes')
+        headers = copy.copy(response.headers)
+        encoding = headers.get('Content-Encoding', 'identity').strip().lower()
+        if encoding in ('gzip', 'deflate'):
+            stream = io.BufferedReader(InflateReader(raw, encoding))
+            del headers['Content-Encoding']
+            if 'Content-Length' in headers:
+                del headers['Content-Length']
+        elif encoding in ('', 'identity'):
+            stream = raw
+        else:
+            raw.close()
+            raise Unsupported('Unsupported response encoding')
+        decoded = BoundedResponse(stream, self.budget)
+        wrapped = urllib.request.addinfourl(decoded, headers, response.url, response.code)
+        decoded.owner_close = wrapped.close
+        wrapped.msg = response.msg
+        return wrapped
+
+    https_response = http_response
+
+
+def public_request_handler(budget):
+    from yt_dlp.networking._urllib import UrllibRH
+
+    class PublicUrllibRH(UrllibRH):
+        def _create_instance(self, *args, **kwargs):
+            opener = super()._create_instance(*args, **kwargs)
+            opener.add_handler(ResponseBudgetHandler(budget))
+            return opener
+
+    return PublicUrllibRH
 
 
 class BoundedResponse:
     """Every extractor, downloader and subtitle read shares one request budget."""
-    def __init__(self, response, budget):
+    def __init__(self, response, budget, counter='bytes'):
         self.response = response
         self.budget = budget
+        self.counter = counter
+        self.owner_close = None
 
     def __getattr__(self, name):
         return getattr(self.response, name)
 
+    def _read(self, method, size):
+        consumed = getattr(self.budget, self.counter)
+        remaining = MAX_NETWORK_BYTES - consumed
+        if remaining < 0:
+            (self.owner_close or self.close)()
+            raise TooLarge('Network budget exhausted')
+        amount = min(size if size is not None and size >= 0 else remaining + 1, remaining + 1)
+        try:
+            data = method(amount)
+            setattr(self.budget, self.counter, consumed + len(data))
+            if consumed + len(data) > MAX_NETWORK_BYTES:
+                raise TooLarge('Network budget exceeded')
+            return data
+        except BaseException:
+            (self.owner_close or self.close)()
+            raise
+
     def read(self, size=-1):
-        remaining = MAX_NETWORK_BYTES - self.budget.bytes
-        data = self.response.read(min(size if size is not None and size >= 0 else remaining + 1, remaining + 1))
-        self.budget.bytes += len(data)
-        if self.budget.bytes > MAX_NETWORK_BYTES:
-            self.close()
-            raise TooLarge('Network budget exceeded')
-        return data
+        return self._read(self.response.read, size)
+
+    def read1(self, size=-1):
+        return self._read(getattr(self.response, 'read1', self.response.read), size)
+
+    def readline(self, size=-1):
+        return self._read(self.response.readline, size)
+
+    def readinto(self, buffer):
+        data = self.read(len(buffer))
+        buffer[:len(data)] = data
+        return len(data)
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        line = self.readline()
+        if not line:
+            raise StopIteration
+        return line
+
+    def readlines(self, hint=-1):
+        lines = []
+        total = 0
+        for line in self:
+            lines.append(line)
+            total += len(line)
+            if hint > 0 and total >= hint:
+                break
+        return lines
 
     def close(self):
+        self.owner_close = None
         self.response.close()
 
     def __enter__(self):
@@ -255,7 +402,6 @@ class BoundedResponse:
 def extract(source, maximum, duration):
     import yt_dlp
     from yt_dlp.globals import all_plugins_loaded, plugin_dirs
-    from yt_dlp.networking._urllib import UrllibRH
     from yt_dlp.version import __version__
     if __version__ != '2026.08.19':
         raise BoundaryError('Unreviewed yt-dlp version')
@@ -268,14 +414,14 @@ def extract(source, maximum, duration):
     class PublicYoutubeDL(yt_dlp.YoutubeDL):
         @functools.cached_property
         def _request_director(self):
-            return self.build_request_director([UrllibRH])
+            return self.build_request_director([public_request_handler(budget)])
 
         def urlopen(self, req):
             public_url(req if isinstance(req, str) else req.url)
             budget.requests += 1
             if budget.requests > 100:
                 raise BoundaryError('Request budget exceeded')
-            return BoundedResponse(super().urlopen(req), budget)
+            return super().urlopen(req)
 
     with PublicYoutubeDL(extractor_options(maximum, duration)) as downloader:
         info = downloader.extract_info(source, download=False)
@@ -334,7 +480,7 @@ def main():
         # Direct URLs do not need a platform extractor, but use the same actual
         # connection guard, verified TLS, redirect checks and streaming limits.
         if urllib.parse.urlsplit(source).path.lower().endswith('.mp4'):
-            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), PublicRedirectHandler())
+            opener = urllib.request.build_opener(urllib.request.ProxyHandler({}), PublicRedirectHandler(), ResponseBudgetHandler(Budget()))
             request = urllib.request.Request(source, headers={'Accept': 'video/mp4', 'Accept-Encoding': 'identity', 'User-Agent': 'Foundkeep-Public-Media/1.0'})
             with opener.open(request, timeout=10) as response:
                 write_response(response, Path('video.mp4'), maximum)
