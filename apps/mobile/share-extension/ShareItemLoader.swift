@@ -78,7 +78,22 @@ final class ShareItemLoader: @unchecked Sendable {
       context = try await webpageContext(provider)
     }
     if provider.hasItemConformingToTypeIdentifier(UTType.propertyList.identifier) && provider.registeredTypeIdentifiers.allSatisfy({ $0 == UTType.propertyList.identifier }) { return nil }
+    // Files also advertises URL representations. Choose its concrete payload,
+    // never the bytes of public.file-url/public.url, regardless of type order.
+    let fileTypes = provider.registeredTypeIdentifiers.compactMap(UTType.init).filter {
+      !$0.conforms(to: .url) && ($0.conforms(to: .content) || $0.conforms(to: .data))
+    }
+    let fileType = fileTypes.first(where: {
+      $0.conforms(to: .image) || $0.conforms(to: .movie) || $0.conforms(to: .audio) || $0.conforms(to: .pdf)
+    }) ?? fileTypes.first(where: { $0.conforms(to: .content) }) ?? fileTypes.first
+    if provider.hasItemConformingToTypeIdentifier(UTType.fileURL.identifier), let fileType {
+      return try await copiedFile(provider, identifier: fileType.identifier, type: fileType, title: title, context: context)
+    }
     if provider.hasItemConformingToTypeIdentifier(UTType.url.identifier), let url = try await value(provider, type: .url) as? URL {
+      if url.isFileURL {
+        guard let fileType else { throw FoundkeepItemError.unavailable }
+        return try await copiedFile(provider, identifier: fileType.identifier, type: fileType, title: title, context: context)
+      }
       return try bookmark(url, title: title, context: context)
     }
     if provider.hasItemConformingToTypeIdentifier(UTType.plainText.identifier), let text = try await value(provider, type: .plainText) as? String {
@@ -86,12 +101,8 @@ final class ShareItemLoader: @unchecked Sendable {
       let trimmed = String(text.trimmingCharacters(in: .whitespacesAndNewlines).prefix(policy.textCharacters))
       return FoundkeepShareItem(clientId: UUID().uuidString, type: "selection", sourceURL: context?["pageUrl"] as? String, sourceTitle: boundedTitle(title ?? context?["pageTitle"] as? String), selectionText: trimmed, fileName: nil, mime: nil, bytes: trimmed.utf8.count, payloadPath: nil, contentHash: hash(Data(trimmed.utf8)), pageContext: context)
     }
-    guard let identifier = provider.registeredTypeIdentifiers.first(where: { identifier in
-      guard let value = UTType(identifier) else { return false }
-      return value.conforms(to: .image) || value.conforms(to: .movie) || value.conforms(to: .audio) || value.conforms(to: .pdf) || value.conforms(to: .content) || value.conforms(to: .data)
-    }) else { return nil }
-    let uniform = UTType(identifier) ?? .data
-    return try await copiedFile(provider, identifier: identifier, type: uniform, title: title, context: context)
+    guard let fileType else { return nil }
+    return try await copiedFile(provider, identifier: fileType.identifier, type: fileType, title: title, context: context)
   }
 
   private func bookmark(_ url: URL, title: String?, context: [String: Any]?) throws -> FoundkeepShareItem {
