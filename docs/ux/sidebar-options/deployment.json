@@ -1,0 +1,12 @@
+{
+  "release": "/home/pritam/.local/share/foundkeep-site-dev/releases/20260913-065911-mobile-hamburger",
+  "previous": "/home/pritam/.local/share/foundkeep-site-dev/releases/20260913-065435-wordmark-mobile-nav",
+  "url": "https://dev.foundkeep.app/design/sidebar-options.html",
+  "fullSizeUrl": "https://dev.foundkeep.app/design/library-first.html",
+  "deployedAt": "2026-09-13T07:00:08.933Z",
+  "backendRestarted": false,
+  "productionChanged": false,
+  "change": "Hamburger opener and no logo in the closed mobile header.",
+  "publicVerifiedAt": "2026-09-13T07:00:23.145Z",
+  "publicChecks": "Both preview URLs returned 200 and matched source; hamburger-only closed mobile header, drawer branding, keyboard focus restoration, desktop reopening and 320/390px layouts verified without runtime errors."
+}

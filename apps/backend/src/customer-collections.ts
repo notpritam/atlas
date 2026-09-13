@@ -46,9 +46,18 @@ export function registerCustomerCollections(app:Hono<CustomerEnv>,db:Database,se
   const r=role(row,accountId),moderate=moderator(r),offset=pagination(c),queue=c.req.query('view')==='pending';
   if(queue&&!moderate)fail(403,'moderation_required','Only collection moderators can open the approval queue.');
   const predicate=queue?"status='pending'":moderate?'1=1':"(status='approved' OR contributor_id=?)";
-  const rows=db.query(`SELECT * FROM customer_collection_entries WHERE collection_id=? AND ${predicate} ORDER BY created_at DESC,id DESC LIMIT 25 OFFSET ?`).all(row.id,...(!queue&&!moderate?[accountId||'']:[]),offset) as Entry[];
+  const q=text(c.req.query('q')||'',100,'Search'),tag=text(c.req.query('tag')||'',40,'Topic');
+  const permitted=`collection_id=? AND ${predicate}`,access=[row.id,...(!queue&&!moderate?[accountId||'']:[])];
+  const clauses=[permitted],bindings:string[]=[...access];
+  if(q){const pattern='%'+q.replace(/[\\%_]/g,'\\$&')+'%';clauses.push("(title LIKE ? ESCAPE '\\' OR body LIKE ? ESCAPE '\\' OR url LIKE ? ESCAPE '\\' OR EXISTS(SELECT 1 FROM json_each(customer_collection_entries.tags) WHERE value LIKE ? ESCAPE '\\'))");bindings.push(pattern,pattern,pattern,pattern);}
+  if(tag){clauses.push('EXISTS(SELECT 1 FROM json_each(customer_collection_entries.tags) WHERE value=? COLLATE NOCASE)');bindings.push(tag);}
+  const where=clauses.join(' AND ');
+  const rows=db.query(`SELECT * FROM customer_collection_entries WHERE ${where} ORDER BY created_at DESC,id DESC LIMIT 25 OFFSET ?`).all(...bindings,offset) as Entry[];
+  const total=(db.query(`SELECT COUNT(*) count FROM customer_collection_entries WHERE ${where}`).get(...bindings) as {count:number}).count;
+  // Topic suggestions use the same visibility predicate as entries, even for an empty search.
+  const availableTags=(db.query(`SELECT DISTINCT j.value AS tag FROM customer_collection_entries,json_each(customer_collection_entries.tags) j WHERE ${permitted} ORDER BY j.value COLLATE NOCASE LIMIT 100`).all(...access) as {tag:string}[]).map(row=>row.tag);
   const pending=moderate?(db.query("SELECT COUNT(*) count FROM customer_collection_entries WHERE collection_id=? AND status='pending'").get(row.id) as {count:number}).count:0;
-  return {collection:card(row,accountId),entries:rows.slice(0,24).map(e=>entryDto(e,accountId,moderate)),nextCursor:rows.length>24?String(offset+24):null,pending};
+  return {collection:card(row,accountId),entries:rows.slice(0,24).map(e=>entryDto(e,accountId,moderate)),nextCursor:rows.length>24?String(offset+24):null,pending,total,availableTags};
  }
  // Reauthenticate after reading a body: a logout, account switch, or revocation
  // while an upload is in flight must never authorize a later mutation.

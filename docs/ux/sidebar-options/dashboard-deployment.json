@@ -1,0 +1,56 @@
+{
+  "release": "/home/pritam/.local/share/foundkeep-site-dev/releases/20260913-072816-library-first-dashboard",
+  "previousRelease": "/home/pritam/.local/share/foundkeep-site-dev/releases/20260913-065911-mobile-hamburger",
+  "backendBefore": "ActiveEnterTimestamp=Sat 2026-09-12 23:40:06 CEST\nMainPID=483803",
+  "sourceSha256": {
+    "apps/site/components/dashboard/sidebar.tsx": "e90d099eee0a6748ffb25426413a6ca9e53b385306567b6928a6c40a56df04b3",
+    "apps/site/components/dashboard/sidebar.css": "40286b440e176294fd7e335356652c308e72db5c7fbafc121e83f55ae1b90fa0",
+    "apps/site/components/dashboard/dashboard.tsx": "8d596bc542a3ce89d0d9b0925b7c5d2f56c14bd8e8b39adb2b34f8256067611c",
+    "apps/site/components/dashboard/dashboard.css": "7f438b25582b72af08830806238db6c1d95d35ecccb5d90a459a263fc5bd8e62"
+  },
+  "url": "https://dev.foundkeep.app/dashboard",
+  "publicVerifiedAt": "2026-09-13T07:29:52.307Z",
+  "checks": [
+    {
+      "route": "/",
+      "status": 200
+    },
+    {
+      "route": "/login",
+      "status": 200
+    },
+    {
+      "route": "/dashboard",
+      "status": 307
+    },
+    {
+      "route": "/dashboard/collections",
+      "status": 307
+    },
+    {
+      "route": "/dashboard/plans",
+      "status": 307
+    },
+    {
+      "route": "/design/library-first.html",
+      "status": 200
+    },
+    {
+      "route": "/assets/studio-mark.svg?v=bookmark-evolved-1",
+      "status": 200
+    },
+    {
+      "route": "/healthz",
+      "status": 200
+    }
+  ],
+  "sidebarChunk": "/_next/static/chunks/371u90phl3c2d.js",
+  "backendUnchanged": true,
+  "webService": "foundkeep-site-dev.service",
+  "productionChanged": false,
+  "build": {
+    "revision": "124d73a671bd152e3dd9e405c1329589daf3f86a",
+    "buildId": "Qh1K8Ssar2PtWhJFOWCY1",
+    "createdAt": "2026-09-13T07:28:16.283Z"
+  }
+}

@@ -14,6 +14,8 @@ Pritam's standing preference (2026-09-12): Foundkeep already has a permanent dev
 
 See [customer web deployment](deploy/NEXT_WEB.md) for packaging and verification details.
 
+Pritam's preference (2026-09-13): keep dev populated and ready for independent testing. `bun run dev:seed` adds dedicated demo accounts, three public collections, a private scratchpad, starter notes, and a pending submission. Reruns preserve existing data and recorded tester changes. Keep credentials/bookkeeping outside the checkout at `~/.local/share/foundkeep-dev-demo`; never seed production or reset dev. See [demo setup](docs/DEV_DEMO.md).
+
 ## Browser extension environments
 
 Pritam requested separate dev and production extensions (2026-09-12). Use `bun run extension:build:dev` for **Foundkeep Dev**, stable ID `fngoidplpdpoamenhgpabbheghpkdkcb`, fixed to `https://dev.foundkeep.app`. Use `bun run extension:build:prod` for the existing production identity. Both must coexist with separate local databases, credentials, and upload queues. Never convert an installed production extension into dev or migrate customer data between environments.

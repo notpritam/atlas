@@ -1,4 +1,4 @@
-# Foundkeep
+# FoundKeep
 
 <!-- impeccable:product-schema 1 -->
 
@@ -8,7 +8,15 @@ Web dashboard, Chromium browser extension, and an Expo iPhone app with a native 
 
 ## Purpose and operating context
 
-Foundkeep is a customer capture product for saving readable pages, screenshots, highlights, bookmarks, images, posts on X, and notes with traceable source records, then finding them in a private library. It uses native HTML/CSS/JavaScript, a Chromium Manifest V3 extension, and a Bun/Hono/SQLite backend.
+FoundKeep is a customer capture product for saving readable pages, screenshots, highlights, bookmarks, images, posts on X, and notes with traceable source records, then finding them in a private library. It uses native HTML/CSS/JavaScript, a Chromium Manifest V3 extension, and a Bun/Hono/SQLite backend.
+
+## Collections and navigation
+
+FoundKeep does not offer workspaces or a workspace switcher. Personal and group sharing use collections. The selected sidebar direction is Library first: a small FoundKeep wordmark, the logo opening collapsed desktop navigation, and a hamburger opener in the mobile header, with the logo shown only inside the open mobile drawer. One collapse control is shown while expanded. The brand spelling is FoundKeep, with a capital K. The sidebar shows real collections and plan usage. New note belongs in the library header only, not the sidebar.
+
+## Public collections
+
+Public collections share selected links, notes, and ideas with a curator identity and explicit contribution rules. Visitors can browse and search without signing in; signed-in customers can follow or contribute when allowed. Collection owners choose private/public visibility, who can add, and whether submissions need approval. Public search, result counts, and tag choices exclude pending/private content. Explore provides topic navigation and collection search. Dev has dedicated, labeled demo collections and a repeatable additive seed command; see `docs/DEV_DEMO.md`.
 
 ## Customer flow
 
@@ -30,15 +38,15 @@ Application version stays 1.0.0. Compatible JavaScript and assets can use Expo U
 
 ## Account identity and customer web
 
-A verified provider email can connect several provider subjects to one private Foundkeep account. Supabase's top-level email confirmation alone is insufficient: the selected provider must attest the same email. An existing password-only account requires its password once to connect its first provider. Legacy social mappings require a fresh verified login before authorizing another subject. Established subjects never move accounts when email changes. Different addresses, including Apple private relay emails, remain separate.
+A verified provider email can connect several provider subjects to one private FoundKeep account. Supabase's top-level email confirmation alone is insufficient: the selected provider must attest the same email. An existing password-only account requires its password once to connect its first provider. Legacy social mappings require a fresh verified login before authorizing another subject. Established subjects never move accounts when email changes. Different addresses, including Apple private relay emails, remain separate.
 
 The web auth, library, setup, item detail and settings surfaces inherit the scenic landing's white/azure/sky/mint world with Clarity City and Geist. Social methods lead; email controls expand on request and remain available if providers cannot load. Support and policy pages share the web palette and typography. Native iPhone Gallery remains deep purple.
 
 ## Security and compatibility
 
-Customer queries, images, preferences, and credentials are owner scoped. Local IndexedDB, existing records, the fixed extension ID, signing key, shortcuts, storage keys, message kinds, API routes, database tables, and header names remain compatible across the Foundkeep migration.
+Customer queries, images, preferences, and credentials are owner scoped. Local IndexedDB, existing records, the fixed extension ID, signing key, shortcuts, storage keys, message kinds, API routes, database tables, and header names remain compatible across the FoundKeep migration.
 
-The primary origin is `https://foundkeep.app`. Human-facing requests to `https://atlas.notpritam.in` redirect to the matching Foundkeep path, while its API and relay endpoints remain a temporary compatibility origin for version 1.5 clients. Cross-domain website cookies cannot migrate, so existing customers sign in once on Foundkeep; their accounts and captures remain in the same database.
+The primary origin is `https://foundkeep.app`. Human-facing requests to `https://atlas.notpritam.in` redirect to the matching FoundKeep path, while its API and relay endpoints remain a temporary compatibility origin for version 1.5 clients. Cross-domain website cookies cannot migrate, so existing customers sign in once on FoundKeep; their accounts and captures remain in the same database.
 
 Customer agents connect through scoped, revocable MCP credentials. Free includes imports and MCP access; optional Pro adds consented managed processing. External agents own their model and schedule. Search remains keyword based, without an embedding or semantic-search claim. There is no advertising tracker or email reset delivery. Local capture remains available without an account. Cloud and local deletion are separate. Free allows 10,000 captures and 200 MiB; Pro allows 10,000 captures, 2 GiB and 500 managed-processing credits per UTC calendar month. Web Pro is USD $5/month via Stripe; native subscriptions use RevenueCat and Apple In-App Purchase.
 

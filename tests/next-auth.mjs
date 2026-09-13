@@ -274,11 +274,11 @@ test('a deferred export cannot complete after leaving the dashboard and changing
     catch { /* The dashboard aborts the request when its lifecycle ends. */ }
   });
   await page.goto(base + '/dashboard');
-  await page.locator('#open-account').click();
+  await page.locator('#open-account').click(); await page.locator('#sidebar-account-settings').click();
   await page.locator('#export-account').click();
   await page.locator('#confirm-accept').click();
   await started;
-  await page.locator('.sidebar-bottom a[href="/support"]').click();
+  await page.locator('#sidebar-support').click();
   await page.waitForURL('**/support');
   const second = await register('Audit account B');
   const me = await (await context.request.get(base + '/api/me')).json();

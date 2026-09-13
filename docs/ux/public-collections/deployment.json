@@ -1,0 +1,110 @@
+{
+  "release": "/home/pritam/.local/share/foundkeep-site-dev/releases/20260913-080600-public-collections",
+  "previousRelease": "/home/pritam/.local/share/foundkeep-site-dev/releases/20260913-072816-library-first-dashboard",
+  "baseRevision": "124d73a671bd152e3dd9e405c1329589daf3f86a",
+  "sourceIncludesUncommittedChanges": true,
+  "packagedBuild": {
+    "revision": "124d73a671bd152e3dd9e405c1329589daf3f86a",
+    "buildId": "VvwSsXSUmbYZnPZoCO0XI",
+    "createdAt": "2026-09-13T08:06:07.073Z"
+  },
+  "backupDirectory": "/home/pritam/.local/share/foundkeep-dev-backups/20260913-080322-public-collections",
+  "databaseSchemaChanged": false,
+  "servicesRestarted": [
+    "foundkeep-backend-dev.service",
+    "foundkeep-site-dev.service"
+  ],
+  "productionServicesUnchanged": {
+    "atlas-backend.service": 327271,
+    "foundkeep-site.service": 325115
+  },
+  "preservedExistingData": {
+    "customer_accounts": {
+      "preserved": 3,
+      "added": 2
+    },
+    "customer_captures": {
+      "preserved": 1,
+      "added": 3
+    },
+    "customer_collections": {
+      "preserved": 0,
+      "added": 4
+    },
+    "customer_collection_entries": {
+      "preserved": 0,
+      "added": 20
+    },
+    "customer_preferences": {
+      "preserved": 0,
+      "added": 0
+    },
+    "customer_subscriptions": {
+      "preserved": 1,
+      "added": 0
+    }
+  },
+  "fixtures": {
+    "accounts": 2,
+    "publicCollections": 3,
+    "publicFinds": 18,
+    "privateCollections": 1,
+    "privateEntries": 1,
+    "pendingSubmissions": 1,
+    "starterNotes": 3,
+    "firstSeedCreatedCollections": 4,
+    "firstSeedCreatedEntries": 19,
+    "repeatCreatedCollections": 0,
+    "repeatCreatedEntries": 0
+  },
+  "verification": {
+    "verifiedAt": "2026-09-13T08:09:32.744Z",
+    "pages": [
+      {
+        "route": "/collections",
+        "width": 1440,
+        "title": "Good finds.Better together."
+      },
+      {
+        "route": "/collection/demo-agent-toolkit",
+        "width": 1440,
+        "title": "The agent toolkit"
+      },
+      {
+        "route": "/collection/demo-design-that-works",
+        "width": 820,
+        "title": "Design that works"
+      },
+      {
+        "route": "/collection/demo-worth-reading",
+        "width": 390,
+        "title": "Worth a slower read"
+      },
+      {
+        "route": "/collection/demo-agent-toolkit",
+        "width": 320,
+        "title": "The agent toolkit"
+      }
+    ],
+    "staticResources": 11,
+    "runtimeErrors": [],
+    "failedResources": [],
+    "search": true,
+    "privateBoundary": true,
+    "pendingBoundary": true,
+    "curatorQueue": 1,
+    "starterNotes": 3
+  },
+  "sourceSha256": {
+    "apps/backend/src/customer-collections.ts": "a5947ca84781f28119b4300aa91a3720bfc41667700ffd1ea22e0848c1efb8a5",
+    "apps/site/components/collections/public-page.tsx": "cae852805f385edae582c811c58c0ddfa5b5a935886570423e02a59e43eb7764",
+    "apps/site/components/collections/public-chrome.tsx": "4ece188a9c7d960bbdae391f7cfd3e5a523b4423f2da57187cb35e129b66e45a",
+    "apps/site/components/collections/public-collections.css": "f064d7c48c86c47833d1ece5de50da620b601f0d6d382ccf43298ec908a1be34",
+    "apps/site/components/collections/entries.tsx": "4f84899d5f3a274833afdfd5f53fb7979413baa489cd002d0f010cce96bde1c3",
+    "apps/site/app/collections/page.tsx": "1e45acc63a7f00b559307c3d98f1f7aeefdbf735a5383a95e515b56b760f7904",
+    "apps/site/app/collection/[slug]/page.tsx": "7db9d8406d3fbd905febe5d4baa3e659fd68b93776300747344bd2e7e12da04f",
+    "scripts/seed-dev.mjs": "6f2c7f6957fc0cd5ee7bd929e2a67cba37f3a897f6afa9f91afa3c216947c9ae",
+    "scripts/fixtures/dev-collections.mjs": "c8dd4c81d44ec3e27a19a5a972cb41b1e81ed22b2a7f3dc36530fd03859cd410"
+  },
+  "rollback": "Retained prior web release and a pre-change collection handler source copy. Restore the prior symlink and restart the dev website to roll back web only. Do not restore the database or remove fixtures as part of a routine UI rollback. No production changes were made."
+}

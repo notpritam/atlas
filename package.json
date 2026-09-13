@@ -25,7 +25,8 @@
     "mobile:typecheck": "npm --workspace @foundkeep/mobile run typecheck",
     "mobile:prebuild": "npm --workspace @foundkeep/mobile run prebuild",
     "extension:build:dev": "node deploy/build-extension.mjs --environment dev",
-    "extension:build:prod": "node deploy/build-extension.mjs --environment prod"
+    "extension:build:prod": "node deploy/build-extension.mjs --environment prod",
+    "dev:seed": "node scripts/seed-dev.mjs"
   },
   "devDependencies": {
     "crx3": "^2.0.0",

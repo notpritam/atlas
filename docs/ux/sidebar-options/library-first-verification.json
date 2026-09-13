@@ -1,0 +1,12 @@
+{
+  "checkedAt": "2026-09-13T06:48:04.724Z",
+  "base": "local artifact",
+  "selectedDirection": "Library first",
+  "workspaceRemoved": true,
+  "logoOpensDesktopAndMobile": true,
+  "oneCollapseControl": true,
+  "desktopTabletPhoneAndShortPhone": true,
+  "keyboardAndReducedMotion": true,
+  "previewNoteCreation": true,
+  "errors": []
+}

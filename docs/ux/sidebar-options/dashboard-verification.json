@@ -1,0 +1,26 @@
+{
+  "verifiedAt": "2026-09-13T07:27:37.979728+00:00",
+  "environment": "Disposable local backend on 18790 and production Next build on 18791",
+  "build": "Next production build and TypeScript passed",
+  "checks": [
+    "Library first sidebar uses real collection links, highlights the active collection, and opens followed public collections",
+    "No sidebar New note; library header note editor and preferences preserved",
+    "Desktop logo reopening and collapse persistence, including unavailable localStorage",
+    "Mobile hamburger-only header, drawer focus containment, Escape/backdrop/collapse, inert background and scroll restoration",
+    "320, 390, 760, 820, 1100, 1440 widths; 320x500 short screen; reduced motion",
+    "Drawer and account-menu Escape preserve expanded reader",
+    "761, 820 and 1000px open tablet reader occupies main area; gallery returns on close",
+    "Collection and plan error states, retry, verified Pro, cancel/confirm account switching",
+    "Dashboard notes, image preview queue, reader/history/filter state, capture refresh, account export and preferences",
+    "Account pages, verified billing states and agent connection lifecycle",
+    "Collection public follow, sidebar destination, submissions/approval and privacy revocation",
+    "Real loading motion, pending route interruption, reduced motion",
+    "Deferred export is cancelled after dashboard unmount/account change"
+  ],
+  "review": "Independent read-only review: both P2 findings fixed and reviewed; no remaining material findings",
+  "testNotes": [
+    "One concurrent run received HTTP 503 during disposable agent-test account registration. The unchanged agent test passed on a sequential rerun.",
+    "The optional Pro group backend-fixture test was not enabled. Existing public/personal collections tests and followed sidebar navigation passed."
+  ],
+  "productionChanged": false
+}

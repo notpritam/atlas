@@ -1,0 +1,20 @@
+{
+  "checkedAt": "2026-09-13T06:33:34.073Z",
+  "results": [
+    {
+      "variant": "classic",
+      "checks": "workspace switching, routes, search, filters, note creation, collapse, account menu, mobile dismissal and focus restoration passed"
+    },
+    {
+      "variant": "library",
+      "checks": "workspace switching, routes, search, filters, note creation, collapse, account menu, mobile dismissal and focus restoration passed"
+    },
+    {
+      "variant": "rail",
+      "checks": "workspace switching, routes, search, filters, note creation, collapse, account menu, mobile dismissal and focus restoration passed"
+    }
+  ],
+  "errors": [],
+  "narrowGalleryOverflow": false,
+  "shortPhoneChecks": "All three variants: 320×500, account reachable, keyboard focus trap and restoration, no horizontal overflow, reduced motion passed"
+}

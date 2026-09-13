@@ -82,6 +82,7 @@ test('dashboard motion follows real work, respects reduced motion, and survives 
   await page.locator('#open-setup .navigation-pending').waitFor();
   assert.equal(await page.locator('#open-setup .work-spinner').evaluate(element => getComputedStyle(element).transform), 'none');
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.locator('#open-sidebar').click();
   assert.equal(await page.locator('#open-setup .navigation-pending').isVisible(), true, 'Navigation feedback stays visible on phones');
   await page.screenshot({ path: '.impeccable/review/dashboard-motion/navigation-phone.png' });
   navigation.release();
@@ -94,6 +95,7 @@ test('dashboard motion follows real work, respects reduced motion, and survives 
   const planRequested = gate();
   await page.route('**/api/plan', async route => { planRequested.release(); await plan.promise; await route.continue(); });
   await page.emulateMedia({ reducedMotion: 'no-preference' });
+  await page.locator('#open-sidebar').click();
   await page.locator('#open-plans').click();
   await planRequested.promise;
   await page.locator('.plan-loading .skeleton-plan').waitFor();
@@ -106,6 +108,7 @@ test('dashboard motion follows real work, respects reduced motion, and survives 
   // Leave a loading destination and ensure neither stale content nor a loader resurfaces.
   const abandoned = gate();
   await page.route('**/dashboard/settings?*', async route => { await abandoned.promise; await route.continue(); });
+  await page.locator('#open-sidebar').click();
   await page.locator('#open-settings').click();
   await page.locator('#open-settings .navigation-pending').waitFor();
   await page.locator('#all-captures').click();

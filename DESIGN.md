@@ -34,7 +34,7 @@ rounded:
 
 The marketing landing follows the user's scenic reference: an azure mountain horizon, spacious white ground, rounded sky and mint product panels, soft glass mini-controls, and scenic closing sections. The scenic color tokens also apply to customer auth, dashboard, support and policy pages; [its surface brief](apps/web/.impeccable/surfaces/index-html.md) records the page contract.
 
-Customer web extends the landing world through focused white forms, azure controls, sky notes and mint highlights. The browser extension retains its incumbent theme. The iPhone app retains the approved deep-purple Gallery and floating dock. Scenic scenery supports auth and a small desktop sidebar panel; saved customer content leads the library.
+Customer web extends the landing world through focused white forms, azure controls, sky notes and mint highlights. The browser extension retains its incumbent theme. The iPhone app retains the approved deep-purple Gallery and floating dock. Scenic scenery supports auth; saved customer content leads the library.
 
 The canonical mark remains a source point inside a folded bookmark and protected dark frame: a saved item whose origin stays attached. Preserve its geometry from small extension icons through social artwork.
 
@@ -52,7 +52,9 @@ Self-hosted Clarity City and Geist connect the surfaces. The landing loads Clari
 
 The landing has a white shell capped at 1600px, main content capped at 1100px, and generous section gaps (116px by default). Desktop capture and setup panels are paired, the collection has three examples, and platforms use two columns. Breakpoints at 1100px, 800px, and 540px progressively reduce gutters and stack content; the surface brief specifies 1440px, 768px, 390px, and 320px behavior.
 
-`index.html` keeps separate `landing.css`. Auth, dashboard, support, privacy and terms load `styles.css` followed by `customer.css`, whose shared tokens match the landing. Auth pairs a scenic panel and account form at a maximum 1180px; below 680px it becomes a compact scenic masthead above the form. The library uses a 248px desktop sidebar and responsive gallery; below 680px navigation moves above the library and type filters scroll horizontally. The gallery becomes one column below 420px.
+`index.html` keeps separate `landing.css`. Auth, dashboard, support, privacy and terms load `styles.css` followed by `customer.css`, whose shared tokens match the landing. Auth pairs a scenic panel and account form at a maximum 1180px; below 680px it becomes a compact scenic masthead above the form. The dashboard uses the approved Library first sidebar: 286px desktop, 250px tablet, and a collapsible 76px icon rail. The smaller FoundKeep wordmark is 18px (17px inside the mobile drawer); the collapsed desktop logo expands navigation without changing the page. At 760px and below, a hamburger-only header opens the drawer, whose branding and single collapse control remain inside. Use real collection links, separated management links, quiet plan usage, and an account disclosure menu. New note appears only in the library header. When a capture is open at 761–1000px, the reader uses the main area until closed so cards are not squeezed beside it. Type filters scroll horizontally; the gallery becomes one column below 420px.
+
+Public collections extend this palette through prominent curator introductions, locally authored topic artwork, a ruled reading list, and an optional grid. Desktop places contribution rules beside the feed; phones surface contribution actions directly below the introduction. Explore uses responsive topic-cover cards with actual curator/count data. The [public collection surface brief](apps/site/.impeccable/surfaces/app-public-collections.md) records the contract.
 
 ## Elevation & Depth
 

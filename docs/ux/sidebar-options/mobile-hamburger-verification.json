@@ -1,0 +1,11 @@
+{
+  "checkedAt": "2026-09-13T06:59:37.091Z",
+  "base": "local artifact",
+  "hamburgerIcon": true,
+  "closedMobileHeaderHasNoLogo": true,
+  "openDrawerKeepsFoundKeepBrand": true,
+  "focusRestoration": true,
+  "desktopLogoReopens": true,
+  "noOverflowAt320And390": true,
+  "errors": []
+}

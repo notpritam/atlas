@@ -115,3 +115,19 @@ test('revoked credentials cannot finish an in-flight collection write and forged
  expect((db.query('SELECT COUNT(*) n FROM customer_collection_entries').get() as {n:number}).n).toBe(0);
  const attack=await app.request(origin+'/api/collections',{method:'POST',headers:{origin:'https://evil.example','content-type':'application/json'},body:'{}'});expect(attack.status).toBe(403);
 });
+
+test('collection search and topics span pages without exposing unapproved content',async()=>{
+ const a=await user(),b=await user(),c=await collection(a,{visibility:'public',submissionPolicy:'anyone'});
+ await entry(c,a,{title:'An older find with a literal 100% match',tags:['systems'],body:'Durable ideas'});
+ for(let i=0;i<25;i++)await entry(c,a,{title:'Recent resource '+i,tags:['agents']});
+ await entry(c,b,{title:'HIDDEN suggestion',tags:['secret-topic']});
+ const publicPath='/public/collections/'+c.slug;
+ const found=await(await req(publicPath+'?q=100%25')).json();expect(found.entries).toHaveLength(1);expect(found.total).toBe(1);expect(found.nextCursor).toBeNull();
+ const tagged=await(await req(publicPath+'?tag=systems')).json();expect(tagged.entries).toHaveLength(1);expect(tagged.availableTags).toEqual(['agents','systems']);
+ const noMatch=await(await req(publicPath+'?q=HIDDEN')).json();expect(noMatch.total).toBe(0);expect(noMatch.availableTags).not.toContain('secret-topic');
+ const scoped=await(await req('/collections/by-slug/'+c.slug+'?q=HIDDEN',b.token)).json();expect(scoped.total).toBe(1);expect(scoped.entries[0].status).toBe('pending');
+ expect((await req(publicPath+'?q='+('x'.repeat(101)))).status).toBe(400);
+ const next=await(await req(publicPath+'?tag=agents&cursor=24')).json();expect(next.entries).toHaveLength(1);expect(next.total).toBe(25);
+ await req('/collections/'+c.id,a.token,'PATCH',{visibility:'private',submissionPolicy:'owner'});
+ expect((await req(publicPath+'?q=resource')).status).toBe(404);
+});

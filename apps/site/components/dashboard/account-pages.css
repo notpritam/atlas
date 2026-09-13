@@ -1,11 +1,5 @@
 /* Account pages extend Foundkeep's scenic web system: quiet white surfaces,
    azure actions, sky for Pro, and real account usage above the plan comparison. */
-.customer-body.dashboard-body .library-nav a { display:flex; align-items:center; gap:12px; width:100%; text-align:left; min-height:45px; padding:11px; color:var(--muted); background:transparent; border-radius:12px; font-size:13px; text-decoration:none; }
-.customer-body.dashboard-body .library-nav a:hover { background:var(--paper); color:var(--ink); }
-.customer-body.dashboard-body .library-nav a.nav-active { background:var(--sky); color:var(--accent); }
-.customer-body.dashboard-body .library-nav a>span { margin-left:auto; font-size:11px; font-variant-numeric:tabular-nums; }
-.customer-body.dashboard-body .library-nav svg { flex-shrink:0; }
-.customer-body.dashboard-body .sidebar-bottom>a.account-button { display:flex; padding:17px 0; color:var(--ink); }
 .customer-body.dashboard-body.has-account-page .library-main { padding-top:42px; }
 .customer-body .account-page { width:100%; max-width:1060px; margin:0 auto; flex:1; min-width:0; padding-bottom:36px; }
 .customer-body .account-page-heading { margin-bottom:32px; }
@@ -122,12 +116,6 @@
   .customer-body .usage-value { font-size:15px; }
 }
 @media (max-width:760px) {
-  .customer-body.dashboard-body .library-nav { gap:4px; justify-content:space-between; }
-  .customer-body.dashboard-body .library-nav a { width:auto; justify-content:center; padding:10px 8px; gap:6px; min-height:46px; font-size:11px; border-radius:10px 10px 0 0; }
-  .customer-body.dashboard-body .library-nav a.nav-active { border-bottom:2px solid var(--accent); }
-  .customer-body.dashboard-body .library-nav a>span { display:none; }
-  .customer-body.dashboard-body .library-nav svg { width:15px; height:15px; }
-  .customer-body.dashboard-body .sidebar-bottom>a.account-button { padding:0; }
   .customer-body.dashboard-body.has-account-page .library-main { padding-top:28px; }
   .customer-body .account-page-heading { margin-bottom:26px; }
   .customer-body .account-page-heading p { font-size:13px; }
@@ -157,9 +145,6 @@
   .customer-body .account-page .service-form { max-width:100%; }
 }
 @media (max-width:400px) {
-  .customer-body.dashboard-body .library-sidebar { padding-inline:14px; }
-  .customer-body.dashboard-body .library-nav a { padding-inline:7px; font-size:10px; }
-  .customer-body.dashboard-body .library-nav svg { display:none; }
   .customer-body .settings-nav { gap:18px; }
   .customer-body .plan-card,.customer-body .plan-overview,.customer-body .plan-roadmap { padding:20px; }
 }
