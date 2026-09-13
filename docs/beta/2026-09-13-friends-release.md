@@ -1,6 +1,6 @@
 # Friends beta — 13 September 2026
 
-Status at 14:05 UTC. Friends use **https://foundkeep.app/beta** and production accounts. **https://dev.foundkeep.app** remains Pritam-only. Android and desktop are available for Free beta use; final Pro-flow fixes, updated native builds and external TestFlight access remain open. This is not a completed all-feature, all-device launch.
+Status at 14:22 UTC. Friends use **https://foundkeep.app/beta** and production accounts. **https://dev.foundkeep.app** remains Pritam-only. Android and desktop are available for Free beta use; production Pro configuration, updated native builds and external TestFlight access remain open. This is not a completed all-feature, all-device launch.
 
 ## Available now
 
@@ -16,9 +16,9 @@ Status at 14:05 UTC. Friends use **https://foundkeep.app/beta** and production a
 | Service | Current release |
 | --- | --- |
 | Production website | `/home/pritam/.local/share/foundkeep-site/releases/20260913-135407-media-preservation` |
-| Production backend | `/home/pritam/.local/share/foundkeep-backend/releases/20260913-135112-remote-media-8fa9e31` |
+| Production backend | `/home/pritam/.local/share/foundkeep-backend/releases/20260913-141918-remote-media-ebe9e2e` |
 | Dev website | `/home/pritam/.local/share/foundkeep-site-dev/releases/20260913-135056-media-preservation` |
-| Dev backend | `/home/pritam/.local/share/foundkeep-backend/releases/20260913-135112-remote-media-8fa9e31` |
+| Dev backend | `/home/pritam/.local/share/foundkeep-backend/releases/20260913-141918-remote-media-ebe9e2e` |
 | Dev static downloads | `/home/pritam/.local/share/foundkeep-dev-web/releases/20260913-104300-friends-beta` |
 
 The shared backend code is immutable; each service retains its own environment, database, storage and authentication. Dev's release override is `foundkeep-backend-dev.service.d/foundkeep-media-release.conf`; production uses `atlas-backend.service.d/foundkeep-release.conf`. Restarting dev alone no longer deploys working-tree changes. Both media runtime overrides enable the pinned Python runtime and `PrivateTmp=yes`; service shutdown removes private extractor scratch space.
@@ -30,6 +30,8 @@ Revision `8fa9e31` was enabled on the dev backend at13:52Z, dev website at13:54Z
 - Production backend: `~/.local/share/foundkeep-production-backups/20260913-135505-remote-media`.
 - Production website: `~/.local/share/foundkeep-production-backups/20260913-135506-remote-media`.
 
+Backend fix `ebe9e2e` was deployed to dev at14:21:33Z and production at14:21:49Z. Migration27→28 was first applied to an online copy of production and preserved every customer row, adding only nullable `scheduled_cutoff`. Both live databases now have schema28 and pass integrity/ID-preservation checks. New backend backups are dev `~/.local/share/foundkeep-dev-backups/20260913-142132-remote-media` and production `~/.local/share/foundkeep-production-backups/20260913-142149-remote-media`. The immediately previous immutable backend `20260913-135112-remote-media-8fa9e31` is retained. Websites remain at the earlier8fa9e31 build because this fix does not change site code.
+
 Previous website releases are production `20260913-123918-beta-distribution` and dev `20260913-123822-beta-distribution`; prior backend code `20260913-native-notes-ab4c082` remains available. Roll back code/configuration without overwriting newer customer data with a database backup.
 
 At14:04Z all original production and dev account/capture/connection IDs remained present, SQLite integrity was `ok`, and both environments had zero enabled automations after QA cleanup. Current production counts were4accounts/30captures/5connections; dev5accounts/16captures/0connections. New customer saves were retained. No production demo data was seeded.
@@ -38,7 +40,7 @@ At14:04Z all original production and dev account/capture/connection IDs remained
 
 The actual production MCP SDK created saves, updated detailed context, linked ideas, displayed the relationships in the desktop/phone canvas, opened the saved reader and verified token revocation. The actual extension journey passed signup, recovery acknowledgement, pairing, preference sync, note/highlight/article/screenshot capture, readable article extraction, screenshot OCR, import and revocation. Those temporary accounts were deleted.
 
-Native source through `76e6ecf` passed94mobile tests/typecheck, and earlier backend changes passed255tests/2,217assertions. The media integration subsequently passed186covering tests/1,743assertions; final source-evidence changes passed98focused tests/467assertions and backend typecheck. Independent per-task reviews passed. A subsequent broad review found the two final integration gaps listed below; earlier checks are not represented as proof those gaps were already fixed.
+Native source through `76e6ecf` passed94mobile tests/typecheck, and earlier backend changes passed255tests/2,217assertions. The media integration subsequently passed186covering tests/1,743assertions; final source-evidence changes passed98focused tests/467assertions and backend typecheck. Independent per-task reviews passed. The subsequent broad review identified two final integration gaps. Consolidated fix `ebe9e2e` and its scoped re-review now pass: scheduled due cohorts drain beyond twenty saves in bounded pages, and native readers observe actual managed completion/failure instead of treating enqueue as completion. The fix passed67focused backend tests/445assertions,98mobile tests and backend/mobile/site typechecks. Native artifact verification remains separate.
 
 The packaged production-mode browser passed both existing appearance and public-collection suites, including desktop/phone layout, theme persistence, public snapshot privacy, detailed readers, keyboard/focus behavior, sticky navigation and no-JavaScript collection access. Live dev reader and production beta pages passed desktop/phone checks with no overflow or runtime errors. The retained production APK in the new website release matches its signed checksum.
 
@@ -68,7 +70,7 @@ IPA21 is `/Users/notpritamm/.local/share/foundkeep-builds/20260913-friends-ios21
 
 Further actual Files testing exposed an intake bug absent from earlier Safari checks. Reviewed fix `0afb7a0` prioritizes concrete file representations over local URL representations. Its10existing Safari and13new file cases pass. The corrected simulator's actual Xcode-generated loader input was checked against the reviewed canonical hash; checking only canonical source had initially missed a stale generated copy.
 
-After fixing the compiled input, actual individual and mixed PNG/PDF/MP4 shares all passed, as did native original exports with matching names/MIME/bytes/hashes and the signed-out share guard. The dedicated account and all six captures were deleted; its previous session returned401. This is simulator evidence, not a physical TestFlight install. The next signed build is held for the final shared-mobile processing fix; build21 does not contain the Files fix.
+After fixing the compiled input, actual individual and mixed PNG/PDF/MP4 shares all passed, as did native original exports with matching names/MIME/bytes/hashes and the signed-out share guard. The dedicated account and all six captures were deleted; its previous session returned401. This is simulator evidence, not a physical TestFlight install. The next signed build is being prepared from reviewed `ebe9e2e` with the Files and managed-processing observer fixes; build21 does not contain them.
 
 ## Remote media and Pro
 
@@ -91,8 +93,7 @@ Production still has no OpenAI/live Paddle/RevenueCat configuration or intended 
 
 ## Remaining gates
 
-- Final review fixes: drain scheduled cohorts beyond20saves without waiting another interval; observe managed-job completion/failure in the open native reader and refresh preserved-file actions.
-- Review and deploy those fixes, then build/verify updated Android and iOS production-beta artifacts.
+- Build and verify updated Android and iOS production-beta artifacts from reviewed `ebe9e2e`; the matching backend is already deployed.
 - Configure the intended production AI provider and legitimate Pro access/billing path after the pending user decisions.
 - Complete external TestFlight contact/review/tester setup. Android manual APK is available; Play beta is optional and requires account/listing access.
 - General App Store/Play publication remains a later, separate release instruction. No invitations or public rollout have been performed.
