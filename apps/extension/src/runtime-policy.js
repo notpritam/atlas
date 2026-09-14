@@ -102,7 +102,7 @@ export async function getRuntimePolicy({ refresh = false, now = Date.now() } = {
     return { policy: cachedPolicy, source: "cache" };
   if (refresh) return refreshInBackground(cachedPolicy, now);
 
-  // Captures stay local-first even when Foundkeep or the network is unavailable.
+  // Captures stay local-first even when FoundKeep or the network is unavailable.
   // Refresh the data-only policy in parallel and apply it on the next operation.
   void refreshInBackground(cachedPolicy, now);
   return cachedPolicy

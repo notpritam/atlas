@@ -6,8 +6,8 @@ html:has(.landing-body) {
   color-scheme: light;
   --ink: #182b30;
   --muted: #596a6e;
-  --blue: #086ca8;
-  --blue-hover: #075888;
+  --blue: #0d7a50;
+  --blue-hover: #0a6242;
   --sky: #e0f0fc;
   --mint: #d5f8cf;
   --line: #dfe8e9;
@@ -26,7 +26,7 @@ html:has(.landing-body) {
   margin: 0;
   background: #f1f4f4;
   color: var(--ink);
-  font-family: Geist, system-ui, sans-serif;
+  font-family:var(--fk-font-sans);
   font-size: 15px;
   line-height: 1.6;
   caret-color: var(--blue);
@@ -90,7 +90,7 @@ html:has(.landing-body) {
   margin: 0;
 }
 .landing-body h1,.landing-body h2,.landing-body h3 {
-  font-family: "Clarity City", Geist, sans-serif;
+  font-family:var(--fk-font-sans);
   font-weight: 500;
   letter-spacing: -0.04em;
   text-wrap: balance;
@@ -266,7 +266,7 @@ html:has(.landing-body) {
   align-items: center;
   gap: 9px;
   text-decoration: none;
-  font-family: "Clarity City", Geist, sans-serif;
+  font-family:var(--fk-font-sans);
   font-weight: 600;
   font-size: 23px;
   letter-spacing: -0.035em;
@@ -812,7 +812,7 @@ html:has(.landing-body) {
   color: #526c46;
 }
 .landing-body .quote-card blockquote {
-  font-family: "Clarity City", Geist, sans-serif;
+  font-family:var(--fk-font-sans);
   font-size: 29px;
   line-height: 1.18;
   letter-spacing: -0.03em;
@@ -958,11 +958,11 @@ html:has(.landing-body) {
   vertical-align: middle;
   margin-left: 6px;
   letter-spacing: 0;
-  font-family: Geist, sans-serif;
+  font-family:var(--fk-font-sans);
   font-size: 10px;
   padding: 3px 7px;
-  background: #e8f2f8;
-  color: #39708c;
+  background: #e2f4ec;
+  color: #0b6a45;
   border-radius: 6px;
 }
 .landing-body .sticker {
@@ -1091,7 +1091,7 @@ html:has(.landing-body) {
 }
 .landing-body .phone-page {
   padding: 11px 16px;
-  font-family: "Clarity City", Geist, sans-serif;
+  font-family:var(--fk-font-sans);
   font-size: 20px;
   line-height: 1.1;
   color: #3b687f;
@@ -2447,3 +2447,37 @@ html:has(.landing-body) {
 @media (prefers-reduced-motion: reduce) {
   html:has(.landing-body) { scroll-behavior: auto; }
 }
+
+/* Quiet navigation, one primary action, and an explicit platform row. */
+.landing-body .brand{font-family:var(--fk-font-sans);font-weight:550}
+.landing-body .header-actions .button-small{min-height:38px;padding:8px 14px;font-size:12px}
+.landing-body .hero-action-group>.button{min-width:0;min-height:44px;padding:11px 19px;font-size:13px}
+.landing-body .hero-platforms{display:flex;align-items:center;justify-content:center;gap:18px;margin-top:22px;font-size:11px;color:#fff;flex-wrap:wrap}
+.landing-body .hero-platforms>span{opacity:.86}
+.landing-body .hero-platforms a{display:flex;align-items:center;gap:7px;min-height:36px;font-size:11px;color:#fff;text-decoration:none}
+.landing-body .hero-platforms svg{width:19px;height:19px;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.landing-body .hero-platforms small{font:inherit;opacity:.72;margin-left:2px}
+.landing-body .faq-list details{overflow:hidden}
+.landing-body .faq-list summary svg{transition:transform .24s cubic-bezier(.16,1,.3,1)}
+.landing-body .pricing-grid{display:grid;grid-template-columns:1fr 1fr;gap:24px;max-width:880px;margin:36px auto 0}
+.landing-body .pricing-plan{display:flex;flex-direction:column;padding:32px;border:1px solid var(--line);border-radius:22px;background:#fff}
+.landing-body .pricing-plan h3{font-size:24px;margin:0 0 8px}
+.landing-body .pricing-description{font-size:13px;color:var(--muted)}
+.landing-body .pricing-amount{font-size:44px;letter-spacing:-.035em;font-weight:550;margin:24px 0}
+.landing-body .pricing-amount span{font-size:12px;letter-spacing:0;font-weight:400;color:var(--muted)}
+.landing-body .pricing-plan ul{list-style:none;padding:0;margin:0 0 26px;font-size:13px;line-height:1.6}
+.landing-body .pricing-plan li{padding:10px 0;border-bottom:1px solid var(--line)}
+.landing-body .pricing-plan .button{margin-top:auto;align-self:flex-start;background:#202020;color:#fff;min-height:42px;padding:10px 17px}
+.landing-body .pricing-plan .button:hover{background:#383838}
+.landing-body .pricing-pro{background:#f5f6f4}
+.landing-body .pricing-note{font-size:11px;color:var(--muted);margin:14px 0 0}
+.landing-body .site-footer.compact-footer{display:flex;align-items:center;gap:24px;flex-wrap:wrap;isolation:auto;width:min(1100px,calc(100% - 64px));min-height:0;margin:48px auto 0;padding:22px 0;border:0;border-top:1px solid var(--line);border-radius:0;background:none;color:var(--ink);box-shadow:none}
+.landing-body .site-footer.compact-footer::after{display:none}
+.landing-body .compact-footer .brand{font-size:18px;gap:8px;min-height:36px}
+.landing-body .compact-footer>span{font-size:11px;color:var(--muted)}
+.landing-body .compact-footer nav{display:flex;align-items:center;gap:22px;margin-left:auto;flex-wrap:wrap}
+.landing-body .compact-footer nav a{display:inline-flex;align-items:center;min-height:36px;font-size:12px;color:var(--muted)}
+.landing-body .compact-footer a:focus-visible{outline-color:var(--blue)}
+@media(max-width:680px){.landing-body .pricing-grid{grid-template-columns:1fr;gap:16px}.landing-body .pricing-plan{padding:25px}.landing-body .hero-platforms{gap:6px 18px}.landing-body .hero-platforms>span{flex-basis:100%}.landing-body .hero-platforms a{min-height:44px}.landing-body .site-footer.compact-footer{width:calc(100% - 40px);gap:6px 16px;margin-top:32px;padding:16px 0}.landing-body .compact-footer nav{margin-left:0;gap:18px;width:100%}.landing-body .compact-footer nav a{min-height:44px}}
+@media(max-width:540px){.landing-body .header-actions .button-small{display:inline-flex;min-height:40px;padding:9px 11px;font-size:11px}.landing-body .site-header{gap:8px}.landing-body .brand{font-size:19px}.landing-body .header-actions{gap:5px}}
+@media(prefers-reduced-motion:reduce){.landing-body .faq-list summary svg{transition:none}}

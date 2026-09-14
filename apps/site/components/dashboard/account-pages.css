@@ -1,4 +1,4 @@
-/* Account pages extend Foundkeep's scenic web system: quiet white surfaces,
+/* Account pages extend FoundKeep's scenic web system: quiet white surfaces,
    azure actions, sky for Pro, and real account usage above the plan comparison. */
 .customer-body.dashboard-body.has-account-page .library-main { padding-top:42px; }
 .customer-body .account-page { width:100%; max-width:1060px; margin:0 auto; flex:1; min-width:0; padding-bottom:36px; }
@@ -148,3 +148,10 @@
   .customer-body .settings-nav { gap:18px; }
   .customer-body .plan-card,.customer-body .plan-overview,.customer-body .plan-roadmap { padding:20px; }
 }
+
+/* Installation addresses, badges and links follow both appearance themes. */
+html body .customer-body .apps-setup :is(code,.device-badge){background:var(--fk-soft);color:var(--fk-ink);border:1px solid var(--fk-line)}
+html body .customer-body .apps-setup code{padding:3px 6px;border-radius:6px;overflow-wrap:anywhere}
+html body .customer-body :is(.apps-setup,.account-page-note) a:not(.button){color:var(--fk-accent);text-decoration:none;border-bottom:0}
+html body .customer-body :is(.apps-setup,.account-page-note) a:not(.button):hover{color:var(--fk-accent-hover)}
+html body .customer-body .apps-setup :is(summary,.subtle-button){color:var(--fk-ink);text-decoration:none}

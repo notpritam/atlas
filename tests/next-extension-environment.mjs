@@ -26,7 +26,7 @@ test('dev Apps & devices offers its own download and detects only the dev extens
   const errors = [];
   page.on('pageerror', error => errors.push(error.message));
   await page.goto(base + '/dashboard/apps');
-  await page.getByRole('heading', { name: 'Install Foundkeep Dev', exact: true }).waitFor();
+  await page.getByRole('heading', { name: 'Install FoundKeep Dev', exact: true }).waitFor();
   const download = page.locator('#install-extension');
   assert.equal(await download.getAttribute('href'), '/ext/foundkeep-extension-dev.zip');
   assert.equal(await download.getAttribute('download'), 'foundkeep-extension-dev.zip');

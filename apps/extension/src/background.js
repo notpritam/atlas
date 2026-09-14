@@ -24,19 +24,19 @@ protectCloudStorage().catch(() => {});
 chrome.runtime.onMessageExternal.addListener((msg, sender, respond) => {
   if (msg?.kind === "atlas-refresh-preferences") {
     if (!trustedPairingSender(sender)) {
-      respond({ ok: false, error: "This page cannot update Foundkeep." });
+      respond({ ok: false, error: "This page cannot update FoundKeep." });
       return;
     }
     refreshPreferences()
       .then(async (state) => {
         const requestedRevision = Number.isSafeInteger(msg.revision) && msg.revision >= 0 ? msg.revision : 0;
-        if (state.revision < requestedRevision) throw new Error("Foundkeep did not receive the saved preference revision.");
+        if (state.revision < requestedRevision) throw new Error("FoundKeep did not receive the saved preference revision.");
         await reconcileContextMenus(state.preferences);
         announcePreferenceChange();
         drainQueue().catch(() => {});
         respond({ ok: true, revision: state.revision });
       })
-      .catch(() => respond({ ok: false, error: "Foundkeep kept the last saved preferences." }));
+      .catch(() => respond({ ok: false, error: "FoundKeep kept the last saved preferences." }));
     return true;
   }
   handleExternalMessage(msg, sender)
@@ -55,7 +55,7 @@ chrome.runtime.onMessageExternal.addListener((msg, sender, respond) => {
     .catch(() =>
       respond({
         ok: false,
-        error: "Foundkeep could not complete this connection. Please try again.",
+        error: "FoundKeep could not complete this connection. Please try again.",
       }),
     );
   return true;
@@ -133,7 +133,7 @@ function publicHttpUrl(value) {
 
 async function requestImageHostAccess(value) {
   const source = publicHttpUrl(value);
-  if (!source) throw new Error("Foundkeep can only save images from public web addresses outside private networks.");
+  if (!source) throw new Error("FoundKeep can only save images from public web addresses outside private networks.");
   const origin = new URL(source).origin + "/*";
   if (await chrome.permissions.contains({ origins: [origin] })) return;
   const granted = await chrome.permissions.request({ origins: [origin] });
@@ -211,7 +211,7 @@ async function capturePageContext(tab, {
     }
     return result;
   } catch {
-    return { articleText: null, provenance: fallbackProvenance(tab, captureMethod, capturedAt, targetUrl, "Foundkeep saved the source, but some page details were unavailable.") };
+    return { articleText: null, provenance: fallbackProvenance(tab, captureMethod, capturedAt, targetUrl, "FoundKeep saved the source, but some page details were unavailable.") };
   }
 }
 
@@ -263,14 +263,14 @@ chrome.alarms.onAlarm.addListener((a) => {
 const MENUS = [
   {
     id: "save-selection",
-    title: "Save selection to Foundkeep",
+    title: "Save selection to FoundKeep",
     contexts: ["selection"],
   },
-  { id: "save-link", title: "Save link to Foundkeep", contexts: ["link"] },
-  { id: "save-image", title: "Save image to Foundkeep", contexts: ["image"] },
+  { id: "save-link", title: "Save link to FoundKeep", contexts: ["link"] },
+  { id: "save-image", title: "Save image to FoundKeep", contexts: ["image"] },
   { id: "savepage", title: "Save page as bookmark", contexts: ["page"] },
-  { id: "region", title: "Screenshot region → Foundkeep", contexts: ["page"] },
-  { id: "fullpage", title: "Full-page screenshot → Foundkeep", contexts: ["page"] },
+  { id: "region", title: "Screenshot region → FoundKeep", contexts: ["page"] },
+  { id: "fullpage", title: "Full-page screenshot → FoundKeep", contexts: ["page"] },
 ];
 
 async function reconcileContextMenus(preferences) {
@@ -279,7 +279,7 @@ async function reconcileContextMenus(preferences) {
   if (!state.contextMenus) return;
   for (const menu of MENUS) {
     const key = capturePreferenceKey(menu.id);
-    if (state.capture[key]) chrome.contextMenus.create({ ...menu, title: menu.title.replaceAll("Foundkeep", PRODUCT_NAME) });
+    if (state.capture[key]) chrome.contextMenus.create({ ...menu, title: menu.title.replaceAll("FoundKeep", PRODUCT_NAME) });
   }
 }
 
@@ -318,7 +318,7 @@ chrome.commands.onCommand.addListener(async (command) => {
 // ---------------------------------------------------------------------------
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   if (msg?.kind === "library-request" || msg?.kind?.startsWith("bookmark-import-")) {
-    if (!trustedLibrarySender(sender, chrome.runtime)) { sendResponse({ok:false,error:"Open your Foundkeep library to continue."}); return; }
+    if (!trustedLibrarySender(sender, chrome.runtime)) { sendResponse({ok:false,error:"Open your FoundKeep library to continue."}); return; }
     (async()=>{
       try {
         let data;
@@ -341,12 +341,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg?.kind === "preferences-status") {
     if (sender.id !== chrome.runtime.id || !sender.url?.startsWith(chrome.runtime.getURL("src/"))) {
-      sendResponse({ ok: false, error: "Open Foundkeep to view preferences." });
+      sendResponse({ ok: false, error: "Open FoundKeep to view preferences." });
       return;
     }
     getEffectivePreferences({ refresh: msg.refresh === true })
       .then((state) => sendResponse({ ok: true, ...state }))
-      .catch(() => sendResponse({ ok: false, error: "Foundkeep could not load preferences." }));
+      .catch(() => sendResponse({ ok: false, error: "FoundKeep could not load preferences." }));
     return true;
   }
   if (msg?.kind?.startsWith("cloud-")) {
@@ -358,7 +358,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     ) {
       sendResponse({
         ok: false,
-        error: "Open Foundkeep to manage this connection.",
+        error: "Open FoundKeep to manage this connection.",
       });
       return;
     }
@@ -382,7 +382,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
         if (msg.kind === "cloud-disconnect") {
           return sendResponse({ ok: true, ...(await disconnectCloud()) });
         }
-        sendResponse({ ok: false, error: "Unknown Foundkeep request." });
+        sendResponse({ ok: false, error: "Unknown FoundKeep request." });
       } catch (error) {
         sendResponse({
           ok: false,
@@ -417,7 +417,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     (async () => {
       try {
         const preferenceState = await getEffectivePreferences();
-        if (!preferenceState.preferences.capture.tweet) throw new Error("Tweet capture is disabled in your Foundkeep preferences.");
+        if (!preferenceState.preferences.capture.tweet) throw new Error("Tweet capture is disabled in your FoundKeep preferences.");
         const p = msg.payload;
         boundedText(p.text, preferenceState.policy.limits.selectionCharacters, "Post text");
         const capturedAt = Date.now();
@@ -446,7 +446,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       });
       try {
         const preferenceState = await getEffectivePreferences();
-        if (!preferenceState.preferences.capture.note) throw new Error("Notes are disabled in your Foundkeep preferences.");
+        if (!preferenceState.preferences.capture.note) throw new Error("Notes are disabled in your FoundKeep preferences.");
         const local = msg.source === "library";
         const attachSource = !local && preferenceState.preferences.notes.attachSource;
         const context = !attachSource
@@ -483,7 +483,7 @@ async function performCapture(action, { tab, info, trigger = "popup" }) {
   const preferences = preferenceState.preferences;
   const limits = preferenceState.policy.limits;
   const feature = capturePreferenceKey(action);
-  if (!preferences.capture[feature]) throw new Error(`${feature === "fullPage" ? "Full-page screenshot" : feature[0].toUpperCase() + feature.slice(1)} capture is disabled in your Foundkeep preferences.`);
+  if (!preferences.capture[feature]) throw new Error(`${feature === "fullPage" ? "Full-page screenshot" : feature[0].toUpperCase() + feature.slice(1)} capture is disabled in your FoundKeep preferences.`);
   switch (action) {
     case "region":
       return regionScreenshot(tab, captureMethod, limits);
@@ -542,7 +542,7 @@ async function performCapture(action, { tab, info, trigger = "popup" }) {
 async function saveImage(srcUrl, tab, captureMethod, limits) {
   const context = await capturePageContext(tab, { captureMethod, targetUrl: srcUrl });
   const source = publicHttpUrl(srcUrl);
-  if (!source) throw new Error("Foundkeep can only save images from public web addresses outside private networks.");
+  if (!source) throw new Error("FoundKeep can only save images from public web addresses outside private networks.");
   const response = await fetch(source, {
     credentials: "omit",
     redirect: "error",
@@ -551,7 +551,7 @@ async function saveImage(srcUrl, tab, captureMethod, limits) {
   if (!response.ok) throw new Error(`The image could not be downloaded (${response.status}).`);
   const length = Number(response.headers.get("content-length"));
   if (Number.isFinite(length) && length > limits.imageBytes)
-    throw new Error(`This image exceeds Foundkeep's ${Math.floor(limits.imageBytes / 1048576)} MiB capture limit.`);
+    throw new Error(`This image exceeds FoundKeep's ${Math.floor(limits.imageBytes / 1048576)} MiB capture limit.`);
   const mime = (response.headers.get("content-type") || "").split(";", 1)[0].trim().toLowerCase();
   if (!mime.startsWith("image/"))
     throw new Error("The selected address did not return an image.");
@@ -567,7 +567,7 @@ async function saveImage(srcUrl, tab, captureMethod, limits) {
       bytes += value.byteLength;
       if (bytes > limits.imageBytes) {
         await reader.cancel();
-        throw new Error(`This image exceeds Foundkeep's ${Math.floor(limits.imageBytes / 1048576)} MiB capture limit.`);
+        throw new Error(`This image exceeds FoundKeep's ${Math.floor(limits.imageBytes / 1048576)} MiB capture limit.`);
       }
       chunks.push(value);
     }
@@ -835,7 +835,7 @@ async function encodeCanvas(canvas, qualities = [0.9, 0.75, 0.6, 0.45], maxBytes
     if (blob.size <= Math.min(MAX_IMAGE_BYTES, maxBytes))
       return { blob, width: canvas.width, height: canvas.height };
   }
-  throw new Error(`This screenshot is too detailed for Foundkeep's ${Math.floor(Math.min(MAX_IMAGE_BYTES, maxBytes) / 1048576)} MiB capture limit. Capture a smaller region or reduce the page zoom.`);
+  throw new Error(`This screenshot is too detailed for FoundKeep's ${Math.floor(Math.min(MAX_IMAGE_BYTES, maxBytes) / 1048576)} MiB capture limit. Capture a smaller region or reduce the page zoom.`);
 }
 
 async function stitch(shots, dims, totalH, maxBytes) {

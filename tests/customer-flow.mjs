@@ -68,7 +68,7 @@ test('customer signs up, configures the real extension, captures a readable page
     const errors=[]; account.on('pageerror',error=>errors.push(error.message));
     await account.goto(origin+(nextWeb?'/signup':'/auth.html'));
     if(nextWeb && !(await account.locator('#email-signin').evaluate(el => el.open))) await account.locator('#email-signin > summary').click();
-    await account.locator('#name').fill('Foundkeep customer');
+    await account.locator('#name').fill('FoundKeep customer');
     await account.locator('#email').fill(email);
     await account.locator('#password').fill('a-long-test-password-2026');
     await account.locator('#auth-submit').click();

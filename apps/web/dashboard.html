@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Your library — Foundkeep</title><meta name="robots" content="noindex" /><meta name="theme-color" content="#f1f4f4" />
+  <title>Your library — FoundKeep</title><meta name="robots" content="noindex" /><meta name="theme-color" content="#f1f4f4" />
   <link rel="icon" href="assets/studio-mark.svg?v=bookmark-evolved-1" type="image/svg+xml" />
   <link rel="stylesheet" href="styles.css?v=1.6.0" /><link rel="stylesheet" href="customer.css?v=20260910-platforms" />
   <script type="module" src="dashboard.js?v=20260910-platforms"></script>
@@ -11,14 +11,14 @@
   <a class="skip-link" href="#main">Skip to library</a>
   <div class="library-shell">
     <aside class="library-sidebar">
-      <a class="brand" href="/"><img src="assets/studio-mark.svg?v=bookmark-evolved-1" width="34" height="34" alt="" /><span>Foundkeep</span></a>
+      <a class="brand" href="/"><img src="assets/studio-mark.svg?v=bookmark-evolved-1" width="34" height="34" alt="" /><span>FoundKeep</span></a>
       <nav class="library-nav" aria-label="Library"><button type="button" class="nav-active" id="all-captures"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1" /><rect x="14" y="3" width="7" height="7" rx="1" /><rect x="3" y="14" width="7" height="7" rx="1" /><rect x="14" y="14" width="7" height="7" rx="1" /></svg>My library <span id="nav-count">—</span></button><button id="open-setup" type="button"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8m-4-4v4M8 10h8m-4-3v6" /></svg>Apps &amp; devices</button></nav>
       <div class="sidebar-bottom"><p>Your next good find<br />belongs here.</p><button class="account-button" id="open-account" type="button"><span class="account-avatar" id="account-avatar" aria-hidden="true">A</span><span><strong id="account-name">Your account</strong><span>Account &amp; settings</span></span><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m9 5 7 7-7 7" /></svg></button><a href="support.html">Support</a><a href="privacy.html">Privacy &amp; data</a></div>
     </aside>
     <main class="library-main" id="main">
       <header class="library-header"><div><h1>Your library.</h1><p id="library-description">A place for the things worth keeping.</p></div><button class="button primary" id="new-note" type="button" disabled><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14" /></svg>New note</button></header>
       <div id="page-message" class="form-message" role="alert" hidden></div>
-      <aside id="device-promotion" class="device-promotion" aria-label="Get Foundkeep on another device" hidden><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 18h4" /></svg><p id="device-promotion-copy">Bring your collection to your iPhone.</p><button class="text-link subtle-button" id="show-devices" type="button">Explore apps &amp; devices</button><button class="icon-button" id="dismiss-device-promotion" type="button" aria-label="Dismiss device suggestion"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6" /></svg></button></aside>
+      <aside id="device-promotion" class="device-promotion" aria-label="Get FoundKeep on another device" hidden><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 18h4" /></svg><p id="device-promotion-copy">Bring your collection to your iPhone.</p><button class="text-link subtle-button" id="show-devices" type="button">Explore apps &amp; devices</button><button class="icon-button" id="dismiss-device-promotion" type="button" aria-label="Dismiss device suggestion"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6" /></svg></button></aside>
       <section class="onboarding" id="onboarding" aria-labelledby="setup-title" hidden>
         <div class="onboarding-heading"><div><h2 id="setup-title">Your collection goes with you.</h2><p>Choose iPhone, a browser, or both. Use the same account to keep your saves together.</p></div><button id="hide-setup" class="subtle-button" type="button" aria-label="Hide apps and devices setup">Hide</button></div>
         <div class="device-options">
@@ -26,21 +26,21 @@
             <div class="device-option-heading"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2" /><path d="M8 21h8m-4-4v4" /></svg><h3 id="browser-title">In your browser</h3><span class="device-badge" id="browser-connection-badge">Checking…</span></div>
             <p>Keep the page, the highlight, the moment.</p>
             <ol class="onboarding-steps">
-          <li><span class="step-marker" id="install-marker">1</span><div><h3>Install Foundkeep</h3><p id="install-description">Add Foundkeep from the Chrome Web Store on your computer, then pin it in Chrome’s extensions menu.</p><a class="text-link" id="install-extension" href="https://chromewebstore.google.com/detail/cficnecbdbiddngllpfbacabgbcjinmk" target="_blank" rel="noopener noreferrer">Add to Chrome <span aria-hidden="true">↗</span></a><details class="manual-install" id="manual-install"><summary>Need the manual ZIP?</summary><ol><li><a href="foundkeep-extension.zip?build=1.6.2" download="foundkeep-extension.zip">Download Foundkeep</a> and extract the ZIP into a folder you can keep.</li><li>Open your browser’s extensions page, such as <code>chrome://extensions</code> or <code>edge://extensions</code>.</li><li>Enable <strong>Developer mode</strong>. Choose <strong>Load unpacked</strong> and select the extracted folder.</li><li>Pin Foundkeep in your browser’s extensions menu, then reload this page.</li></ol><button class="subtle-button" id="copy-extensions" type="button">Copy Chrome extensions address</button><p id="copy-result" role="status"></p></details></div></li>
-          <li><span class="step-marker" id="connect-marker">2</span><div><h3>Connect this browser</h3><p id="extension-status" role="status">Checking for the extension…</p><button class="button secondary compact" id="connect-extension" type="button">Connect Foundkeep</button><p class="step-note">Existing local captures stay local. You can choose to import them in the extension.</p></div></li>
+          <li><span class="step-marker" id="install-marker">1</span><div><h3>Install FoundKeep</h3><p id="install-description">Add FoundKeep from the Chrome Web Store on your computer, then pin it in Chrome’s extensions menu.</p><a class="text-link" id="install-extension" href="https://chromewebstore.google.com/detail/cficnecbdbiddngllpfbacabgbcjinmk" target="_blank" rel="noopener noreferrer">Add to Chrome <span aria-hidden="true">↗</span></a><details class="manual-install" id="manual-install"><summary>Need the manual ZIP?</summary><ol><li><a href="foundkeep-extension.zip?build=1.6.2" download="foundkeep-extension.zip">Download FoundKeep</a> and extract the ZIP into a folder you can keep.</li><li>Open your browser’s extensions page, such as <code>chrome://extensions</code> or <code>edge://extensions</code>.</li><li>Enable <strong>Developer mode</strong>. Choose <strong>Load unpacked</strong> and select the extracted folder.</li><li>Pin FoundKeep in your browser’s extensions menu, then reload this page.</li></ol><button class="subtle-button" id="copy-extensions" type="button">Copy Chrome extensions address</button><p id="copy-result" role="status"></p></details></div></li>
+          <li><span class="step-marker" id="connect-marker">2</span><div><h3>Connect this browser</h3><p id="extension-status" role="status">Checking for the extension…</p><button class="button secondary compact" id="connect-extension" type="button">Connect FoundKeep</button><p class="step-note">Existing local captures stay local. You can choose to import them in the extension.</p></div></li>
             </ol>
           </section>
           <section class="device-option iphone-option" aria-labelledby="iphone-title">
             <div class="device-option-heading"><svg aria-hidden="true" viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3" /><path d="M10 18h4" /></svg><h3 id="iphone-title">On your iPhone</h3><span class="device-badge" data-iphone-badge>TestFlight beta</span></div>
-            <p>From your day to your collection. Share links, photos and files straight to Foundkeep.</p>
+            <p>From your day to your collection. Share links, photos and files straight to FoundKeep.</p>
             <p id="iphone-status" class="device-connection" role="status">Checking your connected devices…</p>
             <div class="device-actions"><a class="button primary compact" data-iphone-install id="install-iphone" href="support.html#iphone-beta">Get iPhone beta</a><a class="text-link" id="open-iphone" href="/open?path=collection">Already installed? Open app</a></div>
-            <p class="step-note" id="iphone-signin-note">Sign in to the app with the same Foundkeep account. Your saves will appear here.</p>
-            <ol class="iphone-share-steps"><li>Open Share in Safari, Photos or Files.</li><li>Choose Foundkeep, add a tag or folder, and save.</li><li>Find it in this collection on any connected device.</li></ol>
+            <p class="step-note" id="iphone-signin-note">Sign in to the app with the same FoundKeep account. Your saves will appear here.</p>
+            <ol class="iphone-share-steps"><li>Open Share in Safari, Photos or Files.</li><li>Choose FoundKeep, add a tag or folder, and save.</li><li>Find it in this collection on any connected device.</li></ol>
             <a class="text-link" href="support.html#iphone">Help with the Share menu</a>
           </section>
         </div>
-        <div class="first-save-step"><span class="step-marker" id="capture-marker">3</span><div><h3 id="first-capture-title">Save your first find</h3><p id="first-capture-description">Open a page, click Foundkeep and save a screenshot, highlight or bookmark.</p><button class="text-link subtle-button" id="check-captures" type="button">Check for captures <span aria-hidden="true">↻</span></button></div></div>
+        <div class="first-save-step"><span class="step-marker" id="capture-marker">3</span><div><h3 id="first-capture-title">Save your first find</h3><p id="first-capture-description">Open a page, click FoundKeep and save a screenshot, highlight or bookmark.</p><button class="text-link subtle-button" id="check-captures" type="button">Check for captures <span aria-hidden="true">↻</span></button></div></div>
       </section>
       <section class="collection" aria-label="Saved captures">
         <div class="library-toolbar"><label class="search-field"><svg aria-hidden="true" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5" /><path d="m16 16 5 5" /></svg><span class="sr-only">Search captures</span><input id="search" type="search" placeholder="Find something you saved…" autocomplete="off" maxlength="200" /><kbd aria-hidden="true">/</kbd></label><button class="button secondary compact" id="refresh-library" type="button" aria-label="Refresh library"><svg aria-hidden="true" viewBox="0 0 24 24"><path d="M20 7v5h-5M4 17v-5h5M6 7a7 7 0 0 1 12-1l2 3M4 15l2 3a7 7 0 0 0 12-1" /></svg><span>Refresh</span></button></div>
@@ -64,7 +64,7 @@
       <p class="account-email" id="settings-email"></p><p class="form-message" id="account-message" role="alert" hidden></p>
       <section class="settings-section" id="extension-settings">
         <h3>Browser capture</h3>
-        <p class="muted">Choose what Foundkeep can capture and how every connected browser behaves. Changes apply without reinstalling the extension.</p>
+        <p class="muted">Choose what FoundKeep can capture and how every connected browser behaves. Changes apply without reinstalling the extension.</p>
         <form id="preference-form" data-ready="false">
           <details class="preference-group" open>
             <summary>Capture methods</summary>
@@ -74,7 +74,7 @@
               <label class="preference-toggle"><span><strong>Regions</strong><small>Draw a screenshot area</small></span><input type="checkbox" data-preference="capture.region" /></label>
               <label class="preference-toggle"><span><strong>Full pages</strong><small>Capture the complete page</small></span><input type="checkbox" data-preference="capture.fullPage" /></label>
               <label class="preference-toggle"><span><strong>Images</strong><small>Save images from the context menu</small></span><input type="checkbox" data-preference="capture.image" /></label>
-              <label class="preference-toggle"><span><strong>Posts on X</strong><small>Show the Foundkeep save button on posts</small></span><input type="checkbox" data-preference="capture.tweet" /></label>
+              <label class="preference-toggle"><span><strong>Posts on X</strong><small>Show the FoundKeep save button on posts</small></span><input type="checkbox" data-preference="capture.tweet" /></label>
               <label class="preference-toggle"><span><strong>Notes</strong><small>Write notes from the popup and library</small></span><input type="checkbox" data-preference="capture.note" /></label>
             </div>
           </details>

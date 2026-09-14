@@ -1,24 +1,28 @@
 import Link from 'next/link';
+import {PlatformIcon} from '@/components/ui/platform-icon';
 import type {Metadata} from 'next';
 import {LandingProvider,LandingHeader,HeroActions,ExtensionLink,ExtensionNote,IphoneLink,IphoneBadge,IphoneAvailability,PlatformGrid,Reveal} from '@/components/landing-interactions';
 import {CaptureDemo} from '@/components/capture-demo';
 import './landing.css';
+import {AnimatedFaq} from '@/components/animated-faq';
+import {PlanCard,PlanHighlights} from '@/components/ui/plan-card';
+import {ExternalLink} from '@/components/ui/external-link';
 
-const title='Foundkeep — A place for the things worth keeping';
+const title='FoundKeep — A place for the things worth keeping';
 const description='Keep links, highlights, photos and files in one private collection. Save from your browser, iPhone or the web, then find your good ideas again.';
 const url='https://foundkeep.app/';
-const preview={url:'https://foundkeep.app/assets/foundkeep-scenic-social.png',width:1200,height:630,alt:'Foundkeep — Found it? Keep it. A private collection for your good finds.'};
+const preview={url:'https://foundkeep.app/assets/foundkeep-scenic-social.png',width:1200,height:630,alt:'FoundKeep — Found it? Keep it. A private collection for your good finds.'};
 export const metadata:Metadata={
  alternates:{canonical:url},description,robots:{index:true,follow:true},
- openGraph:{type:'website',siteName:'Foundkeep',url,title,description,images:[preview]},
+ openGraph:{type:'website',siteName:'FoundKeep',url,title,description,images:[preview]},
  twitter:{card:'summary_large_image',title,description,images:[preview]},
 };
 const structuredData={
  '@context':'https://schema.org',
  '@graph':[
-  {'@type':'Organization','@id':`${url}#organization`,name:'Foundkeep',url,logo:'https://foundkeep.app/assets/mark-512.png?v=bookmark-evolved-1'},
-  {'@type':'WebSite','@id':`${url}#website`,name:'Foundkeep',url,description,publisher:{'@id':`${url}#organization`}},
-  {'@type':'SoftwareApplication',name:'Foundkeep',url,description,applicationCategory:'ProductivityApplication',operatingSystem:'Web, Chrome, iOS',publisher:{'@id':`${url}#organization`}},
+  {'@type':'Organization','@id':`${url}#organization`,name:'FoundKeep',url,logo:'https://foundkeep.app/assets/mark-512.png?v=bookmark-evolved-1'},
+  {'@type':'WebSite','@id':`${url}#website`,name:'FoundKeep',url,description,publisher:{'@id':`${url}#organization`}},
+  {'@type':'SoftwareApplication',name:'FoundKeep',url,description,applicationCategory:'ProductivityApplication',operatingSystem:'Web, Chrome, iOS',publisher:{'@id':`${url}#organization`}},
  ],
 };
 export default function Home(){return <LandingProvider><div className="landing-body">
@@ -64,15 +68,6 @@ export default function Home(){return <LandingProvider><div className="landing-b
         <symbol id="i-globe" viewBox="0 0 24 24">
           <circle cx="12" cy="12" r="9"></circle>
           <path d="M3 12h18M12 3c-5 5-5 13 0 18 5-5 5-13 0-18Z"></path>
-        </symbol>
-        <symbol id="i-phone" viewBox="0 0 24 24">
-          <rect x="6" y="2" width="12" height="20" rx="3"></rect>
-          <path d="M10 5h4m-3 14h2"></path>
-        </symbol>
-        <symbol id="i-chrome" viewBox="0 0 24 24">
-          <circle cx="12" cy="12" r="9"></circle>
-          <circle cx="12" cy="12" r="4"></circle>
-          <path d="M12 8h8M8.5 14 5 6m9 9-4 6"></path>
         </symbol>
         <symbol id="i-search" viewBox="0 0 24 24">
           <circle cx="10" cy="10" r="6"></circle>
@@ -127,7 +122,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
             <span>Less scattered. More found.</span><a href="#capture">Take a look around <span aria-hidden="true">↓</span></a>
           </div>
         </section>
-        <div className="trust-strip wrap" aria-label="Foundkeep features">
+        <div className="trust-strip wrap" aria-label="FoundKeep features">
           <span><svg aria-hidden="true" viewBox="0 0 24 24">
               <use href="#i-shield"></use>
             </svg>
@@ -168,7 +163,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
               <span className="preview-brand"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="27" height="27" alt="" aria-hidden="true" />Your collection</span><span className="preview-search"><svg aria-hidden="true" viewBox="0 0 24 24">
                   <use href="#i-search"></use>
                 </svg>
-                A place for your next good find</span><a href="/dashboard" className="round-link" aria-label="Open your Foundkeep dashboard"><svg aria-hidden="true" viewBox="0 0 24 24">
+                A place for your next good find</span><a href="/dashboard" className="round-link" aria-label="Open your FoundKeep dashboard"><svg aria-hidden="true" viewBox="0 0 24 24">
                   <use href="#i-arrow"></use></svg></a>
             </div>
             <div className="collection-grid">
@@ -260,7 +255,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
               </svg>
             </summary>
             <figure>
-              <img src="/assets/extension-library.png" width="1440" height="1050" alt="Foundkeep browser library showing search, saved links, images, notes and filters for each capture type" loading="lazy" decoding="async" />
+              <img src="/assets/extension-library.png" width="1440" height="1050" alt="FoundKeep browser library showing search, saved links, images, notes and filters for each capture type" loading="lazy" decoding="async" />
               <figcaption>
                 Actual browser extension interface · sample collection
               </figcaption>
@@ -271,7 +266,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
         <Reveal><section className="section wrap everywhere-section" id="everywhere" aria-labelledby="everywhere-heading">
           <div className="section-heading">
             <h2 id="everywhere-heading">
-              Wherever you find it.<br />Foundkeep comes along.
+              Wherever you find it.<br />FoundKeep comes along.
             </h2>
             <p>
               At your desk, on a walk, or down a rabbit hole.<br className="desktop-break" />
@@ -298,9 +293,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
               <div className="platform-copy">
                 <div className="platform-title">
                   <h3>For your browser</h3>
-                  <svg aria-hidden="true" viewBox="0 0 24 24">
-                    <use href="#i-chrome"></use>
-                  </svg>
+                  <PlatformIcon platform="chrome"/>
                 </div>
                 <p>
                   Save pages, screenshots, highlights and images without leaving
@@ -327,7 +320,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
                         </svg>
                       </div>
                       <div className="foundkeep-share">
-                        <img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="38" height="38" alt="" aria-hidden="true" /><span>Foundkeep</span>
+                        <img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="38" height="38" alt="" aria-hidden="true" /><span>FoundKeep</span>
                       </div>
                       <div>
                         <svg aria-hidden="true" viewBox="0 0 24 24">
@@ -342,12 +335,10 @@ export default function Home(){return <LandingProvider><div className="landing-b
               <div className="platform-copy">
                 <div className="platform-title">
                   <h3>For your iPhone <IphoneBadge /></h3>
-                  <svg aria-hidden="true" viewBox="0 0 24 24">
-                    <use href="#i-phone"></use>
-                  </svg>
+                  <PlatformIcon platform="ios"/>
                 </div>
                 <p>
-                  Share links, photos and files to Foundkeep from the iPhone
+                  Share links, photos and files to FoundKeep from the iPhone
                   Share menu.
                 </p>
                 <IphoneLink className="text-link" />
@@ -454,8 +445,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
           <div className="start-grid" id="get">
             <article className="start-card local-start">
               <div className="start-card-heading">
-                <svg aria-hidden="true" viewBox="0 0 24 24">
-                  <use href="#i-chrome"></use></svg><span>Keep it in your browser</span>
+                <PlatformIcon platform="chrome"/><span>Keep it in your browser</span>
               </div>
               <h3>Find. Click. Keep.</h3>
               <p>Start saving locally, without an account.</p>
@@ -534,15 +524,33 @@ export default function Home(){return <LandingProvider><div className="landing-b
           </div>
         </section></Reveal>
 
+        <Reveal><section className="section wrap landing-pricing" id="pricing" aria-labelledby="pricing-heading">
+          <div className="section-heading"><h2 id="pricing-heading">Keep it free.<br />Go further with Pro.</h2><p>Start with your own collection. Upgrade for built-in processing, more storage, and collections you create together.</p></div>
+          <div className="pricing-grid">
+            <PlanCard className="pricing-plan">
+              <div className="pricing-plan-title"><h3>Free</h3></div><p className="pricing-description">Your everyday library. Organized your way.</p>
+              <p className="pricing-amount">$0<span> / forever</span></p><PlanHighlights />
+              <ul className="pricing-features">{['10,000 saved captures','Sync across your devices','Connect your own agent','Follow and contribute to collections'].map(feature=><li key={feature}><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg>{feature}</li>)}</ul>
+              <a className="button" href="/signup">Start collecting<svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-arrow"/></svg></a><p className="pricing-note">No subscription required.</p>
+            </PlanCard>
+            <PlanCard featured className="pricing-plan pricing-pro">
+              <div className="pricing-plan-title"><h3>Pro</h3><span className="pricing-plan-badge">Built-in processing</span></div><p className="pricing-description">Less organizing. More from every good find.</p>
+              <p className="pricing-amount">$5<span> / month · USD</span></p><PlanHighlights pro />
+              <ul className="pricing-features">{['Everything in Free, plus:','Summaries and suggested tags','Read text in images and screenshots','Create groups with contributors and moderators'].map(feature=><li key={feature}><svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-check"/></svg>{feature}</li>)}</ul>
+              <a className="button" href="/signup">Get started with Pro<svg aria-hidden="true" viewBox="0 0 24 24"><use href="#i-arrow"/></svg></a><p className="pricing-note">Choose Pro after signup. You control what gets processed.</p>
+            </PlanCard>
+          </div>
+        </section></Reveal>
+
         <Reveal><section className="section wrap faq-section" aria-labelledby="faq-heading">
           <div>
             <h2 id="faq-heading">A few things<br />you might wonder.</h2>
             <p>Good questions deserve clear answers.</p>
-            <Link className="text-link" href="/support">Visit Foundkeep Support
+            <Link className="text-link" href="/support">Visit FoundKeep Support
               <svg aria-hidden="true" viewBox="0 0 24 24">
                 <use href="#i-arrow"></use></svg></Link>
           </div>
-          <div className="faq-list">
+          <AnimatedFaq>
             <details>
               <summary>
                 What can I save?
@@ -565,7 +573,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
                 </svg>
               </summary>
               <p>
-                Yes. Foundkeep retains the original source and available page
+                Yes. FoundKeep retains the original source and available page
                 details, including the visited and canonical URLs, title,
                 author, publisher and dates. Save page also keeps a readable
                 copy of useful article text. You can control what is collected
@@ -595,7 +603,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
               </summary>
               <p>
                 Local browser saves live in that browser installation. Connected
-                accounts also store synced captures on Foundkeep’s backend.
+                accounts also store synced captures on FoundKeep’s backend.
                 Cloud and local copies are separate: deleting one does not
                 automatically delete the other.
                 <Link href="/privacy">Read our privacy policy.</Link>
@@ -603,14 +611,14 @@ export default function Home(){return <LandingProvider><div className="landing-b
             </details>
             <details>
               <summary>
-                Can I use Foundkeep on my iPhone?
+                Can I use FoundKeep on my iPhone?
                 <svg aria-hidden="true" viewBox="0 0 24 24">
                   <use href="#i-plus"></use>
                 </svg>
               </summary>
               <p>
                 <IphoneAvailability /> Sign in once, then choose
-                Foundkeep from the Share menu in Safari, Photos, Files and other
+                FoundKeep from the Share menu in Safari, Photos, Files and other
                 apps.
                 <Link href="/support">Contact support about beta access.</Link>
               </p>
@@ -625,7 +633,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
               <p>
                 Save the recovery code shown when you create your password
                 account. Use it with your email to reset your password;
-                Foundkeep does not send password-reset emails. Your account
+                FoundKeep does not send password-reset emails. Your account
                 settings let you export cloud captures, revoke devices and
                 permanently delete your account.
               </p>
@@ -645,7 +653,7 @@ export default function Home(){return <LandingProvider><div className="landing-b
                 installation that created them.
               </p>
             </details>
-          </div>
+          </AnimatedFaq>
         </section></Reveal>
 
         <section className="closing-banner wrap" aria-labelledby="closing-heading">
@@ -663,29 +671,10 @@ export default function Home(){return <LandingProvider><div className="landing-b
           </div>
         </section>
       </main>
-      <footer className="site-footer wrap">
-        <picture className="scenery"><source type="image/webp" srcSet="\n              /assets/foundkeep-alpine-800.webp   800w,\n              /assets/foundkeep-alpine-1600.webp 1600w\n            " sizes="100vw" />
-          <img src="/assets/foundkeep-alpine-1600.webp" alt="" aria-hidden="true" width="1600" height="1000" decoding="async" loading="lazy" /></picture>
-        <div className="footer-main">
-          <div>
-            <a className="brand" href="#top"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="32" height="32" alt="" aria-hidden="true" /><span>Foundkeep</span></a>
-            <p>A place for the things worth keeping.</p>
-          </div>
-          <nav aria-label="Product">
-            <span>Make yourself at home</span><a href="#capture">How it works</a><a href="#library">Your collection</a><a href="#everywhere">Get Foundkeep</a>
-          </nav>
-          <nav aria-label="Help and information">
-            <span>A few useful links</span><IphoneLink className="" /><Link href="/support">Support</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link>
-          </nav>
-          <nav aria-label="Account">
-            <span>Your little corner</span><a href="/signup">Create account</a><a href="/login">Log in</a><a href="https://github.com/notpritam/foundkeep" target="_blank" rel="noopener noreferrer">Open source
-              <svg aria-hidden="true" viewBox="0 0 24 24">
-                <use href="#i-external"></use></svg></a>
-          </nav>
-        </div>
-        <div className="footer-bottom">
-          <span>© 2026 NotPritam</span><span>Made for curious minds.</span><a href="#top">Back to the top ↑</a>
-        </div>
+      <footer className="site-footer wrap compact-footer">
+        <Link className="brand" href="/"><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="28" height="28" alt=""/><span>FoundKeep</span></Link>
+        <span>© 2026 NotPritam</span>
+        <nav aria-label="Footer"><a href="#pricing">Pricing</a><Link href="/support">Support</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><ExternalLink href="https://github.com/notpritam/foundkeep">Source</ExternalLink></nav>
       </footer>
     </div>
   </div></LandingProvider>;}

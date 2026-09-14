@@ -60,7 +60,7 @@ final class ShareViewController: UIViewController, UITextViewDelegate {
     mark.isAccessibilityElement = false
     mark.translatesAutoresizingMaskIntoConstraints = false
     NSLayoutConstraint.activate([mark.widthAnchor.constraint(equalToConstant: 40), mark.heightAnchor.constraint(equalToConstant: 40)])
-    titleLabel.text = "Save to Foundkeep"
+    titleLabel.text = "Save to FoundKeep"
     titleLabel.font = .preferredFont(forTextStyle: .title2)
     titleLabel.adjustsFontForContentSizeCategory = true
     titleLabel.textColor = ink
@@ -104,7 +104,7 @@ final class ShareViewController: UIViewController, UITextViewDelegate {
       button.heightAnchor.constraint(greaterThanOrEqualToConstant: 56).isActive = true
     }
     updateOrganizationButtons()
-    configureTextButton(openButton, title: "Open Foundkeep to connect", action: #selector(openFoundkeep))
+    configureTextButton(openButton, title: "Open FoundKeep to connect", action: #selector(openFoundkeep))
     openButton.isHidden = true
     openButton.tintColor = accent
     let stack = UIStackView(arrangedSubviews: [brand, statusLabel, itemStack, noteView, folderButton, tagsButton, organizationLabel, openButton])
@@ -330,7 +330,7 @@ final class ShareViewController: UIViewController, UITextViewDelegate {
         statusLabel.text = FoundkeepSharePolicy.current.notice ?? (items.count == 1 ? "One item ready. Its source will stay attached." : "\(items.count) items ready. They will stay together in your collection.")
         saveButton.isEnabled = !isCreatingFolder && !isSaving
       } else {
-        statusLabel.text = "Open Foundkeep once to connect this iPhone, then share again."
+        statusLabel.text = "Open FoundKeep once to connect this iPhone, then share again."
         openButton.isHidden = false
       }
     } catch {
@@ -372,7 +372,7 @@ final class ShareViewController: UIViewController, UITextViewDelegate {
     Task {
       do {
         let result = try await uploader.save(items, note: note, folderId: folderId, userTags: userTags)
-        statusLabel.text = result.queued == 0 ? "Saved to your collection." : "Saved safely. \(result.queued) will upload when Foundkeep is online."
+        statusLabel.text = result.queued == 0 ? "Saved to your collection." : "Saved safely. \(result.queued) will upload when FoundKeep is online."
         try? await Task.sleep(nanoseconds: 450_000_000)
         extensionContext?.completeRequest(returningItems: nil)
       } catch {
@@ -400,7 +400,7 @@ final class ShareViewController: UIViewController, UITextViewDelegate {
     guard let url = URL(string: "\(Bundle.main.object(forInfoDictionaryKey: "FoundkeepScheme") as? String ?? "foundkeep")://") else { return }
     extensionContext?.open(url) { opened in
       if opened { self.extensionContext?.completeRequest(returningItems: nil) }
-      else { self.statusLabel.text = "Open the Foundkeep app from your Home Screen, then return here." }
+      else { self.statusLabel.text = "Open the FoundKeep app from your Home Screen, then return here." }
     }
   }
 

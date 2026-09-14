@@ -21,7 +21,7 @@ enum FoundkeepItemError: LocalizedError {
   case tooLarge
   case disabled
   var errorDescription: String? {
-    switch self { case .unavailable: return "That item could not be read."; case .tooLarge: return "This file is larger than Foundkeep currently accepts."; case .disabled: return "This kind of capture is temporarily unavailable." }
+    switch self { case .unavailable: return "That item could not be read."; case .tooLarge: return "This file is larger than FoundKeep currently accepts."; case .disabled: return "This kind of capture is temporarily unavailable." }
   }
 }
 

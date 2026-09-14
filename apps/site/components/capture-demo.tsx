@@ -63,7 +63,7 @@ export function CaptureDemo(){const [saved,setSaved]=useState(false);const saveR
                 </article>
               </div>
             </div>
-            <p className="demo-disclosure" id="demoStatus" role="status">{saved ? 'Highlight saved in this illustration. Your Foundkeep library has not changed.' : 'Try it here. This demo does not save to your Foundkeep library.'}</p>
+            <p className="demo-disclosure" id="demoStatus" role="status">{saved ? 'Highlight saved in this illustration. Your FoundKeep library has not changed.' : 'Try it here. This demo does not save to your FoundKeep library.'}</p>
             <div className="floating-note" aria-hidden="true">
               A little less lost. A lot more found.
               <svg aria-hidden="true" viewBox="0 0 24 24">

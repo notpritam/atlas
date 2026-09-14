@@ -54,7 +54,7 @@ export function BillingProvider({children}:{children:ReactNode}) {
       if(current.subscriptions.some(item=>item.provider==='stripe'&&item.active))throw new Error('Your account already has Pro through the web. Manage that subscription in your dashboard.');
       if(kind==='purchase'){
         if(current.pro)throw new Error('You already have Pro on this account.');
-        if(current.subscriptions.some(item=>item.provider==='stripe' && !['inactive','canceled','incomplete_expired'].includes(item.status)))throw new Error('Your existing web subscription needs attention. Manage it in your Foundkeep dashboard before starting another subscription.');
+        if(current.subscriptions.some(item=>item.provider==='stripe' && !['inactive','canceled','incomplete_expired'].includes(item.status)))throw new Error('Your existing web subscription needs attention. Manage it in your FoundKeep dashboard before starting another subscription.');
         const offerings=await purchases.offerings(config.appUserId);
         if(!active())return;
         const selected=offerings.current?.availablePackages.find(item=>item.product.identifier===config.productId && item.product.subscriptionPeriod==='P1M');
@@ -66,7 +66,7 @@ export function BillingProvider({children}:{children:ReactNode}) {
       if(!active())return;
       const updated=await client.plan();verified=updated.pro;
       if(!active())return;
-      setPlan(updated);setNotice(updated.pro?'Pro is ready across your Foundkeep account.':kind==='restore'?'No active Pro purchase was found for this Apple Account.':'Your purchase is pending verification. You can restore it again shortly.');
+      setPlan(updated);setNotice(updated.pro?'Pro is ready across your FoundKeep account.':kind==='restore'?'No active Pro purchase was found for this Apple Account.':'Your purchase is pending verification. You can restore it again shortly.');
     }catch(value){cancelled=!!(value as {userCancelled?:boolean})?.userCancelled;if(active() && !cancelled)setError(value instanceof Error?value.message:'The App Store could not complete this request.');}
     finally{if(reservation&&(!storeStarted||cancelled||verified||kind==='restore'))await client.cancelMobilePurchase(reservation).catch(()=>{});pending.current=false;if(active())setBusy(false);}
   };

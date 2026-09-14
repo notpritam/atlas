@@ -33,5 +33,5 @@ export function ContentSkeleton({ kind = 'library' }: { kind?: 'library' | 'deta
 }
 
 export function SectionLoading({ label = 'Loading your workspace…', kind = 'settings' }: { label?: string; kind?: 'library' | 'detail' | 'plan' | 'settings' }) {
-  return <section className="section-loading" role="status" aria-busy="true"><p className="loading-caption"><Spinner />{label}</p><ContentSkeleton kind={kind} /></section>;
+  return <section className="section-loading" role="status" aria-busy="true"><p className="loading-caption">{label}</p><ContentSkeleton kind={kind} /></section>;
 }

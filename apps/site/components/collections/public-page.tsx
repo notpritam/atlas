@@ -1,7 +1,8 @@
 'use client';
 import Link from 'next/link';
+import {SegmentedControl} from '../ui/segmented-control';
 import {useRouter} from 'next/navigation';
-import {useCallback,useEffect,useRef,useState,useTransition} from 'react';
+import {useCallback,useEffect,useLayoutEffect,useRef,useState,useTransition} from 'react';
 import {api,ApiError} from '@/lib/api';
 import type {CollectionDetail,CollectionRequest} from '@/lib/collections';
 import {CollectionRules} from './shared';
@@ -17,6 +18,7 @@ export function PublicCollection({initial,accountId,q='',tag=''}:{initial:Collec
  const router=useRouter();
  const [data,setData]=useState(initial),[unavailable,setUnavailable]=useState(false),[adding,setAdding]=useState(false),[error,setError]=useState(''),[busy,setBusy]=useState(false);
  const [view,setView]=useState<'list'|'grid'>('grid'),[shareMessage,setShareMessage]=useState(''),[copyFallback,setCopyFallback]=useState(''),[searching,startSearch]=useTransition();
+ const controlsRef=useRef<HTMLDivElement>(null);
  const loadedPages=useRef(1),readEpoch=useRef(0),alive=useRef(true),lifetime=useRef<AbortController|null>(null),formRef=useRef<HTMLDivElement>(null);
  const request:CollectionRequest=useCallback((path,options)=>{
   if(!accountId&&options?.method&&options.method!=='GET')return Promise.reject(new Error('Log in and reopen this collection before contributing.'));
@@ -27,6 +29,14 @@ export function PublicCollection({initial,accountId,q='',tag=''}:{initial:Collec
  const readBase=(accountId?'/collections/by-slug/':'/public/collections/')+initial.collection.slug;
  const readPath=useCallback((cursor?:string)=>{const params=new URLSearchParams();if(q)params.set('q',q);if(tag)params.set('tag',tag);if(cursor)params.set('cursor',cursor);return readBase+(params.size?'?'+params:'');},[readBase,q,tag]);
  const ref=useEntrance<HTMLElement>(initial.collection.id,':scope > .collection-profile');
+ useLayoutEffect(()=>{
+  const controls=controlsRef.current;
+  const header=controls?.closest('.collection-editorial')?.querySelector('.public-collection-nav');
+  if(!controls||!header)return;
+  const measure=()=>controls.style.setProperty('--collection-nav-height',`${Math.ceil(header.getBoundingClientRect().height)}px`);
+  measure();const observer=new ResizeObserver(measure);observer.observe(header);
+  return()=>observer.disconnect();
+ },[]);
  const refresh=useCallback(async()=>{
   const serial=++readEpoch.current;
   try{
@@ -83,9 +93,10 @@ export function PublicCollection({initial,accountId,q='',tag=''}:{initial:Collec
    {error?<div className="collection-error" role="alert">{error}<button className="subtle-button" onClick={()=>void refresh()}>Retry</button></div>:null}
    <div className="collection-reading-layout">
     <section className="collection-find-feed" id="collection-finds" aria-labelledby="collection-finds-title" data-view={view} aria-busy={searching}>
+     <div ref={controlsRef} className="collection-controls">
      <div className="collection-feed-heading"><h2 id="collection-finds-title">Finds <span>{c.entries}</span></h2><div className="collection-view-control" role="group" aria-label="Find layout"><button type="button" aria-label="List view" title="List view" aria-pressed={view==='list'} onClick={()=>setView('list')}><CollectionIcon>{collectionIcons.list}</CollectionIcon></button><button type="button" aria-label="Grid view" title="Grid view" aria-pressed={view==='grid'} onClick={()=>setView('grid')}><CollectionIcon>{collectionIcons.grid}</CollectionIcon></button></div></div>
      <form className="collection-find-search" action={basePath} onSubmit={event=>{event.preventDefault();const values=new FormData(event.currentTarget),params=new URLSearchParams();for(const name of ['q','tag']){const value=String(values.get(name)||'').trim();if(value)params.set(name,value);}startSearch(()=>router.push(basePath+(params.size?'?'+params:'')+'#collection-finds',{scroll:false}));}}><div className="find-search-input"><CollectionIcon>{collectionIcons.search}</CollectionIcon><label className="sr-only" htmlFor="find-search">Search this collection</label><input id="find-search" name="q" type="search" defaultValue={q} maxLength={100} placeholder="Search this collection…"/></div><label className="sr-only" htmlFor="find-topic">Filter by topic</label><select name="tag" id="find-topic" defaultValue={tag}><option value="">All topics</option>{topics.map(topic=><option key={topic} value={topic}>{topic}</option>)}</select><button type="submit" className="button secondary find-search-submit" aria-label="Search" title="Search" disabled={searching}>{searching?<Spinner/>:<><CollectionIcon>{collectionIcons.search}</CollectionIcon><span>Search</span></>}</button></form>
-     <nav className="collection-topic-filters" aria-label="Collection topics"><Link aria-current={!tag?'page':undefined} href={basePath+(q?'?'+new URLSearchParams({q}):'')+'#collection-finds'} scroll={false}>All finds <span className="segment-count">{c.entries.toLocaleString('en-US')}</span></Link>{topics.slice(0,10).map(topic=><Link key={topic} aria-current={tag===topic?'page':undefined} href={basePath+'?'+new URLSearchParams({...q?{q}:{},tag:topic})+'#collection-finds'} scroll={false}>{topic}</Link>)}</nav><div className="collection-result-summary"><p role="status">{q||tag?`${total} ${total===1?'match':'matches'}${q?` for “${q}”`:''}${tag?` in ${tag}`:''}`:`${total} ${total===1?'find':'finds'} · Newest first`}</p>{q||tag?<Link href={basePath+'#collection-finds'} scroll={false}>Clear filters</Link>:<span>Curated by {c.ownerName}</span>}</div>
+     <SegmentedControl scroll={false} className="collection-topic-filters" label="Collection topics" value={tag} items={[{value:'',label:'All finds',count:c.entries.toLocaleString('en-US'),href:basePath+(q?'?'+new URLSearchParams({q}):'')+'#collection-finds'},...topics.slice(0,10).map(topic=>({value:topic,label:topic,href:basePath+'?'+new URLSearchParams({...q?{q}:{},tag:topic})+'#collection-finds'}))]} /></div><div className="collection-result-summary"><p role="status">{q||tag?`${total} ${total===1?'match':'matches'}${q?` for “${q}”`:''}${tag?` in ${tag}`:''}`:`${total} ${total===1?'find':'finds'} · Newest first`}</p>{q||tag?<Link href={basePath+'#collection-finds'} scroll={false}>Clear filters</Link>:<span>Curated by {c.ownerName}</span>}</div>
      {adding?<div ref={formRef} className="public-submission"><button type="button" className="subtle-button close-submission" onClick={()=>setAdding(false)}>Close submission</button><EntryForm collection={c} request={request} done={()=>void refresh()}/></div>:null}
      {data.entries.length||(!q&&!tag)?<Entries collection={c} entries={data.entries} request={request} changed={()=>void refresh()} publicView masonry={view==='grid'}/>:<div className="collection-no-matches"><CollectionIcon>{collectionIcons.search}</CollectionIcon><h2>No finds match yet.</h2><p>Try another word or explore all the finds in this collection.</p><Link className="button secondary" href={basePath+'#collection-finds'}>Clear filters</Link></div>}
      {data.nextCursor?<div className="collection-load-more"><p>{data.entries.length} of {total} finds</p><button className="button secondary" disabled={busy} onClick={()=>void more()}>{busy?<><Spinner/>Loading…</>:'Load more finds'}</button></div>:null}

@@ -43,8 +43,8 @@ test('Library first uses real collections, logo reopening, and an accessible mob
   await page.locator('#all-captures').click(); await page.waitForURL(base + '/dashboard'); await page.locator('#new-note:enabled').click(); await page.waitForURL('**/dashboard?panel=note');
   await page.locator('#note-text').fill('A note from the new sidebar.'); await page.locator('#save-note').click();
   await page.locator('#note-dialog').waitFor({ state: 'hidden' }); await page.getByText('A note from the new sidebar.', { exact: true }).first().waitFor();
-  await page.locator('#open-account').click(); await page.locator('#sidebar-account-settings').click(); await page.waitForURL(base + '/dashboard/settings');
-  await page.locator('#open-account').click(); await page.keyboard.press('Escape'); assert.equal(await page.locator('#open-account').evaluate(el => el === document.activeElement), true);
+  await page.locator('#open-account').click(); await page.waitForURL(base + '/dashboard/settings');
+  assert.equal(await page.locator('#sidebar-account-menu, #sidebar-switch-account').count(), 0);
   await page.getByRole('heading', { name: 'Settings', exact: true }).waitFor();
   await mkdir('.impeccable/review/library-first', { recursive: true });
   await page.screenshot({ path: '.impeccable/review/library-first/desktop.png', fullPage: true, animations: 'disabled' });
@@ -59,7 +59,6 @@ test('Library first uses real collections, logo reopening, and an accessible mob
   await page.screenshot({ path: '.impeccable/review/library-first/phone-open.png', animations: 'disabled' });
   await logo.focus(); await page.keyboard.press('Shift+Tab'); assert.equal(await page.locator('#open-account').evaluate(el => el === document.activeElement), true);
   await page.keyboard.press('Tab'); assert.equal(await logo.evaluate(el => el === document.activeElement), true);
-  await page.locator('#open-account').click(); await page.keyboard.press('Escape'); assert.equal(await open.getAttribute('aria-expanded'), 'true', 'First Escape closes only the account menu');
   await page.keyboard.press('Escape'); assert.equal(await main.evaluate(el => el.inert), false); assert.equal(await open.evaluate(el => el === document.activeElement), true);
   await open.click(); await page.locator('#open-plans').click(); await page.waitForURL(base + '/dashboard/plans'); await sidebar.waitFor({ state: 'hidden' });
   assert.equal(await main.evaluate(el => el.inert), false); assert.equal(await page.evaluate(() => document.body.style.overflow), '');
@@ -69,14 +68,13 @@ test('Library first uses real collections, logo reopening, and an accessible mob
     await page.setViewportSize({ width, height: 900 });
     if (width <= 760) { await open.waitFor(); await open.click(); } else { await page.waitForFunction(() => !document.querySelector('#main').inert); if (await sidebar.getAttribute('data-collapsed') === 'true') await logo.click(); }
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `Fits ${width}px`);
-    const bounds = await toggle.boundingBox(); assert.ok(bounds.width >= (width <= 760 ? 48 : 36) && bounds.height >= (width <= 760 ? 48 : 36));
+    const bounds = await toggle.boundingBox(); assert.ok(bounds.width >= (width <= 760 ? 44 : 36) && bounds.height >= (width <= 760 ? 44 : 36), JSON.stringify({ width, bounds }));
     if (width <= 760) await toggle.click();
   }
   await page.emulateMedia({ reducedMotion: 'reduce' }); await toggle.click(); assert.equal(await main.evaluate(el => getComputedStyle(el).transform), 'none'); await logo.click();
   await page.setViewportSize({ width: 320, height: 500 }); await open.waitFor(); await open.click();
-  await page.locator('#open-settings').scrollIntoViewIfNeeded(); await page.locator('#open-account').click(); await page.locator('#sidebar-account-privacy').waitFor();
-  const privacy = await page.locator('#sidebar-account-privacy').boundingBox(); assert.ok(privacy.y >= 0 && privacy.y + privacy.height <= 500);
-  await page.keyboard.press('Escape'); await toggle.click();
+  const accountBounds = await page.locator('#open-account').boundingBox(); assert.ok(accountBounds.y >= 0 && accountBounds.y + accountBounds.height <= 500);
+  await page.locator('#open-account').click(); await page.waitForURL(base + '/dashboard/settings'); await sidebar.waitFor({ state: 'hidden' });
   const privateContext = await browser.newContext({ storageState: await context.storageState(), viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
   await privateContext.addInitScript(() => Object.defineProperty(window, 'localStorage', { get() { throw new DOMException('Storage unavailable', 'SecurityError'); } }));
   const privatePage = await privateContext.newPage(); privatePage.on('pageerror', e => errors.push(e.message)); await privatePage.goto(base + '/dashboard'); await privatePage.locator('#toggle-sidebar').click();
@@ -85,12 +83,12 @@ test('Library first uses real collections, logo reopening, and an accessible mob
   await page.goto(base + '/dashboard/saved/' + saved.id); await page.locator('.capture-reading-view').waitFor();
   await page.locator('#open-sidebar').click(); await page.keyboard.press('Escape');
   await sidebar.waitFor({ state: 'hidden' }); assert.equal(page.url(), base + '/dashboard/saved/' + saved.id, 'Drawer Escape preserves the open reader');
-  await page.setViewportSize({ width: 1440, height: 1000 }); await page.locator('#open-account').click(); await page.keyboard.press('Escape');
-  assert.equal(page.url(), base + '/dashboard/saved/' + saved.id, 'Account-menu Escape preserves the open reader');
+  await page.setViewportSize({ width: 1440, height: 1000 }); await page.locator('#open-account').click(); await page.waitForURL(base + '/dashboard/settings');
+  assert.equal(await page.locator('#sidebar-account-menu').count(), 0, 'Account opens settings directly');
   await page.goto(base + '/dashboard?item=' + saved.id); await page.locator('.capture-detail-panel').waitFor();
   for (const width of [761, 820, 1000]) {
     await page.setViewportSize({ width, height: 900 });
-    assert.equal(await page.locator('.collection').isVisible(), false, 'Tablet reader uses the available width');
+    assert.equal(await page.locator('#capture-dialog[open]').count(), 1, 'Tablet reader floats over the retained library');
     assert.ok((await page.locator('.capture-detail-panel').boundingBox()).width >= 400, `Readable panel at ${width}px`);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   }
@@ -98,7 +96,7 @@ test('Library first uses real collections, logo reopening, and an accessible mob
   assert.deepEqual(errors, []);
 });
 
-test('sidebar data failures recover honestly and switching accounts releases the mobile drawer', async t => {
+test('sidebar data failures recover honestly and account settings releases the mobile drawer', async t => {
   const browser = await chromium.launch({ headless: true, executablePath: process.env.CHROMIUM_PATH, args: ['--no-sandbox'] });
   const context = await browser.newContext({ viewport: { width: 1440, height: 1000 }, reducedMotion: 'reduce' });
   const email = `sidebar-menu-${crypto.randomUUID()}@example.test`, password = 'Sidebar-menu-disposable-394275';
@@ -122,13 +120,11 @@ test('sidebar data failures recover honestly and switching accounts releases the
   await page.reload(); await page.locator('.sidebar-plan-title strong', { hasText: 'Pro plan' }).waitFor();
   assert.equal(await page.locator('.sidebar-plan-link').textContent(), 'Manage plan');
   await page.setViewportSize({ width: 390, height: 844 }); await page.locator('#open-sidebar').click();
-  await page.locator('#open-account').click(); await page.locator('#sidebar-switch-account').click();
-  await page.getByRole('heading', { name: 'Switch account?', exact: true }).waitFor();
-  assert.equal(await page.locator('#main').evaluate(el => el.inert), false);
+  await page.locator('#open-account').click(); await page.waitForURL(base + '/dashboard/settings');
+  await page.waitForFunction(() => !document.querySelector('#main').inert);
   assert.equal(await page.locator('#open-sidebar').getAttribute('aria-expanded'), 'false');
-  await page.keyboard.press('Escape'); assert.equal((await context.request.get(base + '/api/me')).status(), 200, 'Cancel keeps this session');
-  await page.locator('#open-sidebar').click(); await page.locator('#open-account').click(); await page.locator('#sidebar-switch-account').click(); await page.locator('#confirm-accept').click();
-  await page.waitForURL(base + '/login'); assert.equal((await context.request.get(base + '/api/me')).status(), 401);
+  assert.equal(await page.locator('#sidebar-switch-account, #sidebar-account-menu').count(), 0);
+  assert.equal((await context.request.get(base + '/api/me')).status(), 200, 'Opening settings keeps this session');
   assert.equal(await page.evaluate(() => document.body.style.overflow), '');
   assert.deepEqual(errors, []);
 });

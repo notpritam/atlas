@@ -18,7 +18,7 @@ export function Mark({ size = 38 }: { size?: number }) {
 
 export function Brand({ compact = false, inverse = false }: { compact?: boolean; inverse?: boolean }) {
   const styles = useThemedStyles(baseStyles);
-  return <View style={styles.brand}><Mark size={compact ? 28 : 40} /><Text maxFontSizeMultiplier={1.5} style={[styles.brandName, compact && { fontSize: 19 }, inverse && { color: colors.white }]}>Foundkeep</Text></View>;
+  return <View style={styles.brand}><Mark size={compact ? 28 : 40} /><Text maxFontSizeMultiplier={1.5} style={[styles.brandName, compact && { fontSize: 19 }, inverse && { color: colors.white }]}>FoundKeep</Text></View>;
 }
 
 export function LegalFooter() {

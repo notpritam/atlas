@@ -92,10 +92,10 @@ async function pageFor(t, { mock = true, captures = fixtureCaptures, extensionAc
 }
 async function openLibrary(page) { await page.goto(`${base}/dashboard.html`); await page.locator('#new-note:not([disabled])').waitFor(); await page.locator('#capture-grid[aria-busy="false"]').waitFor({ state: 'attached' }); }
 
-test('customer pages present the Foundkeep identity', async () => {
+test('customer pages present the FoundKeep identity', async () => {
   for (const file of ['auth.html', 'dashboard.html', 'privacy.html', 'redeem.html', 'support.html', 'terms.html']) {
     const source = await readFile(path.resolve('apps/web', file), 'utf8');
-    assert.match(source, /Foundkeep/);
+    assert.match(source, /FoundKeep/);
     assert.doesNotMatch(source, />\s*Atlas(?:\s|<)/);
   }
 });
@@ -484,7 +484,7 @@ test('apps and devices promotes the missing app and reflects connection changes'
 
 test('iPhone onboarding leads with Share and does not ask for Chrome pairing', async t => {
   const { page, model } = await pageFor(t, { captures: [], width: 390, extensionInstalled: false, userAgent: 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 Version/18.0 Mobile/15E148 Safari/604.1' });
-  model.connections = [{ id: 'legacy', name: 'Foundkeep for iPhone', createdAt: now }];
+  model.connections = [{ id: 'legacy', name: 'FoundKeep for iPhone', createdAt: now }];
   await openLibrary(page);
   assert.equal(await page.locator('.device-options > :first-child').getAttribute('class'), 'device-option iphone-option');
   assert.match(await page.locator('#iphone-status').textContent(), /No iPhone connection confirmed/);

@@ -81,7 +81,7 @@ async function revokeCredential(previous) {
   return {
     revoked: false,
     warning:
-      "The previous browser credential could not be revoked. Remove it from Connected browsers in your Foundkeep dashboard.",
+      "The previous browser credential could not be revoked. Remove it from Connected browsers in your FoundKeep dashboard.",
   };
 }
 
@@ -105,7 +105,7 @@ export function trustedPairingSender(sender) {
 }
 export async function handleExternalMessage(message, sender) {
   if (!trustedPairingSender(sender))
-    return { ok: false, error: "This page cannot connect Foundkeep." };
+    return { ok: false, error: "This page cannot connect FoundKeep." };
   if (message?.kind === "atlas-ping") {
     const state = await readState();
     return {
@@ -123,7 +123,7 @@ export async function handleExternalMessage(message, sender) {
     typeof message.code !== "string" ||
     !/^[a-zA-Z0-9_-]{32,256}$/.test(message.code)
   ) {
-    return { ok: false, error: "Request a new connection code from Foundkeep." };
+    return { ok: false, error: "Request a new connection code from FoundKeep." };
   }
   const sequence = ++pairingSequence;
   try {
@@ -154,7 +154,7 @@ export async function handleExternalMessage(message, sender) {
     ) {
       return {
         ok: false,
-        error: "Foundkeep returned an incomplete connection. Try again.",
+        error: "FoundKeep returned an incomplete connection. Try again.",
       };
     }
     let previous, next;
@@ -192,7 +192,7 @@ export async function handleExternalMessage(message, sender) {
   } catch {
     return {
       ok: false,
-      error: "Could not reach Foundkeep. Check your connection and try again.",
+      error: "Could not reach FoundKeep. Check your connection and try again.",
     };
   }
 }
@@ -366,7 +366,7 @@ async function drain({ force = false } = {}) {
       if (!response.ok) {
         const error = new Error(
           result.message ||
-            `Foundkeep could not sync this capture (${response.status}).`,
+            `FoundKeep could not sync this capture (${response.status}).`,
         );
         error.permanent =
           response.status >= 400 &&
@@ -376,7 +376,7 @@ async function drain({ force = false } = {}) {
       }
       if (!result.capture?.id)
         throw new Error(
-          "Foundkeep did not confirm the upload. It will be retried safely.",
+          "FoundKeep did not confirm the upload. It will be retried safely.",
         );
       await db.updateCapture(record.id, {
         cloudStatus: "synced",
@@ -391,7 +391,7 @@ async function drain({ force = false } = {}) {
       const attempts = (record.cloudAttempts || 0) + 1;
       const detail = error.permanent
         ? error.message
-        : "Could not reach Foundkeep. Saved in this browser; sync will retry automatically.";
+        : "Could not reach FoundKeep. Saved in this browser; sync will retry automatically.";
       await db.updateCapture(record.id, {
         cloudStatus: error.permanent ? "failed" : "queued",
         cloudError: detail,
@@ -438,7 +438,7 @@ export async function retryCloudSync() {
 export async function libraryRequest(operation, args, accountId) {
   const request=libraryOperation(operation,args);
   const connection=await readState();
-  if (!accountId || connection?.account?.id!==accountId || !connection.token || connection.status==='reconnect') throw new Error('Connect your Foundkeep account to open its collection.');
+  if (!accountId || connection?.account?.id!==accountId || !connection.token || connection.status==='reconnect') throw new Error('Connect your FoundKeep account to open its collection.');
   const response=await fetch(CUSTOMER_ORIGIN+request.path,{
     method:request.method,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(30_000),
     headers:{Authorization:'Bearer '+connection.token,...(request.body?{'Content-Type':'application/json'}:{})},
@@ -468,9 +468,9 @@ export async function libraryRequest(operation, args, accountId) {
       return {dataUrl:'data:image/webp;base64,'+btoa(binary)};
     } finally {bitmap.close();}
   }
-  let data;try{data=JSON.parse(await blob.text());}catch{throw new Error('Foundkeep could not read the collection response.');}
+  let data;try{data=JSON.parse(await blob.text());}catch{throw new Error('FoundKeep could not read the collection response.');}
   if(!sameConnection(connection,await readState()))throw new Error('Your account changed. Open the collection again.');
-  if(!response.ok)throw new Error(String(data?.message||'Foundkeep could not complete this action.').slice(0,300));
+  if(!response.ok)throw new Error(String(data?.message||'FoundKeep could not complete this action.').slice(0,300));
   if(request.method!=='GET')announce();
   return data;
 }

@@ -16,7 +16,7 @@ test('custom links open public account routes and protected collection routes', 
   });
 });
 
-test('Foundkeep web links resolve to the same allowlisted app destinations', () => {
+test('FoundKeep web links resolve to the same allowlisted app destinations', () => {
   assert.deepEqual(parseFoundkeepLink('https://foundkeep.app/open?path=settings'), {
     href: '/(app)/(tabs)/settings', requiresAuth: true,
   });

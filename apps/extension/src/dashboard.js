@@ -199,7 +199,7 @@ async function load() {
       : "Make room for a good find.";
     $("emptyCopy").textContent = isFiltered()
       ? "Try another keyword or clear your filters to see all your captures."
-      : "Use the Foundkeep extension to keep a page, an image, or a line that stays with you. Your captures will appear here.";
+      : "Use the FoundKeep extension to keep a page, an image, or a line that stays with you. Your captures will appear here.";
     $("emptyAction").textContent = isFiltered()
       ? "Clear filters"
       : "Write your first note";
@@ -270,7 +270,7 @@ async function openDetail(id, opener) {
       detailField(
         "Account sync",
         c.cloudStatus === "synced"
-          ? "Saved to your Foundkeep account. Open the dashboard for its organized version."
+          ? "Saved to your FoundKeep account. Open the dashboard for its organized version."
           : c.cloudError ||
               "Saved in this browser and waiting to sync to its connected account.",
       ),

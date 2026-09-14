@@ -30,14 +30,14 @@ function RecoverySave({code, email}: {code: string; email: string}) {
   function download() {
     setDownloadError('');
     try {
-      downloadBlob(new Blob([`Foundkeep recovery code\n\nAccount: ${email}\nRecovery code: ${code}\n\nKeep this file somewhere private. Anyone with this code and your email can reset your password. Using it replaces this code and disconnects your browsers. Foundkeep does not send password-reset emails.\n`], {type: 'text/plain'}), 'foundkeep-recovery-code.txt');
+      downloadBlob(new Blob([`FoundKeep recovery code\n\nAccount: ${email}\nRecovery code: ${code}\n\nKeep this file somewhere private. Anyone with this code and your email can reset your password. Using it replaces this code and disconnects your browsers. FoundKeep does not send password-reset emails.\n`], {type: 'text/plain'}), 'foundkeep-recovery-code.txt');
     } catch { setDownloadError('The download could not be started. Copy the recovery code somewhere private before continuing.'); }
   }
 
   return <div id="recovery-save">
     <div className="success-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></svg></div>
     <h2 id="recovery-title" tabIndex={-1} ref={title}>Keep your way back in.</h2>
-    <p className="muted">Save this recovery code somewhere private. This is the only time we’ll show it. You’ll need it if you forget your password; Foundkeep does not send reset emails.</p>
+    <p className="muted">Save this recovery code somewhere private. This is the only time we’ll show it. You’ll need it if you forget your password; FoundKeep does not send reset emails.</p>
     <code className="recovery-display" id="new-recovery-code">{code}</code>
     <button className="button secondary wide" id="download-recovery" type="button" onClick={download}>Download recovery code <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v4h16v-4"/></svg></button>
     {downloadError ? <p className="form-message is-error" role="alert">{downloadError}</p> : null}
@@ -94,7 +94,7 @@ export function AuthForm({mode: initialMode, deleted = false}: {mode: AuthMode; 
     return () => window.removeEventListener('popstate', restoreMode);
   }, [recovery, busy]);
 
-  useEffect(() => { document.title = `${authViews[mode].action} — Foundkeep`; }, [mode]);
+  useEffect(() => { document.title = `${authViews[mode].action} — FoundKeep`; }, [mode]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();

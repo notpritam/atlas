@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { parseOAuthReturn, validAuthorizeUrl, createPendingOAuth } from './auth-oauth.ts';
 const flow='a'.repeat(32),code='b'.repeat(43);
-test('only dedicated Foundkeep callback with bounded proof is accepted',()=>{
+test('only dedicated FoundKeep callback with bounded proof is accepted',()=>{
  assert.deepEqual(parseOAuthReturn(`foundkeep://oauth/complete?flow=${flow}&code=${code}`),{flow,code,error:false});
  for(const url of [`https://evil.example/?flow=${flow}&code=${code}`,`foundkeep://oauth/complete?flow=${flow}&code=${code}&access_token=secret`,`foundkeep://oauth/complete?flow=${flow}&code=${code}#secret`,`foundkeep://oauth/complete?flow=${flow}&flow=${flow}&code=${code}`,'foundkeep://oauth/complete?flow=bad&code=bad'])assert.equal(parseOAuthReturn(url),null);
 });

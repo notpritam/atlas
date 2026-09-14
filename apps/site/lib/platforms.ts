@@ -6,8 +6,8 @@ export interface CustomerConfig { extensionIds:string[];extensionEnvironment:'de
 export function iphoneConfig(value?:{distribution?:unknown;url?:unknown}):IphoneConfig {
  const fallback:IphoneConfig={distribution:'private-beta',url:'/support#iphone-beta',label:'Get iPhone beta',badge:'TestFlight beta',description:'The iPhone app is in a private TestFlight beta. Request access to try it.'};
  try{const url=new URL(String(value?.url));if(url.protocol!=='https:'||url.username||url.password||url.port||url.search||url.hash)return fallback;
- if(value?.distribution==='app-store'&&url.hostname==='apps.apple.com'&&/\/id\d+$/.test(url.pathname))return {distribution:'app-store',url:url.href,label:'Get the iPhone app',badge:'App Store',description:'Get Foundkeep for iPhone from the App Store.'};
- if(value?.distribution==='testflight'&&url.hostname==='testflight.apple.com'&&/^\/join\/[A-Za-z0-9]+$/.test(url.pathname))return {distribution:'testflight',url:url.href,label:'Get iPhone beta',badge:'TestFlight beta',description:'Join the Foundkeep iPhone beta through TestFlight.'};
+ if(value?.distribution==='app-store'&&url.hostname==='apps.apple.com'&&/\/id\d+$/.test(url.pathname))return {distribution:'app-store',url:url.href,label:'Get the iPhone app',badge:'App Store',description:'Get FoundKeep for iPhone from the App Store.'};
+ if(value?.distribution==='testflight'&&url.hostname==='testflight.apple.com'&&/^\/join\/[A-Za-z0-9]+$/.test(url.pathname))return {distribution:'testflight',url:url.href,label:'Get iPhone beta',badge:'TestFlight beta',description:'Join the FoundKeep iPhone beta through TestFlight.'};
  }catch{}return fallback;
 }
 export const DEFAULT_CONFIG:CustomerConfig={extensionIds:[STORE_EXTENSION_ID,LEGACY_EXTENSION_ID],extensionEnvironment:'prod',storeUrl:STORE_URL,iphone:iphoneConfig()};
@@ -38,8 +38,8 @@ export function isMobileBrowser(){return typeof navigator!=='undefined'&&(/Andro
 interface Runtime {sendMessage:(id:string,message:unknown,callback:(response:any)=>void)=>void;lastError?:unknown}
 export function extensionMessage<T=any>(message:unknown,extensionId=LEGACY_EXTENSION_ID):Promise<T>{return new Promise((resolve,reject)=>{
  const runtime=(globalThis as typeof globalThis&{chrome?:{runtime?:Runtime}}).chrome?.runtime;
- if(!runtime?.sendMessage){reject(new Error('Foundkeep is not detected in this browser.'));return;}
+ if(!runtime?.sendMessage){reject(new Error('FoundKeep is not detected in this browser.'));return;}
  let settled=false;const finish=(error:Error|null,response?:T)=>{if(settled)return;settled=true;clearTimeout(timer);if(error)reject(error);else resolve(response as T);};
- const timer=setTimeout(()=>finish(new Error('Foundkeep did not respond. Reload the extension and try again.')),15000);
- try{runtime.sendMessage(extensionId,message,response=>{if(runtime.lastError||!response)return finish(new Error('Foundkeep could not be detected. Install or reload the extension, then refresh this page.'));if(!response.ok)return finish(new Error(response.error||'The extension could not connect.'));finish(null,response);});}catch{finish(new Error('Foundkeep could not be detected. Use a supported browser and reload the page.'));}
+ const timer=setTimeout(()=>finish(new Error('FoundKeep did not respond. Reload the extension and try again.')),15000);
+ try{runtime.sendMessage(extensionId,message,response=>{if(runtime.lastError||!response)return finish(new Error('FoundKeep could not be detected. Install or reload the extension, then refresh this page.'));if(!response.ok)return finish(new Error(response.error||'The extension could not connect.'));finish(null,response);});}catch{finish(new Error('FoundKeep could not be detected. Use a supported browser and reload the page.'));}
  });}

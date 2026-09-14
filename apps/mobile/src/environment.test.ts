@@ -26,3 +26,10 @@ test('unknown or inconsistent runtime environment fails closed',()=>{
  assert.throws(()=>resolveEnvironment('staging'));assert.throws(()=>resolveEnvironment(''));assert.throws(()=>configureEnvironment({...resolveEnvironment('dev'),origin:'https://evil.example'},'android'));
  assert.equal(resolveEnvironment(undefined).origin,'https://foundkeep.app');
 });
+test('previous display capitalization remains compatible without changing any environment boundary',()=>{
+ const production=resolveEnvironment('prod');
+ assert.doesNotThrow(()=>configureEnvironment({...production,name:'Foundkeep'},'ios'));
+ assert.throws(()=>configureEnvironment({...production,name:'Other app'},'ios'));
+ assert.throws(()=>configureEnvironment({...production,name:'Foundkeep',origin:'https://dev.foundkeep.app'},'ios'));
+ configureEnvironment(production,'ios');
+});

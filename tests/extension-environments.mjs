@@ -39,7 +39,7 @@ test('dev and prod packages have stable separate identities and fixed destinatio
     assert.equal(config.extensionEnvironment, environment);
     if (environment === 'dev') {
       assert.deepEqual(config.extensionIds, [id]);
-      assert.equal(manifest.name, 'Foundkeep Dev — Save what matters');
+      assert.equal(manifest.name, 'FoundKeep Dev — Save what matters');
       assert.equal(manifest.update_url, undefined, 'Dev must never follow the production update feed');
     } else {
       assert.equal(id, 'mjfcgmboaijfcaanepdipbgmipnccnpn', 'Keep existing production browser data');

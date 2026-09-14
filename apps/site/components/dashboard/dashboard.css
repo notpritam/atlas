@@ -8,7 +8,8 @@
 .customer-body.dashboard-body .compact-library-header .refresh-button { width:44px; min-width:44px; padding:11px; }
 .customer-body.dashboard-body .compact-library-header .refresh-button svg { display:block; width:20px; height:20px; stroke-width:2; }
 .customer-body.dashboard-body .collection-workspace { display:grid; grid-template-columns:minmax(0,1fr); align-items:start; gap:24px; flex:1; }
-.customer-body.dashboard-body.has-capture-panel .collection-workspace { grid-template-columns:minmax(0,1fr) minmax(380px,460px); }
+/* Opening a capture never reflows the grid: the detail panel is an overlay drawer, so card widths stay fixed. */
+.customer-body.dashboard-body .collection-workspace { position:relative; }
 .customer-body.dashboard-body .collection { min-width:0; }
 .customer-body.dashboard-body .filter-row { margin-top:0; gap:10px; }
 .customer-body.dashboard-body .type-filters { flex-wrap:nowrap; overflow-x:auto; padding-bottom:4px; scrollbar-width:thin; }
@@ -22,7 +23,7 @@
 .customer-body.dashboard-body .capture-preview-placeholder span { text-transform:uppercase; letter-spacing:.09em; font-size:10px; }
 .customer-body.dashboard-body .capture-preview-placeholder p { font-size:14px; color:var(--ink); }
 .customer-body.dashboard-body .capture-preview-placeholder small { font-size:11px; }
-.customer-body.dashboard-body .capture-detail-panel { min-width:0; background:var(--surface); border:1px solid var(--line); border-radius:16px; overflow:auto; position:sticky; top:20px; max-height:calc(100dvh - 40px); scrollbar-width:thin; }
+.customer-body.dashboard-body .capture-detail-panel:not(.capture-reading-view) { position:absolute; inset:0 0 0 auto; z-index:8; width:min(460px,88%); min-width:0; background:var(--surface); border:0; border-left:1px solid var(--line); border-radius:0; overflow:auto; box-shadow:-30px 0 60px -24px #00000080; scrollbar-width:thin; }
 .customer-body.dashboard-body .capture-detail-panel .dialog-bar { position:sticky; top:0; z-index:1; background:var(--surface); padding:10px 18px; }
 .customer-body.dashboard-body .detail-panel-actions { display:flex; align-items:center; gap:14px; }
 .customer-body.dashboard-body .expand-capture { font-size:12px; }
@@ -42,16 +43,14 @@
 .customer-body.dashboard-body .device-promotion p { font-size:12px; }
 @media (max-width:1200px) {
  .customer-body.dashboard-body .library-main { padding-inline:24px; }
- .customer-body.dashboard-body.has-capture-panel .collection-workspace { grid-template-columns:minmax(0,1fr) 400px; gap:18px; }
+ .customer-body.dashboard-body .capture-detail-panel:not(.capture-reading-view) { width:min(420px,92%); }
  .customer-body.dashboard-body .compact-library-header h1 { font-size:25px; }
  .customer-body.dashboard-body .compact-library-header .library-heading { margin-right:0; }
  .customer-body.dashboard-body .compact-library-header .search-field { padding-inline:10px; }
 }
 @media (max-width:1000px) and (min-width:761px) {
- /* Give the reader the available tablet width; closing it restores the gallery. */
- .customer-body.dashboard-body.has-capture-panel .collection-workspace { grid-template-columns:minmax(0,1fr); }
- .customer-body.dashboard-body.has-capture-panel .collection-workspace>.collection { display:none; }
- .customer-body.dashboard-body.has-capture-panel .capture-detail-panel { position:static; max-height:none; width:100%; }
+ /* On tablet the drawer covers the full content width; the gallery stays mounted behind it. */
+ .customer-body.dashboard-body .capture-detail-panel:not(.capture-reading-view) { width:100%; }
  .customer-body.dashboard-body .compact-library-header { flex-wrap:wrap; }
  .customer-body.dashboard-body .compact-library-header .library-heading { width:100%; }
 }

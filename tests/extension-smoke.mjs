@@ -8,20 +8,20 @@ const { chromium } = await import(
   process.env.PLAYWRIGHT_MODULE || "playwright-core"
 );
 
-test("extension presents the Foundkeep identity while preserving its signed ID", async () => {
+test("extension presents the FoundKeep identity while preserving its signed ID", async () => {
   const manifest = JSON.parse(await readFile("apps/extension/manifest.json", "utf8"));
-  assert.equal(manifest.name, "Foundkeep — Save what matters");
-  assert.equal(manifest.action.default_title, "Foundkeep");
+  assert.equal(manifest.name, "FoundKeep — Save what matters");
+  assert.equal(manifest.action.default_title, "FoundKeep");
   assert.deepEqual(manifest.externally_connectable.matches, [
     "https://foundkeep.app/*",
     "https://atlas.notpritam.in/*",
   ]);
-  assert.ok(Object.values(manifest.commands).every((command) => command.description.includes("Foundkeep")));
+  assert.ok(Object.values(manifest.commands).every((command) => command.description.includes("FoundKeep")));
   assert.equal(manifest.key.startsWith("MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8A"), true);
 
   for (const file of ["src/popup.html", "src/dashboard.html"]) {
     const source = await readFile(`apps/extension/${file}`, "utf8");
-    assert.match(source, /Foundkeep/);
+    assert.match(source, /FoundKeep/);
     assert.doesNotMatch(source, />\s*Atlas(?:\s|<)/);
   }
   for (const size of [16, 32, 48, 128]) {

@@ -16,7 +16,7 @@ export const GalleryCard = memo(function GalleryCard({ capture, onOpen }: { capt
   const palette = palettes[scheme];
   const written = capture.type === 'note' || capture.type === 'selection';
   const excerpt = capture.noteText || capture.selectionText || capture.summary || capture.articleText;
-  const source = sourcePlatform(capture) || (written ? 'Foundkeep' : captureLabels[capture.type]);
+  const source = sourcePlatform(capture) || (written ? 'FoundKeep' : captureLabels[capture.type]);
   const via = savedVia(capture);
   const pending = capture.status === 'pending' || capture.status === 'processing';
   return <Pressable accessibilityRole="button" accessibilityLabel={`Open ${captureLabels[capture.type]} ${captureTitle(capture)}`} accessibilityHint={pending ? 'Saved. Details are being prepared.' : undefined} onPress={() => onOpen(capture)} style={({ pressed }) => [styles.card, { backgroundColor: opaque ? palette.surface : palette.glassCard }, written && styles.written, pressed && styles.pressed]}>

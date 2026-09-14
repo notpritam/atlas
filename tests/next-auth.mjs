@@ -230,9 +230,9 @@ test('entering auth from the public landing applies its document CSP', async t =
   assert.match(direct.headers()['content-security-policy'], /script-src .*'nonce-[^']+'/);
   assert.equal(await inlineHandlerProbe(), 'blocked');
   await page.goto(base + '/');
-  await page.locator('.header-actions .login-link').click();
+  await page.locator('.header-actions .button-small').click();
   await page.getByRole('button', {name: 'Continue with Google'}).waitFor();
-  assert.equal(page.url(), base + '/login');
+  assert.equal(page.url(), base + '/signup');
   assert.equal(await inlineHandlerProbe(), 'blocked', 'The private auth document must enforce CSP after public navigation');
 });
 
@@ -274,7 +274,7 @@ test('a deferred export cannot complete after leaving the dashboard and changing
     catch { /* The dashboard aborts the request when its lifecycle ends. */ }
   });
   await page.goto(base + '/dashboard');
-  await page.locator('#open-account').click(); await page.locator('#sidebar-account-settings').click();
+  await page.locator('#open-account').click();
   await page.locator('#export-account').click();
   await page.locator('#confirm-accept').click();
   await started;

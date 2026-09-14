@@ -3,7 +3,7 @@ import { PRODUCT_NAME, EXTENSION_ENVIRONMENT } from "./product.js";
 import { message } from "./ui.js";
 
 export function cloudMarkup({ compact = false } = {}) {
-  const markup = `<section class="cloud-panel ${compact ? "compact" : ""}" aria-label="Foundkeep account">
+  const markup = `<section class="cloud-panel ${compact ? "compact" : ""}" aria-label="FoundKeep account">
     ${EXTENSION_ENVIRONMENT === 'dev' ? '<p class="fine">Development · Saves sync to dev.foundkeep.app</p>' : ''}
     <div class="cloud-heading"><strong id="cloudAccount">Keep your finds together.</strong><button class="btn ${compact ? "secondary" : "primary"}" id="cloudAction" type="button">Connect ${PRODUCT_NAME}</button></div>
     <p id="cloudStatus" class="fine" role="status">Connect an account to sync new captures. Your local library stays available.</p>
@@ -29,7 +29,7 @@ export function bindCloud(
     if (!result?.ok)
       throw new Error(
         result?.error ||
-          "Could not read your connection. Reopen Foundkeep and try again.",
+          "Could not read your connection. Reopen FoundKeep and try again.",
       );
     return result;
   };
@@ -39,7 +39,7 @@ export function bindCloud(
       .catch(() =>
         message(
           field("cloudFeedback"),
-          "Could not open Foundkeep. Try again.",
+          "Could not open FoundKeep. Try again.",
           "error",
         ),
       );
@@ -147,7 +147,7 @@ export function bindCloud(
     field("cloudDisconnect").onclick = async () => {
       if (
         !confirm(
-          "Disconnect this browser from Foundkeep? Captures stay in this browser. Unsent captures remain assigned to their current account.",
+          "Disconnect this browser from FoundKeep? Captures stay in this browser. Unsent captures remain assigned to their current account.",
         )
       )
         return;

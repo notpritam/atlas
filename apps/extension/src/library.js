@@ -7,7 +7,7 @@ let accountId=null,organization={folders:[],tags:[]},rows=[],cursor=null,type=''
 let refreshTimer,searchTimer,mode='list';const images=new Map();let imageQueue=[],imageWorkers=0;
 hydrateIcons();document.querySelectorAll('dialog').forEach(dialog=>{wireDialog(dialog);dialog.querySelectorAll('.close-dialog').forEach(button=>button.onclick=()=>dialog.close());});
 function notice(text=''){ $('notice').hidden=!text;$('notice').textContent=text; }
-async function message(kind,args={}){const result=await chrome.runtime.sendMessage({kind,accountId,...args});if(!result?.ok)throw new Error(result?.error||'Foundkeep could not respond. Try again.');return result.data;}
+async function message(kind,args={}){const result=await chrome.runtime.sendMessage({kind,accountId,...args});if(!result?.ok)throw new Error(result?.error||'FoundKeep could not respond. Try again.');return result.data;}
 const api=(operation,args={})=>message('library-request',{operation,args});
 function options(select,empty,items){const selected=select.value;select.replaceChildren(new Option(empty,''));for(const item of items)select.add(new Option(item.displayName||item.name,item.id??item.name));if([...select.options].some(option=>option.value===selected))select.value=selected;}
 function renderOrganization(){

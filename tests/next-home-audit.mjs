@@ -92,7 +92,7 @@ test('touch targets, demo, disclosures and mobile navigation remain usable at ev
   await page.locator('#demoReset').click();
   await page.waitForFunction(()=>document.activeElement.id==='demoSave');
   await page.locator('.interface-disclosure summary').click();
-  await page.getByRole('img',{name:/Foundkeep browser library/}).waitFor();
+  await page.getByRole('img',{name:/FoundKeep browser library/}).waitFor();
   await page.locator('.faq-list summary').first().click();
   assert.deepEqual(await undersized(page),[],`Expanded disclosure targets at ${width}px`);
   await page.locator('.faq-list summary').first().click();

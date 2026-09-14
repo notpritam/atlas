@@ -77,7 +77,7 @@ function cacheResult(cache, source) {
 
 async function fetchRemotePreferences(state, now) {
   const key = connectionKey(state);
-  if (!key) throw new Error("Connect Foundkeep before refreshing preferences.");
+  if (!key) throw new Error("Connect FoundKeep before refreshing preferences.");
   if (pendingRemoteRefreshes.has(key)) return pendingRemoteRefreshes.get(key);
 
   const request = (async () => {
@@ -98,7 +98,7 @@ async function fetchRemotePreferences(state, now) {
         !(result.updatedAt === null || Number.isSafeInteger(result.updatedAt))) throw new Error("Invalid preferences");
 
     const latest = await stateAndCache();
-    if (connectionKey(latest.state) !== key) throw new Error("Foundkeep connection changed during preference refresh.");
+    if (connectionKey(latest.state) !== key) throw new Error("FoundKeep connection changed during preference refresh.");
     const latestCache = validCache(latest.cache, state.account.id);
     if (latestCache && latestCache.revision >= result.revision) {
       return cacheResult(latestCache, latestCache.revision > result.revision ? "newer-cache" : "remote");
@@ -128,7 +128,7 @@ async function getAccountPreferences({ refresh = false, now = Date.now() } = {})
   const accountId = state?.account?.id;
   const usableCache = validCache(cache, accountId);
   if (!connectionKey(state)) {
-    if (refresh) throw new Error("Connect Foundkeep before refreshing preferences.");
+    if (refresh) throw new Error("Connect FoundKeep before refreshing preferences.");
     if (accountId && usableCache) return cacheResult(usableCache, "stale-cache");
     return { preferences: cloneDefaults(), revision: 0, updatedAt: null, source: "default" };
   }

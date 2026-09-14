@@ -22,7 +22,7 @@ const views = {
 function setMode(value) {
   mode = Object.hasOwn(views, value) ? value : 'signup';
   const [title, description, action] = views[mode];
-  document.title = `${action} — Foundkeep`;
+  document.title = `${action} — FoundKeep`;
   $('#auth-title').textContent = title; $('#auth-description').textContent = description;
   $('#auth-submit').textContent = action;
   $('#name-field').hidden = mode !== 'signup'; $('#name').required = mode === 'signup'; $('#name').disabled = mode !== 'signup';

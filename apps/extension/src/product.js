@@ -1,4 +1,4 @@
-export const PRODUCT_NAME = "Foundkeep";
+export const PRODUCT_NAME = "FoundKeep";
 export const EXTENSION_ENVIRONMENT = "prod";
 // Preserve the existing production library through extension updates.
 export const LOCAL_DATABASE_NAME = "atlas";

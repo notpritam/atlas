@@ -9,7 +9,7 @@ const root=process.cwd(),folder=process.env.ATLAS_RELEASE_DIR||path.join(root,'a
 const manifest=JSON.parse(readFileSync(path.join(root,'apps/extension/manifest.json')));
 assert.match(manifest.version,/^\d+\.\d+\.\d+$/);
 if(process.env.EXPECTED_EXTENSION_VERSION) assert.equal(manifest.version,process.env.EXPECTED_EXTENSION_VERSION);
-assert.equal(manifest.name,'Foundkeep — Save what matters');
+assert.equal(manifest.name,'FoundKeep — Save what matters');
 const legacyCrx=path.join(folder,process.env.ATLAS_RELEASE_DIR?'atlas-extension.crx':'ext/atlas-extension.crx');
 const brandedCrx=path.join(folder,process.env.ATLAS_RELEASE_DIR?'foundkeep-extension.crx':'ext/foundkeep-extension.crx');
 const file=readFileSync(legacyCrx);

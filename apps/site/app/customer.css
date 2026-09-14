@@ -2096,7 +2096,7 @@
   font-size:13px!important;
 }
 
-/* Foundkeep shared account and private library surfaces. */
+/* FoundKeep shared account and private library surfaces. */
 .customer-body { --paper:var(--fk-paper); --surface:#fff; --ink:var(--fk-ink); --muted:var(--fk-muted); --accent:#086ca8; --accent-hover:#075888; --sky:var(--fk-sky); --mint:var(--fk-mint); --line:var(--fk-line); --control-line:var(--fk-control); --panel:#fff; --radius:12px; }
 .customer-body { scrollbar-color:#91b2be var(--paper); }
 .customer-body { font-size:14px; }

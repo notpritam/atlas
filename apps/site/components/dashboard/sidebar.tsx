@@ -3,15 +3,12 @@
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
-import { flushSync } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useDashboard } from './context';
-import {ThemeControl} from '../appearance/theme';
-import { NavigationPending } from './loading';
 import { gsap, motionAllowed } from './motion';
-import { messageFor } from '../../lib/dashboard';
 import type { CollectionList } from '../../lib/collections';
 import type { Me } from '../../lib/types';
+import {lockDocumentScroll} from '../../lib/scroll-lock';
 
 export type AccountSection = 'collections' | 'mind-map' | 'apps' | 'agents' | 'settings' | 'capture' | 'processing' | 'plans';
 const collapsePreference = 'foundkeep.sidebar.collapsed';
@@ -33,35 +30,32 @@ const icons = {
 function Icon({ children }: { children: ReactNode }) { return <svg aria-hidden="true" viewBox="0 0 24 24">{children}</svg>; }
 
 export function Sidebar({ me, section, collectionId, libraryHref = '/dashboard', onLibrary }: { me: Me; section?: AccountSection; collectionId?: string; libraryHref?: string; onLibrary?: () => void }) {
-  const { request, confirm, toast, endSession } = useDashboard();
+  const { request } = useDashboard();
   const router = useRouter();
   const pathname = usePathname();
-  // Share the manager's cache so collection edits and invitations update both views.
-  const collections = useQuery({ queryKey: ['social-collections'], queryFn: ({ signal }) => request<CollectionList>('/collections', { signal }) });
-  const plan = useQuery({ queryKey: ['plan', me.account.id], queryFn: ({ signal }) => request<{ pro: boolean }>('/plan', { signal }) });
+  // Share page queries, but let their hydrated page start the first request.
+  // Starting it here can change a still-hydrating page's server snapshot.
+  const collections = useQuery({ enabled: section !== 'collections', queryKey: ['social-collections'], queryFn: ({ signal }) => request<CollectionList>('/collections', { signal }) });
+  const plan = useQuery({ enabled: section !== 'plans' && section !== 'processing', queryKey: ['plan', me.account.id], queryFn: ({ signal }) => request<{ pro: boolean }>('/plan', { signal }) });
   const [collapsed, setCollapsed] = useState(false);
   const [mobile, setMobile] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-  const [accountOpen, setAccountOpen] = useState(false);
-  const [switching, setSwitching] = useState(false);
   const ref = useRef<HTMLElement>(null);
   const logoRef = useRef<HTMLButtonElement>(null);
   const collapseRef = useRef<HTMLButtonElement>(null);
   const openRef = useRef<HTMLButtonElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
-  const accountRef = useRef<HTMLDivElement>(null);
-  const accountButtonRef = useRef<HTMLButtonElement>(null);
   const previousMain = useRef<{ left: number; top: number } | null>(null);
   const rail = collapsed && !mobile;
 
-  useLayoutEffect(() => { setMobileOpen(false); setAccountOpen(false); }, [pathname]);
+  useLayoutEffect(() => { setMobileOpen(false); }, [pathname]);
 
   useLayoutEffect(() => {
     const restore = () => { try { setCollapsed(localStorage.getItem(collapsePreference) === 'true'); } catch { /* Navigation also works without storage. */ } };
     restore();
     const changed = (event: StorageEvent) => { if (event.key === collapsePreference || event.key === null) restore(); };
     const media = window.matchMedia(mobileQuery);
-    const resize = () => { setMobile(media.matches); setMobileOpen(false); setAccountOpen(false); };
+    const resize = () => { setMobile(media.matches); setMobileOpen(false); };
     resize();
     window.addEventListener('storage', changed);
     media.addEventListener('change', resize);
@@ -89,28 +83,26 @@ export function Sidebar({ me, section, collectionId, libraryHref = '/dashboard',
     const skip = ref.current?.closest('.dashboard-body')?.querySelector<HTMLElement>('.skip-link');
     const background = [main, skip, headerRef.current].filter((el): el is HTMLElement => Boolean(el));
     const inert = background.map(el => el.inert);
-    const overflow = document.body.style.overflow;
+    const unlock = lockDocumentScroll();
     const overscroll = document.documentElement.style.overscrollBehavior;
     background.forEach(el => { el.inert = true; });
-    document.body.style.overflow = 'hidden';
     document.documentElement.style.overscrollBehavior = 'none';
     collapseRef.current?.focus({ preventScroll: true });
     return () => {
       background.forEach((el, index) => { el.inert = inert[index]; });
-      document.body.style.overflow = overflow;
+      unlock();
       document.documentElement.style.overscrollBehavior = overscroll;
       if (window.matchMedia(mobileQuery).matches) openRef.current?.focus({ preventScroll: true });
     };
   }, [mobile, mobileOpen]);
 
   useEffect(() => {
-    if (!accountOpen && !mobileOpen) return;
+    if (!mobileOpen) return;
     const keydown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault();
         event.stopPropagation();
-        if (accountOpen) { setAccountOpen(false); accountButtonRef.current?.focus(); }
-        else setMobileOpen(false);
+        setMobileOpen(false);
       }
       if (event.key !== 'Tab' || !mobile || !mobileOpen) return;
       const items = Array.from(ref.current?.querySelectorAll<HTMLElement>('a[href],button:not(:disabled),select,summary,[tabindex="0"]') || []).filter(el => el.getClientRects().length && !el.closest('[inert]'));
@@ -118,36 +110,21 @@ export function Sidebar({ me, section, collectionId, libraryHref = '/dashboard',
       if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
       else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     };
-    const outside = (event: PointerEvent) => { if (accountOpen && !accountRef.current?.contains(event.target as Node)) setAccountOpen(false); };
     document.addEventListener('keydown', keydown);
-    document.addEventListener('pointerdown', outside);
-    return () => { document.removeEventListener('keydown', keydown); document.removeEventListener('pointerdown', outside); };
-  }, [accountOpen, mobile, mobileOpen]);
+    return () => document.removeEventListener('keydown', keydown);
+  }, [mobile, mobileOpen]);
 
-  const close = () => { setMobileOpen(false); setAccountOpen(false); };
-  const routeNavigation = (href: string) => {
-    setAccountOpen(false);
-    // Keep pending page feedback visible in the drawer until the route commits.
-    if (pathname === href.split('?')[0]) setMobileOpen(false);
-  };
+  const close = () => { setMobileOpen(false); };
   const toggle = () => {
     if (mobile) { close(); return; }
     const main = ref.current?.parentElement?.querySelector<HTMLElement>(':scope > main');
     if (main) { const bounds = main.getBoundingClientRect(); previousMain.current = { left: bounds.left, top: bounds.top }; }
-    setAccountOpen(false);
+
     const next = !collapsed;
     setCollapsed(next);
     try { localStorage.setItem(collapsePreference, String(next)); } catch { /* A preference must not block navigation. */ }
   };
   const openLibrary = () => { close(); if (onLibrary) onLibrary(); else router.push(libraryHref); };
-  const switchAccount = async () => {
-    // Release the mobile focus trap before showing the existing confirmation dialog.
-    flushSync(close);
-    if (!await confirm('Switch account?', 'This signs out this website so you can log in with another account. Connected extensions stay connected.', 'Continue to login')) return;
-    setSwitching(true);
-    try { await request('/auth/logout', { method: 'POST', body: {} }); endSession(); window.location.replace('/login'); }
-    catch (error) { setSwitching(false); toast(messageFor(error)); }
-  };
   const settings = section === 'settings' || section === 'capture' || section === 'processing';
   const primary = [
     { href: libraryHref, id: 'all-captures', label: 'My library', active: !section, icon: icons.library },
@@ -161,7 +138,7 @@ export function Sidebar({ me, section, collectionId, libraryHref = '/dashboard',
     { href: '/dashboard/settings', id: 'open-settings', label: 'Settings', active: settings, icon: icons.settings },
     { href: '/support', id: 'sidebar-support', label: 'Support', active: false, icon: icons.help },
   ];
-  const navLink = (link: typeof primary[number]) => <Link key={link.id} id={link.id} href={link.href} aria-label={link.label} title={rail ? link.label : undefined} className={`sidebar-nav-link${link.active ? ' nav-active' : ''}`} aria-current={link.active ? 'page' : undefined} prefetch={false} onNavigate={event => { if (link.id === 'all-captures' && onLibrary) { event.preventDefault(); openLibrary(); } else routeNavigation(link.href); }}><Icon>{link.icon}</Icon><span className="sidebar-nav-label">{link.label}</span>{link.id === 'all-captures' ? <span id="nav-count">{me.usage.captures.toLocaleString('en-US')}</span> : null}<NavigationPending /></Link>;
+  const navLink = (link: typeof primary[number]) => <Link key={link.id} id={link.id} href={link.href} aria-label={link.label} title={rail ? link.label : undefined} className={`sidebar-nav-link${link.active ? ' nav-active' : ''}`} aria-current={link.active ? 'page' : undefined} onNavigate={event => { if (link.id === 'all-captures' && onLibrary) { event.preventDefault(); openLibrary(); } else close(); }}><Icon>{link.icon}</Icon><span className="sidebar-nav-label">{link.label}</span>{link.id === 'all-captures' ? <span id="nav-count">{me.usage.captures.toLocaleString('en-US')}</span> : null}</Link>;
   const allCollections = collections.data?.collections || [];
   const visibleCollections = allCollections.slice(0, 8);
   const selected = allCollections.find(collection => collection.id === collectionId);
@@ -174,17 +151,16 @@ export function Sidebar({ me, section, collectionId, libraryHref = '/dashboard',
       <div className="sidebar-heading"><button ref={logoRef} id="sidebar-logo" className="sidebar-brand" type="button" aria-label={rail ? 'Expand sidebar' : 'FoundKeep — My library'} aria-expanded={rail ? false : undefined} aria-controls={rail ? 'workspace-navigation' : undefined} title={rail ? 'Expand sidebar' : 'My library'} onClick={rail ? toggle : openLibrary}><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="32" height="32" alt="" /><span className="sidebar-wordmark">FoundKeep</span></button>
         <button ref={collapseRef} id="toggle-sidebar" className="sidebar-icon-button sidebar-toggle" type="button" aria-label="Collapse sidebar" title="Collapse sidebar" aria-expanded={mobile ? mobileOpen : !collapsed} aria-controls="library-sidebar" onClick={toggle}><Icon><rect x="3" y="4" width="18" height="16" rx="2.5" /><path d="M9 4v16" /></Icon></button>
       </div>
+      <button className="sidebar-search sidebar-nav-link" type="button" aria-label="Search FoundKeep" onClick={() => { close(); window.dispatchEvent(new Event('foundkeep:search')); }}><Icon><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></Icon><span className="sidebar-nav-label">Search</span><kbd>⌘ K</kbd></button>
       <div className="sidebar-nav-scroller"><nav className="library-nav" id="workspace-navigation" aria-label="Your library">
         {primary.map(navLink)}
         <details className="sidebar-collection-tree" open><summary>Your collections<Icon><path d="m8 10 4 4 4-4" /></Icon></summary>
-          {collections.isPending ? <p className="sidebar-collection-message" role="status">Loading collections…</p> : collections.isError ? <div className="sidebar-collection-message"><p>Collections couldn’t load.</p><button type="button" onClick={() => void collections.refetch()}>Retry collections</button></div> : allCollections.length ? <>{visibleCollections.map(collection => <Link key={collection.id} className="sidebar-collection-link" href={`/dashboard/collections/${collection.id}`} title={`${collection.title} · ${collection.visibility}${collection.following ? ' · following' : ''}`} aria-current={collection.id === collectionId ? 'page' : undefined} prefetch={false} onNavigate={() => routeNavigation(`/dashboard/collections/${collection.id}`)}><Icon>{collection.visibility === 'public' ? icons.globe : icons.folder}</Icon><span>{collection.title}</span><NavigationPending /></Link>)}{allCollections.length > 8 ? <Link className="sidebar-collection-link sidebar-all-collections" href="/dashboard/collections" onNavigate={close}>View all {allCollections.length} collections</Link> : null}</> : <p className="sidebar-collection-message">Your collections will appear here.<Link href="/dashboard/collections" onNavigate={close}>Create a collection</Link></p>}
+          {collections.isPending ? null : collections.isError ? <div className="sidebar-collection-message"><p>Collections couldn’t load.</p><button type="button" onClick={() => void collections.refetch()}>Retry collections</button></div> : allCollections.length ? <>{visibleCollections.map(collection => <Link key={collection.id} className="sidebar-collection-link" href={`/dashboard/collections/${collection.id}`} title={`${collection.title} · ${collection.visibility}${collection.following ? ' · following' : ''}`} aria-current={collection.id === collectionId ? 'page' : undefined} onNavigate={() => close()}><Icon>{collection.visibility === 'public' ? icons.globe : icons.folder}</Icon><span>{collection.title}</span></Link>)}{allCollections.length > 8 ? <Link className="sidebar-collection-link sidebar-all-collections" href="/dashboard/collections" onNavigate={close}>View all {allCollections.length} collections</Link> : null}</> : <p className="sidebar-collection-message">Your collections will appear here.<Link href="/dashboard/collections" onNavigate={close}>Create a collection</Link></p>}
         </details>
         <p className="sidebar-section-title">Manage</p>{manage.map(navLink)}
       </nav></div>
       <div className="sidebar-bottom"><div className="sidebar-plan-summary"><div className="sidebar-plan-title"><strong>{planName}</strong><span>{me.usage.captures.toLocaleString('en-US')} saves</span></div><Link className="sidebar-plan-link" href="/dashboard/plans" onNavigate={close}>{plan.data ? (plan.data.pro ? 'Manage plan' : 'Explore Pro') : 'View plan & usage'}<Icon><path d="M5 12h14m-5-5 5 5-5 5" /></Icon></Link></div>
-        <div className="sidebar-account" ref={accountRef}><button ref={accountButtonRef} className="account-button" id="open-account" type="button" aria-label="Open account menu" title={rail ? 'Account menu' : undefined} aria-expanded={accountOpen} aria-controls="sidebar-account-menu" disabled={switching} onClick={() => setAccountOpen(open => !open)}><span className="account-avatar" id="account-avatar" aria-hidden="true">{(me.account.name || me.account.email).slice(0, 1).toUpperCase()}</span><span className="sidebar-account-copy"><strong id="account-name">{me.account.name || me.account.email}</strong><span>{me.account.email}</span></span><Icon><path d="m8 8 4-4 4 4m-8 8 4 4 4-4" /></Icon></button>
-          {accountOpen ? <nav className="sidebar-account-menu" id="sidebar-account-menu" aria-label="Your account"><Link id="sidebar-account-settings" href="/dashboard/settings" onNavigate={close}><Icon>{icons.settings}</Icon>Account &amp; settings</Link><Link href="/dashboard/plans" onNavigate={close}><Icon>{icons.plans}</Icon>Plans &amp; usage</Link><Link id="sidebar-account-privacy" href="/privacy" onNavigate={close}><Icon>{icons.privacy}</Icon>Privacy &amp; data</Link><ThemeControl compact/><button id="sidebar-switch-account" type="button" onClick={() => void switchAccount()}><Icon>{icons.switch}</Icon>Switch account</button></nav> : null}
-        </div>
+        <div className="sidebar-account"><Link className="account-button" id="open-account" href="/dashboard/settings" aria-label="Account settings" title={rail ? 'Account settings' : undefined} onNavigate={close}><span className="account-avatar" id="account-avatar" aria-hidden="true">{(me.account.name || me.account.email).slice(0, 1).toUpperCase()}</span><span className="sidebar-account-copy"><strong id="account-name">{me.account.name || me.account.email}</strong><span>{me.account.email}</span></span><Icon>{icons.settings}</Icon></Link></div>
       </div>
     </aside>
   </>;

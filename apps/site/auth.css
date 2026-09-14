@@ -80,3 +80,9 @@
   .customer-body.auth-app .auth-panel { padding: 27px 17px; }
   .customer-body.auth-app .auth-panel h2 { font-size: 28px; }
 }
+
+.customer-body.auth-app{padding-top:24px}
+.customer-body.auth-app .auth-layout{width:min(1240px,calc(100% - 48px));margin:0 auto 12px;flex:1 0 auto}
+.customer-body.auth-app .auth-story-brand{position:relative;z-index:1;display:flex;align-items:center;gap:10px;font:550 21px var(--fk-font-sans);color:#fff;min-height:40px;align-self:flex-start;margin-bottom:70px;text-decoration:none}
+.customer-body.auth-app .auth-story-copy{margin-bottom:70px}
+@media(max-width:680px){.customer-body.auth-app{padding-top:12px}.customer-body.auth-app .auth-layout{width:calc(100% - 24px)}.customer-body.auth-app .auth-story{min-height:240px}.customer-body.auth-app .auth-story-brand{font-size:17px;margin-bottom:22px}.customer-body.auth-app .auth-story-brand img{width:28px;height:28px}.customer-body.auth-app .auth-story-copy{margin:0}.customer-body.auth-app .auth-story h1{font-size:30px}}

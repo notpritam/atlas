@@ -22,7 +22,7 @@ export function CollectionServices(){
   action.mutate({kind:'automation',value:{enabled:!settings.enabled,consentVersion:settings.consentVersion}});
  };
  return <div className="collection-services" aria-busy={busy}>
-  <section className="settings-section"><h3>Let your collection organize itself.</h3><p className="muted">Foundkeep can suggest tags, summarize content and connect related saves. Choose when new saves are processed and how much of your allowance to use. Older items wait until you request processing. A successfully preserved video uses one credit, even when no text or image can be organized.</p>
+  <section className="settings-section"><h3>Let your collection organize itself.</h3><p className="muted">FoundKeep can suggest tags, summarize content and connect related saves. Choose when new saves are processed and how much of your allowance to use. Older items wait until you request processing. A successfully preserved video uses one credit, even when no text or image can be organized.</p>
    {plan.data && !plan.data.pro ? <p className="processing-plan-note">Managed processing is included with Pro. <Link className="text-link" href="/dashboard/plans">Explore plans</Link></p> : null}
    {plan.isError ? <p className="form-message is-error" role="alert">{plan.error.message} <button className="subtle-button" onClick={()=>void plan.refetch()}>Retry plan</button></p> : null}
    {busy&&action.variables?.kind==='automation'?<p className="loading-caption" role="status"><Spinner/>Saving processing settings…</p>:null}

@@ -32,9 +32,9 @@ function iphoneConfig(value) {
     const url = new URL(value?.url);
     if (url.protocol !== 'https:' || url.username || url.password || url.port || url.search || url.hash) return fallback;
     if (value.distribution === 'app-store' && url.hostname === 'apps.apple.com' && /\/id\d+$/.test(url.pathname))
-      return { distribution: 'app-store', url: url.href, label: 'Get the iPhone app', badge: 'App Store', description: 'Get Foundkeep for iPhone from the App Store.' };
+      return { distribution: 'app-store', url: url.href, label: 'Get the iPhone app', badge: 'App Store', description: 'Get FoundKeep for iPhone from the App Store.' };
     if (value.distribution === 'testflight' && url.hostname === 'testflight.apple.com' && /^\/join\/[A-Za-z0-9]+$/.test(url.pathname))
-      return { distribution: 'testflight', url: url.href, label: 'Get iPhone beta', badge: 'TestFlight beta', description: 'Join the Foundkeep iPhone beta through TestFlight.' };
+      return { distribution: 'testflight', url: url.href, label: 'Get iPhone beta', badge: 'TestFlight beta', description: 'Join the FoundKeep iPhone beta through TestFlight.' };
   } catch { /* Safe, usable beta instructions remain available. */ }
   return fallback;
 }
@@ -70,7 +70,7 @@ export async function api(path, { method = 'GET', body, signal, download = false
     });
   } catch (error) {
     if (signal?.aborted) throw error;
-    throw new ApiError(navigator.onLine ? 'Foundkeep could not be reached. Check your connection and try again.' : 'You’re offline. Reconnect to access your cloud library.');
+    throw new ApiError(navigator.onLine ? 'FoundKeep could not be reached. Check your connection and try again.' : 'You’re offline. Reconnect to access your cloud library.');
   }
   if (!response.ok) {
     const data = await response.json().catch(() => ({}));
@@ -80,7 +80,7 @@ export async function api(path, { method = 'GET', body, signal, download = false
   }
   if (download) return response.blob();
   try { return await response.json(); }
-  catch { throw new ApiError('Foundkeep returned an incomplete response. Please try again.'); }
+  catch { throw new ApiError('FoundKeep returned an incomplete response. Please try again.'); }
 }
 
 export const $ = (selector, scope = document) => scope.querySelector(selector);
@@ -104,7 +104,7 @@ export function downloadBlob(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 export function recoveryDownload(code, email) {
-  downloadBlob(new Blob([`Foundkeep recovery code\n\nAccount: ${email}\nRecovery code: ${code}\n\nKeep this file somewhere private. Anyone with this code and your email can reset your password. Using it replaces this code and disconnects your browsers. Foundkeep does not send password-reset emails.\n`], { type: 'text/plain' }), 'foundkeep-recovery-code.txt');
+  downloadBlob(new Blob([`FoundKeep recovery code\n\nAccount: ${email}\nRecovery code: ${code}\n\nKeep this file somewhere private. Anyone with this code and your email can reset your password. Using it replaces this code and disconnects your browsers. FoundKeep does not send password-reset emails.\n`], { type: 'text/plain' }), 'foundkeep-recovery-code.txt');
 }
 export function safeSource(value) {
   try { const url = new URL(value); return ['https:', 'http:'].includes(url.protocol) ? url : null; } catch { return null; }
@@ -122,21 +122,21 @@ export function dateLabel(value, full = false) {
 }
 export function extensionMessage(message, extensionId = EXTENSION_ID) {
   return new Promise((resolve, reject) => {
-    if (!globalThis.chrome?.runtime?.sendMessage) return reject(new Error('Open this page in Chrome with Foundkeep installed. After installing, reload this page and try again.'));
+    if (!globalThis.chrome?.runtime?.sendMessage) return reject(new Error('Open this page in Chrome with FoundKeep installed. After installing, reload this page and try again.'));
     let settled = false;
     const finish = (error, response) => {
       if (settled) return;
       settled = true; clearTimeout(timer);
       error ? reject(error) : resolve(response);
     };
-    const timer = setTimeout(() => finish(new Error('Foundkeep did not respond. Reload the extension at chrome://extensions, then try again.')), 15000);
+    const timer = setTimeout(() => finish(new Error('FoundKeep did not respond. Reload the extension at chrome://extensions, then try again.')), 15000);
     try {
       chrome.runtime.sendMessage(extensionId, message, (response) => {
         const error = chrome.runtime.lastError;
-        if (error || !response) return finish(new Error('Foundkeep could not be detected. Install or reload the extension, refresh this page, then try again.'));
+        if (error || !response) return finish(new Error('FoundKeep could not be detected. Install or reload the extension, refresh this page, then try again.'));
         if (!response.ok) return finish(new Error(response.error || 'The extension could not connect. Please try again.'));
         finish(null, response);
       });
-    } catch { finish(new Error('Foundkeep could not be detected. Use Chrome, install the extension, then reload this page.')); }
+    } catch { finish(new Error('FoundKeep could not be detected. Use Chrome, install the extension, then reload this page.')); }
   });
 }

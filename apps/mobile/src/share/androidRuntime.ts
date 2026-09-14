@@ -69,7 +69,7 @@ export function createAndroidRuntime(storage: AndroidStorage) {
       const current = await storage.credential(); if (!current) throw new Error('Sign in to save these shared items.');
       if (current.accountId !== expectedAccountId) throw new Error('Your account changed. Share the items again.');
       const limits = await policy();
-      if (requiresBinaryUpdate('1.0.0', limits.minimumVersion)) throw new Error('Update Foundkeep before saving.');
+      if (requiresBinaryUpdate('1.0.0', limits.minimumVersion)) throw new Error('Update FoundKeep before saving.');
       if (!shares.length || shares.length > limits.limits.batchItems) throw new Error(`Share up to ${limits.limits.batchItems} items at a time.`);
       const prepared: AndroidRecord[] = [];
       const copied: string[] = [];

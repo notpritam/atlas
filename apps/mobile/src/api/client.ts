@@ -60,7 +60,7 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
       const headers = new Headers({ accept: 'application/json' });
       if (options.body !== undefined) headers.set('content-type', 'application/json');
       if (options.authenticated !== false) {
-        if (!token) throw new FoundkeepApiError(401, 'signed_out', 'Sign in to open your Foundkeep collection.');
+        if (!token) throw new FoundkeepApiError(401, 'signed_out', 'Sign in to open your FoundKeep collection.');
         headers.set('authorization', `Bearer ${token}`);
       }
       const response = await fetcher(`${getEnvironment().origin}${path}`, {
@@ -72,22 +72,22 @@ export function createFoundkeepClient({ getToken, fetcher = fetch }: ClientOptio
       const raw = await response.text();
       let value: any = null;
       try { value = raw ? JSON.parse(raw) : null; } catch {}
-      if (!response.ok) throw new FoundkeepApiError(response.status, String(value?.error || 'request_failed').slice(0, 80), String(value?.message || 'Foundkeep could not complete the request.'));
+      if (!response.ok) throw new FoundkeepApiError(response.status, String(value?.error || 'request_failed').slice(0, 80), String(value?.message || 'FoundKeep could not complete the request.'));
       if (!value || typeof value !== 'object' || Array.isArray(value)) {
-        throw new FoundkeepApiError(response.status, 'invalid_response', 'Foundkeep could not read the response. Please try again.');
+        throw new FoundkeepApiError(response.status, 'invalid_response', 'FoundKeep could not read the response. Please try again.');
       }
       return { value: value as T, bytes: raw.length * 2 };
     } catch (error) {
       if (error instanceof FoundkeepApiError) throw error;
-      if ((error as Error)?.name === 'AbortError') throw new FoundkeepApiError(0, 'timeout', 'Foundkeep took too long to respond. Try again.');
-      throw new FoundkeepApiError(0, 'offline', 'Foundkeep could not connect. Check your internet connection and try again.');
+      if ((error as Error)?.name === 'AbortError') throw new FoundkeepApiError(0, 'timeout', 'FoundKeep took too long to respond. Try again.');
+      throw new FoundkeepApiError(0, 'offline', 'FoundKeep could not connect. Check your internet connection and try again.');
     } finally { clearTimeout(timer); options.signal?.removeEventListener('abort', abort); }
   }
 
   async function json<T>(path: string, options: JsonOptions = {}): Promise<T> {
     const token = options.authenticated === false ? null : await getToken();
     if (scope !== token) { clearCache(); scope = token; }
-    if (options.authenticated !== false && !token) throw new FoundkeepApiError(401, 'signed_out', 'Sign in to open your Foundkeep collection.');
+    if (options.authenticated !== false && !token) throw new FoundkeepApiError(401, 'signed_out', 'Sign in to open your FoundKeep collection.');
     if (options.method && options.method !== 'GET') {
       clearCache();
       try { return (await request<T>(path, options, token)).value; }

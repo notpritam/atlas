@@ -1,0 +1,43 @@
+/* Shared Free/Pro hierarchy. Featured cards carry their own accessible palette. */
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured]{
+ --plan-surface:var(--fk-surface);--plan-ink:var(--fk-ink);--plan-muted:var(--fk-muted);--plan-line:var(--fk-line);--plan-accent:var(--fk-accent);
+ display:flex;flex-direction:column;min-width:0;padding:32px;border:1px solid var(--plan-line);border-radius:var(--fk-radius-dialog);background:var(--plan-surface);color:var(--plan-ink)
+}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured=true]{
+ --plan-surface:#202020;--plan-ink:#f7f8f8;--plan-muted:#c4d1ca;--plan-line:#48524c;--plan-accent:#6bd3a1;
+ border-color:var(--plan-accent);box-shadow:0 16px 40px #00000018
+}
+html[data-theme=dark] body :is(.landing-body,.customer-body) .plan-card-surface[data-featured=true]{--plan-surface:var(--fk-soft);box-shadow:0 16px 40px #00000028}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured] :is(h3,.pricing-amount,.plan-price,.plan-benefits strong,.plan-control-note strong){color:var(--plan-ink)}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured] :is(.pricing-description,.pricing-amount span,.pricing-note,.plan-description,.plan-price span,.plan-price-note,.plan-benefit-description,.plan-boundary,.plan-control-note,.field-help){color:var(--plan-muted)}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured] :is(.plan-benefits,.plan-boundary,.plan-control-note,.plan-current-state){border-color:var(--plan-line)}
+html body :is(.landing-body,.customer-body) .plan-card-surface .plan-highlights{display:grid;gap:0;margin:24px 0 20px;padding:0;border-block:1px solid var(--plan-line)}
+html body :is(.landing-body,.customer-body) .plan-highlights>div{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:16px 0}
+html body :is(.landing-body,.customer-body) .plan-highlights>div+div{border-top:1px solid var(--plan-line)}
+html body :is(.landing-body,.customer-body) .plan-highlights dt{font-size:12px;line-height:1.6;color:var(--plan-muted);max-width:17ch}
+html body :is(.landing-body,.customer-body) .plan-highlights dd{margin:0;font-size:16px;line-height:1.4;font-weight:550;text-align:right;color:var(--plan-ink)}
+html body :is(.landing-body,.customer-body) .plan-highlights dd span{display:block;margin-top:3px;font-size:11px;line-height:1.5;font-weight:400;color:var(--plan-muted)}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured] :is(.plan-extra-label,.pricing-plan-badge){display:inline-flex;align-items:center;width:max-content;max-width:100%;border-radius:999px;padding:6px 10px;background:var(--plan-accent);color:#05130d;font-size:11px;font-weight:550;line-height:1.5}
+html body :is(.landing-body,.customer-body) .plan-card-surface .plan-includes{color:var(--plan-accent)}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured] :is(.plan-benefits svg,.plan-current-state svg){color:var(--plan-accent)}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured=true] :is(.current-plan-label,.plan-extra-label){background:var(--plan-accent);color:#05130d}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured=true] .button{background:var(--plan-accent);border-color:var(--plan-accent);color:#05130d}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured=true] .button:hover:not(:disabled){background:#b8e4cc;border-color:#b8e4cc}
+html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured=true] :is(a,button):focus-visible{outline-color:var(--plan-accent)}
+html body .landing-body .pricing-plan-title{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:12px}
+html body .landing-body .pricing-plan-title h3{margin:0}
+html body .landing-body .pricing-grid{max-width:1000px;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:24px}
+html body .landing-body .pricing-plan .pricing-amount{font-size:52px;line-height:1.1;margin:24px 0 0}
+html body .landing-body .pricing-plan .pricing-features{display:grid;gap:12px;margin:0 0 28px}
+html body .landing-body .pricing-plan .pricing-features li{display:flex;gap:9px;align-items:flex-start;padding:0;border:0;color:var(--plan-ink)}
+html body .landing-body .pricing-features svg{flex-shrink:0;width:17px;height:17px;margin-top:2px;fill:none;stroke:var(--plan-accent);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+html body .landing-body .pricing-plan .button{align-self:stretch;justify-content:center;min-height:46px}
+html body .landing-body .pricing-plan:not([data-featured=true]) .button{background:transparent;color:var(--plan-ink);border:1px solid var(--plan-line)}
+html body .landing-body .pricing-plan:not([data-featured=true]) .button:hover{background:var(--fk-soft)}
+html body .landing-body .pricing-note{text-align:center}
+@media(max-width:680px){
+ html body .landing-body .pricing-grid{grid-template-columns:minmax(0,1fr);gap:20px}
+ html body :is(.landing-body,.customer-body) .plan-card-surface[data-featured]{padding:24px}
+ html body :is(.landing-body,.customer-body) .plan-highlights>div{gap:10px}
+ html body :is(.landing-body,.customer-body) .plan-highlights dd{font-size:14px}
+}

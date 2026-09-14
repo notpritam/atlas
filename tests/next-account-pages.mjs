@@ -28,7 +28,7 @@ test('account navigation opens real pages, supports history, and keeps billing s
   });
   const page = await context.newPage();
   const errors = [];
-  page.on('pageerror', error => errors.push(error.message));
+  page.on('pageerror', error => errors.push({ message: error.message, url: page.url() }));
   await page.goto(base + '/dashboard');
   assert.equal(await page.locator('#onboarding').count(), 0, 'Library does not mount device setup');
   await page.locator('[data-type="note"]').click();
@@ -42,7 +42,7 @@ test('account navigation opens real pages, supports history, and keeps billing s
   assert.equal(await page.locator('#capture-grid').count(), 0);
   assert.equal(await page.locator('dialog[open]').count(), 0);
   assert.equal(await page.locator('#open-setup').getAttribute('aria-current'), 'page');
-  await page.locator('#open-account').click(); await page.locator('#sidebar-account-settings').click();
+  await page.locator('#open-account').click();
   await page.waitForURL(base + '/dashboard/settings');
   assert.equal(await page.locator('#account-dialog').count(), 0);
   await page.getByRole('link', { name: 'Browser capture', exact: true }).click();

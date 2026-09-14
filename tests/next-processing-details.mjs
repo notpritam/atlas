@@ -29,7 +29,7 @@ test('reader discovers newly queued work and refreshes saved video and related r
  t.after(async()=>{await browser.close();await new Promise(r=>server.close(r));});
  const page=await browser.newPage({reducedMotion:'reduce'});const errors=[];page.on('pageerror',error=>errors.push(error.message));
  await page.goto(base+'/dashboard?item=fixture-video');await page.getByRole('heading',{name:'Fixture video',exact:true}).waitFor();
- await page.getByRole('button',{name:'Organize with Foundkeep'}).waitFor();
+ await page.getByRole('button',{name:'Organize with FoundKeep'}).waitFor();
  assert.equal(await page.locator('#detail-panel video').count(),0);
  state='running';
  await page.getByRole('status').filter({hasText:'Processing this save'}).waitFor({timeout:12000});

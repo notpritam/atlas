@@ -27,7 +27,7 @@ const cloud = bindCloud($("cloudSummary"), {
       : state.pending
         ? `${state.pending} waiting`
         : state.account
-          ? "Synced to Foundkeep"
+          ? "Synced to FoundKeep"
           : "Saved locally";
   },
 });
@@ -97,7 +97,7 @@ function applyPreferences(next) {
   const visibleSecondary = actions.some((button) => !button.hidden);
   $("secondaryActions").hidden = !visibleSecondary;
   if ($("savePage").hidden && !visibleSecondary) {
-    message($("captureFeedback"), "Page capture is turned off in your Foundkeep settings.");
+    message($("captureFeedback"), "Page capture is turned off in your FoundKeep settings.");
   }
   document.body.dataset.preferencesReady = "true";
 }
@@ -157,7 +157,7 @@ async function runCapture(button) {
       window.close();
       return;
     }
-    message($("captureFeedback"), "Saved in your Foundkeep library.", "success");
+    message($("captureFeedback"), "Saved in your FoundKeep library.", "success");
     await renderRecent();
   } catch (error) {
     message($("captureFeedback"), error.message || "Could not start capture. Reload this page and try again.", "error");
@@ -230,7 +230,7 @@ async function init() {
     await Promise.all([loadPreferences(), cloud.load()]);
   } catch {
     applyPreferences(DEFAULT_PREFERENCES);
-    message($("saveFeedback"), "Could not load recent captures. Try reopening Foundkeep.", "error");
+    message($("saveFeedback"), "Could not load recent captures. Try reopening FoundKeep.", "error");
   }
 }
 

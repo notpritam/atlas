@@ -10,8 +10,8 @@ function setDemoSaved(saved) {
   document.querySelector("#demo-selection").classList.toggle("is-saved", saved);
   saveButton.disabled = saved;
   document.querySelector("#demoStatus").textContent = saved
-    ? "Highlight saved in this illustration. Your Foundkeep library has not changed."
-    : "Try it here. This demo does not save to your Foundkeep library.";
+    ? "Highlight saved in this illustration. Your FoundKeep library has not changed."
+    : "Try it here. This demo does not save to your FoundKeep library.";
   // Move focus to the next useful action when its previous control disappears.
   (saved ? resetButton : saveButton).focus({ preventScroll: true });
 }
@@ -55,8 +55,8 @@ import("./customer.js?v=20260910-platforms")
       }
       if (note) note.textContent = extension
         ? extension.account
-          ? "Foundkeep is installed and connected in this browser."
-          : "Foundkeep is installed. Connect your account to sync your saves."
+          ? "FoundKeep is installed and connected in this browser."
+          : "FoundKeep is installed. Connect your account to sync your saves."
         : "Available now in the Chrome Web Store · Version 1.0.0 · Automatic updates";
     };
     const check = async () => {

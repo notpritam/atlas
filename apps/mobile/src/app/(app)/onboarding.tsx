@@ -8,8 +8,8 @@ import { useThemedStyles } from '../../appearance/AppearanceProvider.tsx';
 import { colors, typography } from '../../theme.ts';
 const steps = [
   { icon: 'share-outline', title: 'Find something to keep', body: 'In your browser, photos, files, or another app, tap Share.' },
-  { icon: 'bookmark-outline', title: 'Choose Foundkeep', body: Platform.OS === 'android' ? 'Select Foundkeep from the Android share menu. Tap More if it is not visible.' : 'Swipe along the app row and tap More if you don’t see it. Add Foundkeep to your favorites for next time.' },
-  { icon: 'checkmark-outline', title: 'Save it to your collection', body: Platform.OS === 'android' ? 'Foundkeep opens and saves the shared items to your collection. Sign in first if prompted. Files wait safely on your device while offline.' : 'Add a note if you like, then tap Save. Everything appears here with its source attached.' },
+  { icon: 'bookmark-outline', title: 'Choose FoundKeep', body: Platform.OS === 'android' ? 'Select FoundKeep from the Android share menu. Tap More if it is not visible.' : 'Swipe along the app row and tap More if you don’t see it. Add FoundKeep to your favorites for next time.' },
+  { icon: 'checkmark-outline', title: 'Save it to your collection', body: Platform.OS === 'android' ? 'FoundKeep opens and saves the shared items to your collection. Sign in first if prompted. Files wait safely on your device while offline.' : 'Add a note if you like, then tap Save. Everything appears here with its source attached.' },
 ] as const;
 export default function ShareGuide() {
   const { policy, updateRequired } = useSession();

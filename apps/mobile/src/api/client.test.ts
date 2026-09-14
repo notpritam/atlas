@@ -47,7 +47,7 @@ test('unreadable successful responses raise a recoverable API error instead of r
   }
 });
 
-test('authenticated requests stay on the Foundkeep origin and encode collection filters', async () => {
+test('authenticated requests stay on the FoundKeep origin and encode collection filters', async () => {
   const calls: Array<{ url: string; init?: RequestInit }> = [];
   const fetcher: typeof fetch = async (input, init) => {
     calls.push({ url: String(input), init });
@@ -161,7 +161,7 @@ test('public registration omits authorization and returns the native device sess
     fetcher: async (_input, init) => {
       headers = new Headers(init?.headers);
       requestBody = JSON.parse(String(init?.body));
-      return new Response(JSON.stringify({ account: { id: 'a', email: 'a@example.com', name: 'A', createdAt: 1 }, token: 't', recoveryCode: 'r', connection: { id: 'c', name: 'Foundkeep for iPhone', createdAt: 1, lastSeenAt: null } }), { status: 201, headers: { 'content-type': 'application/json' } });
+      return new Response(JSON.stringify({ account: { id: 'a', email: 'a@example.com', name: 'A', createdAt: 1 }, token: 't', recoveryCode: 'r', connection: { id: 'c', name: 'FoundKeep for iPhone', createdAt: 1, lastSeenAt: null } }), { status: 201, headers: { 'content-type': 'application/json' } });
     },
   });
   const result = await client.register({ email: 'a@example.com', name: 'A', password: 'long password', deviceName: "Pritam's iPhone" });
@@ -251,7 +251,7 @@ test('native notes record their actual app platform without trusting caller inpu
  assert.equal((bodies[1]?.provenance as Record<string,unknown>).captureMethod,'ios-app-note');
 });
 
-test('social auth uses only Foundkeep endpoints and separates login from authenticated deletion', async () => {
+test('social auth uses only FoundKeep endpoints and separates login from authenticated deletion', async () => {
   const calls: { url: string; init?: RequestInit }[] = [];
   const client = createFoundkeepClient({ getToken: async () => 'device-token', fetcher: async (url, init) => { calls.push({ url: String(url), init }); return Response.json({ providers: ['apple'] }); } });
   await client.oauthProviders();

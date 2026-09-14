@@ -5,7 +5,7 @@ import { setupPaddleSandbox } from '../scripts/paddle-sandbox.mjs';
 const key = 'pdl_sdbx_apikey_' + 'a'.repeat(26) + '_' + 'b'.repeat(22) + '_ccc';
 const productId = 'pro_' + 'a'.repeat(26);
 const priceId = 'pri_' + 'b'.repeat(26);
-const product = { id: productId, name: 'Foundkeep Pro', status: 'active', tax_category: 'saas', custom_data: { foundkeep_catalog: 'pro-v1' } };
+const product = { id: productId, name: 'FoundKeep Pro', status: 'active', tax_category: 'saas', custom_data: { foundkeep_catalog: 'pro-v1' } };
 const price = { id: priceId, product_id: productId, status: 'active', unit_price: { amount: '500', currency_code: 'USD' }, billing_cycle: { interval: 'month', frequency: 1 }, trial_period: null, tax_mode: 'external', quantity: { minimum: 1, maximum: 1 }, unit_price_overrides: [] };
 const page = (data, next = null) => Response.json({ data, meta: { pagination: { has_more: !!next, next } } });
 
@@ -85,7 +85,7 @@ test('fails closed on malformed pagination instead of creating a duplicate produ
   } }), /catalog response/);
 });
 
-test('does not silently replace an existing Foundkeep price with different billing terms', async () => {
+test('does not silently replace an existing FoundKeep price with different billing terms', async () => {
   for (const changed of [
     { unit_price: { amount: '5000', currency_code: 'USD' } },
     { billing_cycle: { interval: 'year', frequency: 1 } },
@@ -109,7 +109,7 @@ test('provider error bodies and network errors never leak credential values', as
 test('ambiguous product names stop setup without changing either product', async () => {
   await assert.rejects(setupPaddleSandbox({ apiKey: key, apply: true, fetcher: async (_url, init) => {
     assert.equal(init.method, 'GET'); return page([product, { ...product, id: 'pro_' + 'c'.repeat(26) }]);
-  } }), /multiple Foundkeep products/);
+  } }), /multiple FoundKeep products/);
 });
 
 test('an ambiguous create result stops before trying to create a price', async () => {

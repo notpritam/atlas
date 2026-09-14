@@ -9,7 +9,7 @@ enum FoundkeepUploadError: LocalizedError {
   case folderNotFound
   case invalidOrganization
   var errorDescription: String? {
-    switch self { case .signedOut: return "Open Foundkeep once to connect this iPhone."; case .storage: return "Foundkeep could not keep a safe local copy."; case .server: return "Saved for upload when Foundkeep is online."; case .folderNotFound: return "That folder no longer exists. Your items are kept safely. Choose another folder or No folder, then save again."; case .invalidOrganization: return "Use up to 20 tags of 40 characters each, and folder names of up to 80 characters, without control characters." }
+    switch self { case .signedOut: return "Open FoundKeep once to connect this iPhone."; case .storage: return "FoundKeep could not keep a safe local copy."; case .server: return "Saved for upload when FoundKeep is online."; case .folderNotFound: return "That folder no longer exists. Your items are kept safely. Choose another folder or No folder, then save again."; case .invalidOrganization: return "Use up to 20 tags of 40 characters each, and folder names of up to 80 characters, without control characters." }
   }
 }
 
@@ -193,7 +193,7 @@ final class ShareUploader {
       let size = (try manager.attributesOfItem(atPath: payloadURL.path)[.size] as? NSNumber)?.intValue ?? 0
       request = URLRequest(url: URL(string: "\(Bundle.main.object(forInfoDictionaryKey: "FoundkeepOrigin") as? String ?? "https://foundkeep.app")/api/mobile/captures/file")!)
       request.httpMethod = "POST"
-      request.setValue(base64URL(metadataData), forHTTPHeaderField: "X-Foundkeep-Capture")
+      request.setValue(base64URL(metadataData), forHTTPHeaderField: "X-FoundKeep-Capture")
       request.setValue(metadata["declaredMime"] as? String ?? "application/octet-stream", forHTTPHeaderField: "Content-Type")
       request.setValue(String(size), forHTTPHeaderField: "Content-Length")
       request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")

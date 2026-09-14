@@ -1,0 +1,2 @@
+/* Brand silhouettes retain their published paths and inherit the local text color. */
+html body :is(.landing-body,.customer-body) svg.platform-icon{display:inline-block;flex-shrink:0;fill:currentColor;stroke:none;vertical-align:middle}

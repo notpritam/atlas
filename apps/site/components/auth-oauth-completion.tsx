@@ -111,10 +111,10 @@ export function OAuthCompletion() {
   }
 
   return <section id="oauth-completion" aria-labelledby="oauth-title" aria-busy={busy}>
-    <h2 id="oauth-title">Your Foundkeep account.</h2>
+    <h2 id="oauth-title">Your FoundKeep account.</h2>
     <p id="oauth-message" className={`form-message${isError ? ' is-error' : ''}`} role={isError ? 'alert' : 'status'}>{message}</p>
     <form id="oauth-link-fields" hidden={stage !== 'link'} onSubmit={event => { event.preventDefault(); if (event.currentTarget.reportValidity()) void exchange(password); }}>
-      <div className="field"><label htmlFor="oauth-password">Existing Foundkeep password</label><div className="password-input"><input id="oauth-password" ref={passwordInput} name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" maxLength={128} required disabled={busy || stage !== 'link'} value={password} onChange={event => setPassword(event.target.value)}/><button className="password-toggle" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? 'Hide' : 'Show'}</button></div></div>
+      <div className="field"><label htmlFor="oauth-password">Existing FoundKeep password</label><div className="password-input"><input id="oauth-password" ref={passwordInput} name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" maxLength={128} required disabled={busy || stage !== 'link'} value={password} onChange={event => setPassword(event.target.value)}/><button className="password-toggle" type="button" aria-label={showPassword ? 'Hide password' : 'Show password'} aria-pressed={showPassword} onClick={() => setShowPassword(value => !value)}>{showPassword ? 'Hide' : 'Show'}</button></div></div>
       <button id="oauth-connect" className="button primary wide" type="submit" disabled={busy}>{busy ? 'Connecting…' : 'Connect to my existing collection'}</button>
     </form>
     {stage === 'retry' ? <button id="oauth-retry" className="button primary wide" type="button" disabled={busy} onClick={() => void exchange(password)}>{busy ? 'Trying again…' : 'Try again'}</button> : null}

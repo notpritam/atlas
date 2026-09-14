@@ -24,7 +24,7 @@ function projectId() {
 async function deviceToken() {
   if (!Device.isDevice) throw new Error('Notifications require a physical device.');
   const id = projectId();
-  if (!id) throw new Error('Notifications will be available after Foundkeep finishes its App Store setup.');
+  if (!id) throw new Error('Notifications will be available after FoundKeep finishes its App Store setup.');
   return (await Notifications.getExpoPushTokenAsync({ projectId: id })).data;
 }
 

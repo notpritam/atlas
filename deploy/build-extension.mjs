@@ -37,16 +37,16 @@ try {
     const id = [...createHash('sha256').update(Buffer.from(identity.key, 'base64')).digest('hex').slice(0, 32)]
       .map(char => String.fromCharCode(97 + parseInt(char, 16))).join('');
     if (id !== identity.id) throw new Error('Dev extension identity does not match its public key.');
-    manifest.name = 'Foundkeep Dev — Save what matters';
-    manifest.description = 'Development build. Save pages, screenshots, highlights and notes to your separate Foundkeep dev library.';
-    manifest.action.default_title = 'Foundkeep Dev';
+    manifest.name = 'FoundKeep Dev — Save what matters';
+    manifest.description = 'Development build. Save pages, screenshots, highlights and notes to your separate FoundKeep dev library.';
+    manifest.action.default_title = 'FoundKeep Dev';
     manifest.key = identity.key;
     manifest.host_permissions = ['https://dev.foundkeep.app/*'];
     manifest.externally_connectable = { matches: ['https://dev.foundkeep.app/*'] };
     delete manifest.update_url;
-    for (const command of Object.values(manifest.commands)) command.description = command.description.replaceAll('Foundkeep', 'Foundkeep Dev');
+    for (const command of Object.values(manifest.commands)) command.description = command.description.replaceAll('FoundKeep', 'FoundKeep Dev');
     await writeFile(path.join(stage, 'src/product.js'), [
-      'export const PRODUCT_NAME = "Foundkeep Dev";',
+      'export const PRODUCT_NAME = "FoundKeep Dev";',
       'export const EXTENSION_ENVIRONMENT = "dev";',
       'export const LOCAL_DATABASE_NAME = "atlas-dev";',
       'export const CUSTOMER_ORIGIN = "https://dev.foundkeep.app";',
@@ -54,7 +54,7 @@ try {
       '',
     ].join('\n'));
     const readme = await readFile(path.join(stage, 'README.md'), 'utf8');
-    await writeFile(path.join(stage, 'README.md'), '# Foundkeep Dev\n\nThis build syncs only to https://dev.foundkeep.app. Install it alongside production; it has its own browser storage and login. Keep this installation when updating to retain local saves.\n\n' + readme.replaceAll('https://foundkeep.app', 'https://dev.foundkeep.app'));
+    await writeFile(path.join(stage, 'README.md'), '# FoundKeep Dev\n\nThis build syncs only to https://dev.foundkeep.app. Install it alongside production; it has its own browser storage and login. Keep this installation when updating to retain local saves.\n\n' + readme.replaceAll('https://foundkeep.app', 'https://dev.foundkeep.app'));
     customerConfig.extensionIds = [identity.id];
   }
   await writeFile(path.join(stage, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');

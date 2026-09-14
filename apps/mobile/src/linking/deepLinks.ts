@@ -26,7 +26,7 @@ function resolvePath(raw: string): FoundkeepLink | null {
   return null;
 }
 
-/** Parse only Foundkeep-owned, data-free navigation links. Credentials and
+/** Parse only FoundKeep-owned, data-free navigation links. Credentials and
  * arbitrary URLs are never accepted as destinations. */
 export function parseFoundkeepLink(raw: string): FoundkeepLink | null {
   if (!raw || raw.length > 512) return null;

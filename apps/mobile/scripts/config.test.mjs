@@ -2,10 +2,10 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 
-test('Foundkeep mobile config pins the release identity and safe OTA runtime', async () => {
+test('FoundKeep mobile config pins the release identity and safe OTA runtime', async () => {
   const app = JSON.parse(await readFile(new URL('../app.json', import.meta.url), 'utf8')).expo;
   const mobilePackage = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
-  assert.equal(app.name, 'Foundkeep');
+  assert.equal(app.name, 'FoundKeep');
   assert.equal(app.slug, 'foundkeep');
   assert.equal(app.version, '1.0.0');
   assert.equal(app.scheme, 'foundkeep');

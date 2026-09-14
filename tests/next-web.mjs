@@ -32,7 +32,7 @@ test('public pages contain real pre-rendered content, clean redirects and safe a
     const html = await response.text();
     assert.ok(html.includes(title), `${path} includes content before JavaScript`);
     assert.doesNotMatch(html, /SUPABASE_(?:ANON|SERVICE_ROLE)_KEY|sb_secret_|service_role/);
-    assert.match(response.headers.get('cache-control'), /s-maxage/);
+    assert.match(response.headers.get('cache-control'), path === '/' ? /private, no-store/ : /s-maxage/);
   }
   for (const name of ['auth', 'dashboard', 'support', 'privacy', 'terms', 'open']) {
     const response = await fetch(`${base}/${name}.html?q=kept&flow=callback`, {redirect: 'manual'});

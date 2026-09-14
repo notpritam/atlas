@@ -1,5 +1,5 @@
 // The SDK is process-wide. Serialize identity changes with StoreKit operations;
-// never return a purchase result into a different Foundkeep session.
+// never return a purchase result into a different FoundKeep session.
 export type PurchaseIdentity = { appUserId:string; publicKey:string };
 type PurchasesSdk<Package,Offerings> = {
   configure(options:{apiKey:string;appUserID:string}):void;
@@ -22,7 +22,7 @@ export function createPurchasesController<Package,Offerings>(sdk:PurchasesSdk<Pa
       return;
     }
     if (!configuredKey) {sdk.configure({apiKey:desired.publicKey,appUserID:desired.appUserId});configuredKey=desired.publicKey;}
-    else if (configuredKey!==desired.publicKey) throw new Error('Restart Foundkeep to refresh App Store settings.');
+    else if (configuredKey!==desired.publicKey) throw new Error('Restart FoundKeep to refresh App Store settings.');
     if (await sdk.getAppUserID()!==desired.appUserId) await sdk.logIn(desired.appUserId);
   }
   function authenticated<T>(expectedUserId:string,action:()=>Promise<T>):Promise<T> {

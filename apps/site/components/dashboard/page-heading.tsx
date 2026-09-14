@@ -1,6 +1,5 @@
 'use client';
 import Link from 'next/link';
-import { NavigationPending } from './loading';
 import { useEntrance } from './motion';
 
 export function PageHeading({ title, description }: { title: string; description: string }) {
@@ -12,5 +11,5 @@ export function SettingsNav({ active }: { active: 'settings' | 'capture' | 'proc
     { key: 'settings', href: '/dashboard/settings', label: 'Account' },
     { key: 'capture', href: '/dashboard/settings/capture', label: 'Browser capture' },
     { key: 'processing', href: '/dashboard/settings/processing', label: 'Processing' },
-  ].map(link => <Link key={link.key} href={link.href} aria-current={active === link.key ? 'page' : undefined} prefetch={false}>{link.label}<NavigationPending /></Link>)}</nav>;
+  ].map(link => <Link key={link.key} href={link.href} aria-current={active === link.key ? 'page' : undefined}>{link.label}</Link>)}</nav>;
 }

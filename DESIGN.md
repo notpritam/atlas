@@ -1,5 +1,5 @@
 ---
-name: Foundkeep
+name: FoundKeep
 description: Scenic customer web with a shared bookmark identity and a distinct native Gallery.
 colors:
   landing-blue: "#086ca8"
@@ -28,7 +28,9 @@ rounded:
   customer-pill: "999px"
 ---
 
-# Foundkeep Design System
+# FoundKeep Design System
+
+The current web conventions are recorded in [the September 14 interface update](docs/design/2026-09-14-interface.md). That update supersedes the earlier web typography, blue control palette, account disclosure and side-pane navigation described below. Native platform identities remain separate.
 
 ## Overview
 

@@ -1,14 +1,14 @@
 /* The product interface uses a single locally hosted variable family. */
 @font-face{font-family:Inter;src:url('/assets/fonts/InterVariable.woff2') format('woff2');font-style:normal;font-weight:100 900;font-display:swap}
 html{scrollbar-color:var(--fk-control) var(--fk-paper)}
-html body :is(.customer-body,.social-collections){font-family:Inter,system-ui,sans-serif;font-optical-sizing:auto;font-feature-settings:'calt' 1;caret-color:var(--fk-accent)}
-html body :is(.customer-body,.social-collections) :is(h1,h2,h3,h4){font-family:Inter,system-ui,sans-serif;font-weight:550;letter-spacing:-.025em}
-html body :is(.customer-body,.social-collections) ::selection{color:var(--fk-ink);background:color-mix(in srgb,var(--fk-accent) 25%,var(--fk-surface))}
-html body :is(.customer-body,.social-collections) :is(input,textarea)::placeholder{color:var(--fk-muted)}
-html body :is(.customer-body,.social-collections) :is(a,button,summary):focus-visible{outline:2px solid var(--fk-accent);outline-offset:3px}
+html body :is(.customer-body,.social-collections,.landing-body){font-family:var(--fk-font-sans);font-optical-sizing:auto;font-feature-settings:'calt' 1;caret-color:var(--fk-accent)}
+html body :is(.customer-body,.social-collections,.landing-body) :is(h1,h2,h3,h4){font-family:var(--fk-font-sans);font-weight:550;letter-spacing:-.025em}
+html body :is(.customer-body,.social-collections,.landing-body) ::selection{color:var(--fk-ink);background:color-mix(in srgb,var(--fk-accent) 25%,var(--fk-surface))}
+html body :is(.customer-body,.social-collections,.landing-body) :is(input,textarea)::placeholder{color:var(--fk-muted)}
+html body :is(.customer-body,.social-collections,.landing-body) :is(a,button,summary):focus-visible{outline:2px solid var(--fk-accent);outline-offset:3px}
 html body .customer-body.dashboard-body .library-sidebar{--sidebar-line:var(--fk-line);--sidebar-muted:var(--fk-muted);color:var(--fk-ink);padding:16px 12px 12px}
 html body .customer-body.dashboard-body .sidebar-heading{margin:0 4px 12px;min-height:36px}
-html body .customer-body.dashboard-body .sidebar-brand{font-family:Inter,system-ui,sans-serif;font-size:17px;letter-spacing:-.45px;font-weight:550;gap:9px}
+html body .customer-body.dashboard-body .sidebar-brand{font-family:var(--fk-font-sans);font-size:17px;letter-spacing:-.45px;font-weight:550;gap:9px}
 html body .customer-body.dashboard-body .sidebar-brand img{width:28px;height:28px}
 html body .customer-body.dashboard-body .library-nav{gap:2px}
 html body .customer-body.dashboard-body .sidebar-nav-link{font-size:14px;line-height:20px;font-weight:400;gap:10px;border-radius:8px}
@@ -96,6 +96,26 @@ html body .customer-body.dashboard-body .sidebar-account-menu .theme-toggle{widt
  html body .collection-editorial .collection-view-control button{width:44px;height:44px;min-height:44px}
  html body .customer-body.dashboard-body .sidebar-heading{min-height:48px}
 }
+/* ── Fixed-viewport app shell (desktop): the page itself never scrolls; the sidebar and the main column each own their scroll. ── */
+@media(min-width:761px){
+ html body .customer-body.dashboard-body .library-shell{height:100dvh;min-height:0;overflow:hidden}
+ html body .customer-body.dashboard-body .library-main{height:100dvh;min-height:0;overflow:hidden;display:flex;flex-direction:column}
+ /* Library header + search stay pinned; only the list scrolls beneath them. */
+ html body .customer-body.dashboard-body .compact-library-header{flex:0 0 auto}
+ html body .customer-body.dashboard-body #page-message{flex:0 0 auto}
+ html body .customer-body.dashboard-body .collection-workspace{flex:1 1 auto;min-height:0;display:block;position:relative}
+ html body .customer-body.dashboard-body .collection{height:100%;min-height:0;overflow-y:auto;overscroll-behavior:contain;padding-bottom:24px;scrollbar-width:thin}
+ /* Tags / filter row pins to the top of the scrolling list. */
+ html body .customer-body.dashboard-body .filter-row{position:sticky;top:0;z-index:3;margin-top:0;background:var(--fk-paper)}
+ /* Account & settings pages scroll within the shell instead of the whole page. */
+ html body .customer-body.dashboard-body .account-page{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+ html body .customer-body.dashboard-body .library-footer{flex:0 0 auto}
+ /* Expanded (full-page) reader scrolls inside the shell. */
+ html body .customer-body.dashboard-body.saved-reading-page .capture-reading-view{flex:1 1 auto;min-height:0;overflow-y:auto;overscroll-behavior:contain}
+ /* Mind map fills the shell without a nested page scrollbar. */
+ html body .customer-body.dashboard-body.has-mind-map .account-page{overflow:hidden}
+ html body .customer-body.dashboard-body.has-mind-map .mind-map-page{height:100%;min-height:0}
+}
 @media(max-width:760px){
  html body .customer-body.dashboard-body .library-main{padding:18px 16px 0}
  html body .customer-body.dashboard-body .filter-row{flex-wrap:wrap;gap:8px}
@@ -111,3 +131,34 @@ html body .customer-body.dashboard-body .sidebar-account-menu .theme-toggle{widt
  html body .collection-editorial [data-view=grid] .public-find h2{font-size:15px;line-height:1.4}
  html body .collection-editorial .collection-find-feed[data-view=grid] .collection-entries{gap:12px}
 }
+
+/* Shared controls and links are styled here for all customer surfaces. */
+html body :is(.customer-body,.social-collections,.landing-body) a,
+html body :is(.customer-body,.social-collections,.landing-body) a:hover{ text-decoration:none }
+html body .external-link{display:inline;overflow-wrap:anywhere}
+html body .external-link-icon{display:inline-block;width:1em;height:1em;vertical-align:-.12em;margin-left:.3em;flex-shrink:0}
+html body :is(.customer-body,.social-collections,.landing-body) a[target="_blank"]:not(:has(svg))::after{content:'';display:inline-block;width:.9em;height:.9em;margin-left:.3em;background:currentColor;mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='none' stroke='black' stroke-width='1.8' stroke-linecap='round' stroke-linejoin='round' d='M7 17 17 7M7 7h10v10'/%3E%3C/svg%3E") center/contain no-repeat}
+html body .segmented-control{display:flex;align-items:center;gap:2px;padding:3px;width:max-content;max-width:100%;overflow-x:auto;scrollbar-width:thin;border:1px solid transparent;border-radius:999px;background:var(--fk-soft);color:var(--fk-muted)}
+html body .segmented-control:is(.collection-tabs,.discovery-topics){margin:24px 0}
+html body .segmented-control>:is(button,a){display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;gap:6px;min-height:34px;padding:6px 13px;border:1px solid transparent;border-radius:999px;background:transparent;color:var(--fk-muted);font:400 13px/20px var(--fk-font-sans);white-space:nowrap;text-decoration:none;cursor:pointer}
+html body .segmented-control>:is(button,a):hover{color:var(--fk-ink)}
+html body .segmented-control>:is([aria-pressed=true],[aria-current=page]){background:var(--fk-surface);color:var(--fk-ink);border-color:var(--fk-line);font-weight:500;box-shadow:0 1px 3px #00000010}
+html[data-theme=dark] body .segmented-control>:is([aria-pressed=true],[aria-current=page]){background:#26282d;border-color:#34363c;color:var(--fk-ink);box-shadow:inset 0 1px 0 #ffffff0d}
+html body .customer-body.dashboard-body .sidebar-search{width:100%;margin-bottom:12px;border:0;background:transparent;color:var(--fk-muted);text-align:left}
+html body .customer-body.dashboard-body .sidebar-search kbd{margin-left:auto;font:11px var(--fk-font-sans);color:var(--fk-muted);border:1px solid var(--fk-line);border-radius:4px;padding:1px 4px;white-space:nowrap}
+html body .customer-body.dashboard-body .library-sidebar[data-collapsed=true] .sidebar-search{justify-content:center}
+html body .customer-body.dashboard-body .library-sidebar[data-collapsed=true] .sidebar-search kbd{display:none}
+html body .customer-body.dashboard-body .sidebar-account .account-button{display:flex;text-decoration:none;color:var(--fk-ink)}
+html body .customer-body.dashboard-body .sidebar-account .account-button:hover{background:var(--fk-soft)}
+html body .collection-editorial .discovery-heading h1>span{color:var(--fk-muted)}
+html body .social-collections .collection-checkbox input{accent-color:var(--fk-accent)}
+@media(max-width:760px),(pointer:coarse){html body .segmented-control>:is(button,a){min-height:44px}}
+html body .dashboard-body.session-verifying .library-shell{visibility:hidden;pointer-events:none}
+html body .session-verification{position:fixed;inset:0;z-index:100;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;text-align:center;background:var(--fk-paper);color:var(--fk-ink)}
+html body .session-verification h1{font-size:26px}
+html body .session-verification p{font-size:14px;color:var(--fk-muted)}
+
+html body .skip-link:not(:focus){opacity:0;pointer-events:none}
+
+html body .dashboard-body.session-verifying dialog:not(#session-verification),html body .dashboard-body.session-verifying .toast{visibility:hidden}
+html body .atlas-dialog.session-verification{width:100%;max-width:none;height:100dvh;max-height:none;margin:0;border:0;border-radius:0;box-shadow:none}

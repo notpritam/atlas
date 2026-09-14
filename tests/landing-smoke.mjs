@@ -184,7 +184,7 @@ test("mobile navigation opens, closes on Escape and follows section links", asyn
   assert.equal(await page.locator(".menu-toggle").isVisible(), false);
 });
 
-test("mobile handoff page creates only allowlisted Foundkeep links", async (t) => {
+test("mobile handoff page creates only allowlisted FoundKeep links", async (t) => {
   const page = await pageFor(t);
   await page.goto(base + "/open.html?path=settings");
   assert.equal(
@@ -213,7 +213,7 @@ test("privacy policy discloses capture data and Chrome Web Store Limited Use", a
   assert.match(copy, /User Data Policy/i);
 });
 
-test("customer support is hosted on Foundkeep and covers the full capture path", async (t) => {
+test("customer support is hosted on FoundKeep and covers the full capture path", async (t) => {
   const page = await pageFor(t, 390);
   await page.goto(base + "/support.html");
   assert.equal(
@@ -222,7 +222,7 @@ test("customer support is hosted on Foundkeep and covers the full capture path",
   );
   const copy = await page.locator("body").textContent();
   assert.match(copy, /installation/i);
-  assert.match(copy, /Connect Foundkeep/i);
+  assert.match(copy, /Connect FoundKeep/i);
   assert.match(copy, /local library/i);
   assert.match(copy, /Pending uploads retry automatically/i);
   assert.match(copy, /recovery code/i);
@@ -256,11 +256,11 @@ test("terms state customer content rights and expose a real support contact", as
   );
 });
 
-test("landing page presents Foundkeep and its branded extension download", async (t) => {
+test("landing page presents FoundKeep and its branded extension download", async (t) => {
   const page = await pageFor(t);
-  assert.match(await page.title(), /Foundkeep/);
+  assert.match(await page.title(), /FoundKeep/);
   const copy = await page.locator("body").textContent();
-  assert.match(copy, /Foundkeep/);
+  assert.match(copy, /FoundKeep/);
   assert.doesNotMatch(copy, /\bAtlas\b/);
   assert.match(
     await page

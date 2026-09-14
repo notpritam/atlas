@@ -15,7 +15,8 @@ export function MasonryGrid({ items, open, selected, busy }: { items: Capture[];
     const element = grid.current;
     if (!element) return;
     const width = element.clientWidth;
-    const minimum = window.matchMedia('(max-width: 680px)').matches ? 155 : element.closest('.has-capture-panel') ? 205 : 240;
+    // The open capture is an overlay drawer, so the grid keeps its full width and column size either way.
+    const minimum = window.matchMedia('(max-width: 680px)').matches ? 155 : 240;
     const columns = Math.max(1, Math.floor((width + 18) / (minimum + 18)));
     const heights = new Map<string, number>();
     for (const [id, cell] of cells.current) heights.set(id, Math.ceil(cell.offsetHeight));

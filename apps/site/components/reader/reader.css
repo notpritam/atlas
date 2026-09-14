@@ -89,3 +89,18 @@ html body .social-collections .shared-entry-source svg{width:16px;height:16px}
  html body .reader-surface .detail-file .button,
  html body .customer-body.dashboard-body .reader-surface .dialog-footer .button{min-height:44px}
 }
+
+/* A floating reading surface keeps the library in place underneath. */
+html body .customer-body.dashboard-body .capture-modal{position:fixed;inset:0;width:min(1200px,calc(100vw - 64px));height:min(900px,calc(100dvh - 64px));max-width:none;max-height:none;margin:auto;padding:0;border:1px solid var(--fk-line);border-radius:var(--fk-radius-dialog);background:var(--fk-surface);color:var(--fk-ink);overflow:hidden;box-shadow:0 28px 100px #0005}
+html body .customer-body.dashboard-body .capture-modal::backdrop{background:#0008;backdrop-filter:blur(4px)}
+html body .customer-body.dashboard-body .capture-modal .capture-detail-panel{position:static;inset:auto;display:flex;flex-direction:column;width:100%;height:100%;max-width:none;max-height:none;margin:0;transform:none;border:0;border-radius:inherit;overflow:hidden;box-shadow:none}
+html body .customer-body.dashboard-body .capture-modal .reader-toolbar{flex-shrink:0;position:static}
+html body .customer-body.dashboard-body .capture-modal .detail-body{min-height:0;flex:1;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin}
+html body .customer-body.dashboard-body .capture-modal .dialog-footer{flex-shrink:0}
+html body .snapshot-reader{border-radius:var(--fk-radius-dialog)}
+html body .reader-surface :is(.detail-image-frame,.detail-media,.snapshot-media){border-radius:14px;overflow:hidden}
+@media(max-width:760px){
+ html body .customer-body.dashboard-body .capture-modal,html body .snapshot-reader{width:calc(100vw - 16px);height:calc(100dvh - 24px);max-height:calc(100dvh - 24px);border:1px solid var(--fk-line);border-radius:20px;margin:auto}
+ html body .customer-body.dashboard-body .capture-reading-view{border-radius:16px;overflow:hidden}
+}
+@media(prefers-reduced-motion:reduce){html body .customer-body.dashboard-body .capture-modal::backdrop{backdrop-filter:none}}

@@ -1,7 +1,7 @@
 {
   "prod": {
     "environment": "prod",
-    "name": "Foundkeep",
+    "name": "FoundKeep",
     "origin": "https://foundkeep.app",
     "scheme": "foundkeep",
     "iosBundle": "app.foundkeep.ios",

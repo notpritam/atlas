@@ -55,7 +55,7 @@ export default function CaptureDetail() {
     const poll = setInterval(() => { if (AppState.currentState === 'active' && pending.current) void load(true); }, 5_000);
     return () => { live = false; request++; clearInterval(poll); unsubscribe(); appState.remove(); };
   }, [client, account?.id, token, id, retry]));
-  const remove = () => Alert.alert('Delete this save?', 'This permanently removes it from your Foundkeep account.', [{ text: 'Keep it', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => { try { await client.deleteCapture(id); router.replace('/(app)/(tabs)/collection'); } catch (value) { setError((value as Error).message); } } }]);
+  const remove = () => Alert.alert('Delete this save?', 'This permanently removes it from your FoundKeep account.', [{ text: 'Keep it', style: 'cancel' }, { text: 'Delete', style: 'destructive', onPress: async () => { try { await client.deleteCapture(id); router.replace('/(app)/(tabs)/collection'); } catch (value) { setError((value as Error).message); } } }]);
   const openFile = async () => {
     if (!capture?.fileName) return;
     setOpening(true); setError('');
@@ -63,7 +63,7 @@ export default function CaptureDetail() {
       const localUrl = await FoundkeepShared.downloadCaptureFile(capture.id, capture.fileName);
       if (!(await Sharing.isAvailableAsync())) throw new Error('Sharing is unavailable on this device.');
       await Sharing.shareAsync(localUrl, { dialogTitle: capture.fileName, mimeType: capture.fileMime || undefined });
-    } catch (value) { setError((value as Error).message || 'Foundkeep could not open this file.'); }
+    } catch (value) { setError((value as Error).message || 'FoundKeep could not open this file.'); }
     finally { setOpening(false); }
   };
   if (!capture || capture.id !== id) return <Screen top={false}><Stack.Screen options={{ title: 'Saved item', headerRight: () => null }} /><View style={styles.loading}>{error ? <><Message error>{error}</Message><Button label="Try again" secondary onPress={() => setRetry(value => value + 1)} /></> : <View accessibilityRole="progressbar" accessibilityLabel="Loading saved item" style={{ gap: 22 }}><Shimmer style={{ height: 240, borderRadius: 14 }} /><Shimmer style={{ height: 30, width: '85%', borderRadius: 6 }} /><Shimmer style={{ height: 18, width: '60%', borderRadius: 4 }} /></View>}</View></Screen>;
@@ -118,7 +118,7 @@ export default function CaptureDetail() {
       </FrostedPanel> : null}
       <FrostedPanel style={styles.origin}>
         <Pressable accessibilityRole="button" accessibilityLabel="Show source details" accessibilityState={{ expanded: originExpanded }} onPress={() => setOriginExpanded(value => !value)} style={styles.originToggle}>
-          <View style={{ flex: 1, gap: 4 }}><Text style={typography.heading}>Original source</Text><Text numberOfLines={1} style={typography.small}>{source || publisher || capture.provenance?.originalFileName || 'Saved in Foundkeep'}</Text></View>
+          <View style={{ flex: 1, gap: 4 }}><Text style={typography.heading}>Original source</Text><Text numberOfLines={1} style={typography.small}>{source || publisher || capture.provenance?.originalFileName || 'Saved in FoundKeep'}</Text></View>
           <Ionicons name={originExpanded ? 'chevron-up' : 'chevron-down'} size={18} color={colors.muted} />
         </Pressable>
         {originExpanded ? <View style={{ gap: 16, paddingTop: 20 }}>

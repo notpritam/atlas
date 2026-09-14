@@ -134,9 +134,6 @@
 .collection-editorial .discovery-heading input{background:var(--fk-surface);color:var(--fk-ink);border-color:var(--public-line);font-size:13px}
 .collection-editorial .discovery-heading .button{padding-inline:19px;font-size:13px;border-radius:12px;min-height:48px}
 .collection-editorial .discovery-heading .button svg{width:17px;height:17px}
-.collection-editorial .discovery-topics{display:flex;gap:8px;overflow:auto;scrollbar-width:thin;padding:0 0 20px;border-bottom:1px solid var(--public-line)}
-.collection-editorial .discovery-topics a{display:flex;align-items:center;min-height:48px;padding:8px 18px;border:1px solid var(--public-line);border-radius:12px;font-size:12px;white-space:nowrap;color:var(--public-quiet);text-decoration:none;background:var(--fk-surface)}
-.collection-editorial .discovery-topics a[aria-current=page]{background:var(--fk-sky);color:var(--fk-accent);border-color:var(--fk-accent)}
 .collection-editorial .collection-directory-heading{display:flex;flex-direction:row;align-items:center;justify-content:space-between;gap:20px;padding:26px 0 22px;margin:0}
 .collection-editorial .collection-directory-heading h2{font-size:24px;margin:0 0 6px}
 .collection-editorial .collection-directory-heading p{font-size:12px;margin:0;color:var(--fk-muted)}
@@ -228,3 +225,11 @@
  .collection-editorial .find-search-submit svg{display:block;width:18px;height:18px}
  .collection-editorial .find-search-submit>span{display:none}
 }
+
+/* Keep collection controls reachable throughout the feed, below the live header. */
+html body .collection-editorial .collection-controls{position:sticky;top:var(--collection-nav-height,65px);z-index:20;isolation:isolate;background:var(--fk-paper);padding:12px 0;border-bottom:1px solid var(--fk-line);box-shadow:0 8px 14px -14px #0005}
+html body .collection-editorial .collection-controls .collection-feed-heading{margin:0 0 12px}
+html body .collection-editorial .collection-controls .collection-find-search{padding-bottom:10px}
+html body .collection-editorial .collection-controls .collection-topic-filters{margin:0}
+html body .collection-editorial .collection-result-summary{margin-top:16px}
+@media(max-width:760px){html body .collection-editorial .collection-controls{--collection-nav-height:65px;padding-block:8px}html body .collection-editorial .collection-controls .collection-feed-heading{margin-bottom:8px}}
