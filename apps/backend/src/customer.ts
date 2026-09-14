@@ -60,6 +60,19 @@ const BODY_READ_DEADLINE_MS = 30_000;
 const MAX_IMAGE = 8 * 1024 * 1024;
 const MAX_CAPTURES = 10_000;
 const TYPES = new Set(["screenshot", "selection", "bookmark", "image", "note", "tweet", "video", "audio", "document", "file"]);
+// A media-kind filter (image/video) also matches captures that preserved an asset of that kind,
+// so a tweet with a downloaded video shows under Video too, not only under Tweet. Same file_path
+// condition preservedMediaColumns() counts, so the filter agrees with the card's media badges.
+const MEDIA_FILTER_KINDS = new Set(["image", "video"]);
+function pushTypeFilter(where: string[], args: (string | number)[], type: string): void {
+  if (MEDIA_FILTER_KINDS.has(type)) {
+    where.push("(type = ? OR EXISTS (SELECT 1 FROM customer_media_assets m WHERE m.capture_id = customer_captures.id AND m.account_id = customer_captures.account_id AND m.kind = ? AND m.file_path IS NOT NULL))");
+    args.push(type, type);
+  } else {
+    where.push("type = ?");
+    args.push(type);
+  }
+}
 const CAPTURE_COLUMNS = "id,account_id,client_id,batch_id,type,status,saved_via,source_url,source_title,selection_text,note_text,article_text,blob_mime,blob_bytes,file_name,file_path,file_mime,file_bytes,storage_bytes,width,height,captured_at,created_at,updated_at,summary,ocr_text,category,tags,enrich_error,enrich_attempts,processing_at,provenance_json,processing_options_json,manual_tags,folder_id,(SELECT name FROM customer_folders WHERE id=customer_captures.folder_id AND account_id=customer_captures.account_id) AS folder_name,(SELECT 1 FROM customer_derivatives WHERE capture_id=customer_captures.id AND account_id=customer_captures.account_id AND kind='preview') AS has_derived_preview,(SELECT json_extract(source_json,'$.imageUrl') FROM customer_processing_results WHERE capture_id=customer_captures.id AND account_id=customer_captures.account_id) AS generated_image_url,"+preservedMediaColumns();
 // List views need excerpts, not every article and OCR result in the account.
 // Keep the full representation as the default for installed older clients.
@@ -867,7 +880,7 @@ export function createCustomerApi(db: Database, oauthGateway: OAuthGateway = cre
     const limit = Math.min(100, Number(rawLimit));
     const where = ["account_id = ?"];
     const args: (string | number)[] = [current.account.id];
-    if (type) { where.push("type = ?"); args.push(type); }
+    if (type) pushTypeFilter(where, args, type);
     if (search) {
       const like = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
       where.push("(source_title LIKE ? ESCAPE '\\' OR note_text LIKE ? ESCAPE '\\' OR selection_text LIKE ? ESCAPE '\\' OR article_text LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\' OR ocr_text LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\')");
@@ -1104,7 +1117,7 @@ export function createCustomerApi(db: Database, oauthGateway: OAuthGateway = cre
       where.push(matching.length ? `id IN (${matching.map(() => "?").join(",")})` : "0");
       args.push(...matching);
     }
-    if (type) { where.push("type = ?"); args.push(type); }
+    if (type) pushTypeFilter(where, args, type);
     if (search) {
       const like = `%${search.replace(/[\\%_]/g, "\\$&")}%`;
       where.push("(source_title LIKE ? ESCAPE '\\' OR note_text LIKE ? ESCAPE '\\' OR selection_text LIKE ? ESCAPE '\\' OR article_text LIKE ? ESCAPE '\\' OR summary LIKE ? ESCAPE '\\' OR ocr_text LIKE ? ESCAPE '\\' OR tags LIKE ? ESCAPE '\\' OR file_name LIKE ? ESCAPE '\\' OR source_url LIKE ? ESCAPE '\\' OR manual_tags LIKE ? ESCAPE '\\')");

@@ -122,6 +122,19 @@ test('card media metadata stays bounded and excludes another account even with a
  const foreign=db.query('SELECT id FROM customer_media_assets WHERE capture_id=? AND account_id=?').get(capture.id,other.account.id) as any;
  expect(JSON.stringify(captures[0].preservedMedia)).not.toContain(foreign.id);
 });
+test('a tweet with a preserved video also matches the video type filter, not only tweet',async()=>{
+ const owner=await register(),capture=await save(owner.cookie);
+ // Mirror the DB state a real X video preservation leaves: a kind='video' asset with file_path set.
+ db.query('INSERT INTO customer_media_assets(id,capture_id,account_id,source_key,source_url,kind,position,title,mime,file_path,bytes,sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(crypto.randomUUID(),capture.id,owner.account.id,'media:video','https://video.twimg.com/ext_tw_video/1/pu/vid/a.mp4','video',10,'Saved video.mp4','video/mp4','saved/video.mp4',4096,'sha-video',Date.now());
+ const ids=async(type:string)=>((await (await request(`/captures?type=${type}`,'GET',undefined,owner.cookie)).json()) as any).captures.map((item:any)=>item.id);
+ expect(await ids('tweet')).toContain(capture.id);
+ expect(await ids('video')).toContain(capture.id);
+ expect(await ids('image')).not.toContain(capture.id);
+ const login=await request('/mobile/login','POST',{email:owner.account.email,password,deviceName:'Filter test'});
+ const bearer='Bearer '+((await login.json()) as any).token;
+ const mobile=((await (await request('/mobile/captures?type=video','GET',undefined,bearer)).json()) as any).captures.map((item:any)=>item.id);
+ expect(mobile).toContain(capture.id);
+});
 test("new X saves queue once on Free and expose private ranged copies through cookie and mobile credentials", async () => {
   const owner = await register(),
     other = await register(),
