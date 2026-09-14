@@ -162,3 +162,8 @@ html body .skip-link:not(:focus){opacity:0;pointer-events:none}
 
 html body .dashboard-body.session-verifying dialog:not(#session-verification),html body .dashboard-body.session-verifying .toast{visibility:hidden}
 html body .atlas-dialog.session-verification{width:100%;max-width:none;height:100dvh;max-height:none;margin:0;border:0;border-radius:0;box-shadow:none}
+
+.environment-identity { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 8px; font-size: 13px; color: var(--muted); }
+.environment-badge { display: inline-block; padding: 3px 7px; border-radius: 6px; background: var(--fk-mint); color: var(--fk-accent); font-size: 10px; line-height: 1.4; font-weight: 700; letter-spacing: .02em; vertical-align: middle; }
+.environment-compact { vertical-align: middle; }
+.sidebar-mobile-header { align-items: center; gap: 8px; }

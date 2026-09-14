@@ -9,6 +9,7 @@ import { gsap, motionAllowed } from './motion';
 import type { CollectionList } from '../../lib/collections';
 import type { Me } from '../../lib/types';
 import {lockDocumentScroll} from '../../lib/scroll-lock';
+import { EnvironmentLabel } from '../ui/environment-label';
 
 export type AccountSection = 'collections' | 'mind-map' | 'apps' | 'agents' | 'settings' | 'capture' | 'processing' | 'plans';
 const collapsePreference = 'foundkeep.sidebar.collapsed';
@@ -145,10 +146,10 @@ export function Sidebar({ me, section, collectionId, libraryHref = '/dashboard',
   if (selected && !visibleCollections.includes(selected)) visibleCollections[7] = selected;
   const planName = plan.data ? (plan.data.pro ? 'Pro plan' : 'Free plan') : 'Your plan';
   return <>
-    <div className="sidebar-mobile-header" ref={headerRef}><button id="open-sidebar" ref={openRef} className="sidebar-icon-button" type="button" aria-label="Open sidebar" title="Open sidebar" aria-expanded={mobileOpen} aria-controls="library-sidebar" onClick={() => setMobileOpen(true)}><Icon><path d="M4 7h16M4 12h16M4 17h16" /></Icon></button></div>
+    <div className="sidebar-mobile-header" ref={headerRef}><button id="open-sidebar" ref={openRef} className="sidebar-icon-button" type="button" aria-label="Open sidebar" title="Open sidebar" aria-expanded={mobileOpen} aria-controls="library-sidebar" onClick={() => setMobileOpen(true)}><Icon><path d="M4 7h16M4 12h16M4 17h16" /></Icon></button><EnvironmentLabel compact /></div>
     <div className="sidebar-backdrop" data-open={mobile && mobileOpen} aria-hidden="true" onClick={close} />
     <aside ref={ref} id="library-sidebar" className="library-sidebar" data-collapsed={collapsed} data-open={mobileOpen} role={mobile ? 'dialog' : undefined} aria-modal={mobile && mobileOpen ? true : undefined} aria-label="Library navigation" inert={mobile && !mobileOpen}>
-      <div className="sidebar-heading"><button ref={logoRef} id="sidebar-logo" className="sidebar-brand" type="button" aria-label={rail ? 'Expand sidebar' : 'FoundKeep — My library'} aria-expanded={rail ? false : undefined} aria-controls={rail ? 'workspace-navigation' : undefined} title={rail ? 'Expand sidebar' : 'My library'} onClick={rail ? toggle : openLibrary}><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="32" height="32" alt="" /><span className="sidebar-wordmark">FoundKeep</span></button>
+      <div className="sidebar-heading"><button ref={logoRef} id="sidebar-logo" className="sidebar-brand" type="button" aria-label={rail ? 'Expand sidebar' : 'FoundKeep — My library'} aria-expanded={rail ? false : undefined} aria-controls={rail ? 'workspace-navigation' : undefined} title={rail ? 'Expand sidebar' : 'My library'} onClick={rail ? toggle : openLibrary}><img src="/assets/studio-mark.svg?v=bookmark-evolved-1" width="32" height="32" alt="" /><span className="sidebar-wordmark">FoundKeep <EnvironmentLabel compact /></span></button>
         <button ref={collapseRef} id="toggle-sidebar" className="sidebar-icon-button sidebar-toggle" type="button" aria-label="Collapse sidebar" title="Collapse sidebar" aria-expanded={mobile ? mobileOpen : !collapsed} aria-controls="library-sidebar" onClick={toggle}><Icon><rect x="3" y="4" width="18" height="16" rx="2.5" /><path d="M9 4v16" /></Icon></button>
       </div>
       <button className="sidebar-search sidebar-nav-link" type="button" aria-label="Search FoundKeep" onClick={() => { close(); window.dispatchEvent(new Event('foundkeep:search')); }}><Icon><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/></Icon><span className="sidebar-nav-label">Search</span><kbd>⌘ K</kbd></button>

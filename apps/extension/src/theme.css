@@ -457,3 +457,10 @@ dialog::backdrop {
   font-size: 11px;
   margin-top: 6px;
 }
+
+/* The installed manifest and fixed destination identify this build. */
+.build-identity { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; margin: 0 18px 12px; color: var(--muted); font-size: 11px; line-height: 1.5; }
+.build-identity strong { padding: 2px 7px; border-radius: 6px; background: var(--panel); color: var(--ink); font-weight: 650; }
+.build-identity[data-environment="dev"] strong { background: var(--accent-bg); color: var(--accent); }
+.build-destination { overflow-wrap: anywhere; }
+.settings-panel .build-identity, .sidebar .build-identity { margin-inline: 0; }

@@ -60,7 +60,8 @@ final class ShareViewController: UIViewController, UITextViewDelegate {
     mark.isAccessibilityElement = false
     mark.translatesAutoresizingMaskIntoConstraints = false
     NSLayoutConstraint.activate([mark.widthAnchor.constraint(equalToConstant: 40), mark.heightAnchor.constraint(equalToConstant: 40)])
-    titleLabel.text = "Save to FoundKeep"
+    let appName = Bundle.main.object(forInfoDictionaryKey: "CFBundleDisplayName") as? String ?? "FoundKeep"
+    titleLabel.text = "Save to \(appName)"
     titleLabel.font = .preferredFont(forTextStyle: .title2)
     titleLabel.adjustsFontForContentSizeCategory = true
     titleLabel.textColor = ink

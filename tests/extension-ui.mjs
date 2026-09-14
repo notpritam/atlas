@@ -81,6 +81,7 @@ async function pageWithExtension(t, { saveFails = false, preferences = null } = 
           onChanged: { addListener: () => {} },
         },
         runtime: {
+          getManifest: () => ({ version: "9.8.7" }),
           getURL: (p) => "http://atlas.test/" + p,
           onMessage: { addListener: () => {}, removeListener: () => {} },
           sendMessage: async (m) => {

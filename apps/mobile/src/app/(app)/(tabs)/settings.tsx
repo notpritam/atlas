@@ -1,5 +1,6 @@
 import { useAppearance, useThemedStyles } from '../../../appearance/AppearanceProvider.tsx';
 import { getEnvironment } from '../../../environment.ts';
+import { BuildInfo } from '../../../components/BuildInfo.tsx';
 import { useBilling } from '../../../billing/BillingProvider.tsx';
 import { AdaptiveText as Text } from '../../../components/AdaptiveText.tsx';
 import { AdaptiveIcon as Ionicons } from '../../../components/AdaptiveIcon.tsx';
@@ -73,6 +74,7 @@ export default function Settings() {
     {updateRequired ? <Message error>Update FoundKeep from the App Store to keep saving.</Message> : <Message>{policy.notice}</Message>}
     <FrostedPanel><Text style={typography.heading}>Appearance</Text><View style={{flexDirection:'row',gap:8}}>{(['system','light','dark'] as const).map(value=><Pressable key={value} accessibilityRole="radio" accessibilityState={{checked:appearance.preference===value}} onPress={()=>void appearance.setPreference(value).catch(()=>setError('Appearance could not be saved.'))} style={{flex:1,minHeight:48,padding:12,borderRadius:12,alignItems:'center',justifyContent:'center',backgroundColor:appearance.preference===value?palette.accentSoft:palette.surface}}><Text style={typography.label}>{value}</Text></Pressable>)}</View></FrostedPanel>
     <View style={styles.profile}><View style={styles.avatar}><Text style={styles.initial}>{(account?.name || 'F').slice(0, 1).toUpperCase()}</Text></View><View style={{ flex: 1, gap: 4 }}><Text style={styles.account}>{account?.name}</Text><Text style={typography.small}>{account?.email}</Text></View></View>
+    <BuildInfo />
     <View style={styles.section}><View style={styles.storageRow}><Text style={typography.heading}>Your collection</Text><Text style={typography.small}>{storage?.captures.toLocaleString() || 0} saves</Text></View><View style={styles.meter}><View style={[styles.meterFill, { width: `${storage?.maxBytes ? Math.min(100, storage.bytes / storage.maxBytes * 100) : 0}%` }]} /></View><Text style={typography.small}>{usage(storage?.bytes)} of {usage(storage?.maxBytes)} used</Text></View>
     <SettingsRow icon="sparkles-outline" label="Your plan" title={plan?.pro ? 'FoundKeep Pro' : 'Your free collection'} detail={plan?.pro ? 'Manage your subscription and processing allowance.' : 'Explore Pro, or restore a purchase.'} onPress={() => router.push('/(app)/subscription')} />
     {pending > 0 ? <FrostedPanel><Text style={typography.label}>Waiting to upload</Text><Text style={typography.body}>{pending} {pending === 1 ? 'save is' : 'saves are'} kept safely on this device.</Text>{blocked > 0 ? <><Text style={typography.small}>{blocked} need a new home because their folder was deleted.</Text><Button secondary label="Save blocked items to Unfiled" loading={resolving} onPress={recoverBlocked} /></> : <Text style={typography.small}>They’ll upload when FoundKeep reconnects.</Text>}</FrostedPanel> : null}
@@ -89,7 +91,6 @@ export default function Settings() {
     </View>
     <SettingsRow icon="log-out-outline" label="Sign out" onPress={signOut} />
     {showDelete ? <View style={styles.deletePanel}><Text style={typography.heading}>Delete your account?</Text><Text style={typography.small}>This permanently removes your account and every save. Export anything you need first. Deleting your FoundKeep account does not cancel an App Store subscription; cancel it in your Apple Account settings.</Text>{account?.hasPassword === false ? <OAuthButtons intent="delete" /> : <><Field label="Password" value={password} onChangeText={setPassword} textContentType="password" secureTextEntry autoCapitalize="none" /><Button label="Delete account permanently" danger loading={deleting} onPress={confirmDeletion} /></>}<Button label="Cancel" secondary disabled={deleting} onPress={() => { setShowDelete(false); setPassword(''); setError(''); }} /></View> : <SettingsRow icon="trash-outline" label="Delete account" onPress={() => setShowDelete(true)} />}
-    <Text style={styles.version}>FoundKeep 1.0.0</Text>
   </ScrollView></Screen>;
 }
 function SettingsRow({ icon, label, title, detail, value, onPress, disabled = false, loading = false }: { icon: React.ComponentProps<typeof Ionicons>['name']; label: string; title?: string; detail?: string; value?: string; onPress: () => void; disabled?: boolean; loading?: boolean }) {

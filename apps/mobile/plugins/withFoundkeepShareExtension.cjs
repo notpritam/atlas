@@ -19,6 +19,7 @@ function copyNativeSources(projectRoot, platformProjectRoot, variant) {
       : path.join(source, file);
     if (['Info.plist', 'FoundkeepShare.entitlements'].includes(file)) {
       let content = fs.readFileSync(sourceFile, 'utf8').replaceAll('group.app.foundkeep.ios', variant.appGroup).replaceAll('app.foundkeep.shared', variant.keychainAccessGroup);
+      if (file === 'Info.plist') content = content.replace('<key>CFBundleDisplayName</key><string>FoundKeep</string>', `<key>CFBundleDisplayName</key><string>${variant.name}</string>`);
       if (file === 'Info.plist') content = content.replace('<dict>', `<dict><key>FoundkeepStorageNamespace</key><string>${variant.storageNamespace}</string><key>FoundkeepAppGroup</key><string>${variant.appGroup}</string><key>FoundkeepKeychainService</key><string>${variant.keychainService}</string><key>FoundkeepOrigin</key><string>${variant.origin}</string><key>FoundkeepScheme</key><string>${variant.scheme}</string>`);
       fs.writeFileSync(path.join(target, file), content);
     } else fs.copyFileSync(sourceFile, path.join(target, file));

@@ -3,7 +3,7 @@
 import * as db from "./db.js";
 import { libraryOperation } from "./library-api.js";
 import { clearPreferenceCache, getEffectivePreferences } from "./preferences.js";
-import { CUSTOMER_ORIGIN, CUSTOMER_ORIGINS } from "./product.js";
+import { CUSTOMER_ORIGIN, CUSTOMER_ORIGINS, EXTENSION_ENVIRONMENT } from "./product.js";
 import { cloudImageMime } from "./image-formats.js";
 
 export { CUSTOMER_ORIGIN } from "./product.js";
@@ -111,6 +111,8 @@ export async function handleExternalMessage(message, sender) {
     return {
       ok: true,
       version: chrome.runtime.getManifest().version,
+      environment: EXTENSION_ENVIRONMENT,
+      origin: CUSTOMER_ORIGIN,
       account:
         state?.token && state.status !== "reconnect"
           ? publicAccount(state.account)

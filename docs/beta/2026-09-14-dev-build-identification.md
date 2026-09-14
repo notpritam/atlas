@@ -1,0 +1,17 @@
+# Identifying dev builds while testing
+
+The dev candidate extension is **1.7.3**. Download the versioned ZIP at https://dev.foundkeep.app/ext/foundkeep-extension-dev-1.7.3.zip or the current dev ZIP at https://dev.foundkeep.app/ext/foundkeep-extension-dev.zip. These downloads contain the same build.
+
+Extract the ZIP, open `chrome://extensions`, enable Developer mode, and Load unpacked from the inner `foundkeep-extension-dev` folder containing `manifest.json`. For an existing dev installation, replace the files in its existing directory and press Reload. Do not uninstall it; that would remove its local storage. Pin **FoundKeep Dev**. Its ID remains `fngoidplpdpoamenhgpabbheghpkdkcb`.
+
+The popup, browser side panel and local library show **DEV**, the installed version from Chrome's manifest, and `dev.foundkeep.app`. Production builds show **Production** and `foundkeep.app`. The fixed destinations, Chrome identities, databases and account-bound upload queues remain separate. There is no runtime environment switch.
+
+Open https://dev.foundkeep.app/dashboard/apps and sign in with the same dev account. The dashboard has a DEV badge; Apps & devices shows the detected extension version and destination. Connect the browser there. Save a note named **Dev sync test** in the dev extension and find it in My library on that dev website. A locally saved item or waiting upload is not yet a verified cloud save. The production website has its own accounts and collection.
+
+The mobile source now displays DEV beside its brand in dev builds. **Settings → App & connection** shows the fixed API origin, native version/build number and actual update channel. The dev iOS Share menu and sheet use **FoundKeep Dev**. This source change does not update an installed phone binary: existing TestFlight builds and Android APK5 are production builds. No new phone binary or OTA update was distributed in this change. A fresh dev phone build must use `pritam-ios` or `pritam-android`, `FOUNDKEEP_APP_ENV=dev`, and channel `dev`; confirm that exact binary after installing it. Native IDs stay unchanged, so a dev mobile installation replaces the production app on that phone while its credentials, queues and caches stay scoped to its environment.
+
+Verification: 66 extension tests, including two real MV3 extensions against isolated disposable backends, passed. This covers separate pairing, captured notes, cross-environment token rejection, pending dev uploads and the version/destination visible in each extension surface. Mobile typechecking and 99 mobile tests passed. The compiled mobile web preview shows DEV and explicitly labels itself as a preview, without inventing a native build number. A temporary iOS prebuild confirmed the main app and Share extension both use the dev name, origin and storage namespace. This is not a signed native-device test. Web production build and authenticated read-only dev checks covered Apps & devices, the dev download link, and desktop/mobile labels. Preserve the previous dev releases for rollback.
+
+When exporting a local Expo preview after switching build environments, use `expo export --clear`: Metro may otherwise reuse the prior environment's embedded app manifest. Always inspect the compiled manifest and visible destination before testing. Do not infer a realm from `__DEV__`.
+
+Promote this candidate to production only after Pritam finishes dev testing and asks for promotion. No production service, published extension or phone build is changed by this dev release.

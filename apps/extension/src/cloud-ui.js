@@ -1,10 +1,9 @@
 import { CUSTOMER_ORIGIN } from "./cloud.js";
-import { PRODUCT_NAME, EXTENSION_ENVIRONMENT } from "./product.js";
+import { PRODUCT_NAME } from "./product.js";
 import { message } from "./ui.js";
 
 export function cloudMarkup({ compact = false } = {}) {
   const markup = `<section class="cloud-panel ${compact ? "compact" : ""}" aria-label="FoundKeep account">
-    ${EXTENSION_ENVIRONMENT === 'dev' ? '<p class="fine">Development · Saves sync to dev.foundkeep.app</p>' : ''}
     <div class="cloud-heading"><strong id="cloudAccount">Keep your finds together.</strong><button class="btn ${compact ? "secondary" : "primary"}" id="cloudAction" type="button">Connect ${PRODUCT_NAME}</button></div>
     <p id="cloudStatus" class="fine" role="status">Connect an account to sync new captures. Your local library stays available.</p>
     <div class="cloud-actions"><button class="cloud-text-button" id="cloudRetry" type="button" hidden>Try sync again</button>

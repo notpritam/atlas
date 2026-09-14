@@ -5,6 +5,7 @@ import { AdaptiveTextInput as TextInput } from './AdaptiveTextInput.tsx';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors, palettes, typography } from '../theme.ts';
 import { useAppearance, useThemedStyles } from '../appearance/AppearanceProvider.tsx';
+import { EnvironmentBadge } from './BuildInfo.tsx';
 
 export function Screen({ children, keyboard = false, top = true, bottom = false }: { children: ReactNode; keyboard?: boolean; top?: boolean; bottom?: boolean }) {
   const styles = useThemedStyles(baseStyles);
@@ -18,7 +19,7 @@ export function Mark({ size = 38 }: { size?: number }) {
 
 export function Brand({ compact = false, inverse = false }: { compact?: boolean; inverse?: boolean }) {
   const styles = useThemedStyles(baseStyles);
-  return <View style={styles.brand}><Mark size={compact ? 28 : 40} /><Text maxFontSizeMultiplier={1.5} style={[styles.brandName, compact && { fontSize: 19 }, inverse && { color: colors.white }]}>FoundKeep</Text></View>;
+  return <View style={styles.brand}><Mark size={compact ? 28 : 40} /><Text maxFontSizeMultiplier={1.5} style={[styles.brandName, compact && { fontSize: 19 }, inverse && { color: colors.white }]}>FoundKeep</Text><EnvironmentBadge devOnly /></View>;
 }
 
 export function LegalFooter() {

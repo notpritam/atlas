@@ -155,3 +155,6 @@ html body .customer-body .apps-setup code{padding:3px 6px;border-radius:6px;over
 html body .customer-body :is(.apps-setup,.account-page-note) a:not(.button){color:var(--fk-accent);text-decoration:none;border-bottom:0}
 html body .customer-body :is(.apps-setup,.account-page-note) a:not(.button):hover{color:var(--fk-accent-hover)}
 html body .customer-body .apps-setup :is(summary,.subtle-button){color:var(--fk-ink);text-decoration:none}
+
+.device-environment { display: grid; gap: 10px; margin-bottom: 24px; padding: 16px 18px; border-radius: 16px; background: var(--surface); border: 1px solid var(--line); }
+.device-environment p { margin: 0; }

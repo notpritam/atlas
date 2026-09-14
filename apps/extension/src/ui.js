@@ -1,5 +1,5 @@
 // Shared presentation helpers. Captured text is always inserted with textContent.
-import { PRODUCT_NAME, CUSTOMER_ORIGIN } from "./product.js";
+import { PRODUCT_NAME, CUSTOMER_ORIGIN, EXTENSION_ENVIRONMENT } from "./product.js";
 export const $ = (id) => document.getElementById(id);
 export const title = (c) =>
   c.summary ||
@@ -58,6 +58,18 @@ const paths = {
 export const icon = (name) =>
   `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${paths[name] || paths.note}</svg>`;
 export function hydrateIcons(root = document) {
+  for (const el of root.querySelectorAll('[data-build-info]')) {
+    el.dataset.environment = EXTENSION_ENVIRONMENT;
+    const label = document.createElement('strong');
+    label.textContent = EXTENSION_ENVIRONMENT === 'dev' ? 'DEV' : 'Production';
+    const version = document.createElement('span');
+    version.textContent = `v${chrome.runtime.getManifest().version}`;
+    const destination = document.createElement('span');
+    destination.className = 'build-destination';
+    destination.textContent = new URL(CUSTOMER_ORIGIN).host;
+    el.setAttribute('aria-label', `Extension environment: ${label.textContent}. Version ${chrome.runtime.getManifest().version}. Cloud destination: ${CUSTOMER_ORIGIN}`);
+    el.replaceChildren(label, version, destination);
+  }
   for (const el of root.querySelectorAll('[data-product-name]')) el.textContent = PRODUCT_NAME;
   for (const el of root.querySelectorAll('[data-product-path]')) el.href = CUSTOMER_ORIGIN + el.dataset.productPath;
   if (root === document) document.title = document.title.replace(/^FoundKeep(?: Dev)?/, PRODUCT_NAME);

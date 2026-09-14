@@ -102,6 +102,15 @@ test('dev and prod install together, pair separately, and save into isolated dat
     environment.popup = popup;
     await popup.goto(`chrome-extension://${id}/src/popup.html`);
     assert.equal(await popup.locator('[data-product-name]').textContent(), name === 'dev' ? 'FoundKeep Dev' : 'FoundKeep');
+    const installed = await popup.evaluate(() => chrome.runtime.getManifest().version);
+    assert.equal(await popup.locator('[data-build-info]').first().getAttribute('data-environment'), name);
+    assert.equal(await popup.locator('[data-build-info] strong').first().textContent(), name === 'dev' ? 'DEV' : 'Production');
+    assert.ok((await popup.locator('[data-build-info]').first().textContent()).includes(`v${installed}`));
+    assert.equal(await popup.locator('.build-destination').first().textContent(), new URL(origin).host);
+    const identity = await environment.page.evaluate(id => new Promise(resolve => chrome.runtime.sendMessage(id, { kind: 'atlas-ping' }, resolve)), id);
+    assert.equal(identity.environment, name);
+    assert.equal(identity.origin, origin);
+    assert.equal(identity.version, installed);
     const save = await popup.evaluate(text => chrome.runtime.sendMessage({ kind: 'saveNote', text }), `${name} isolated note`);
     assert.equal(save.ok, true, JSON.stringify(save));
     await poll(async () => (await request('/captures')).captures.some(capture => capture.noteText === `${name} isolated note`));
@@ -109,6 +118,12 @@ test('dev and prod install together, pair separately, and save into isolated dat
     await sidebar.goto(`chrome-extension://${id}/src/library.html`);
     assert.equal(await sidebar.locator('.brand').getAttribute('href'), origin + '/dashboard');
     assert.equal(await sidebar.locator('.library-foot a').first().getAttribute('href'), origin + '/dashboard');
+    assert.equal(await sidebar.locator('[data-build-info]').getAttribute('data-environment'), name);
+    assert.ok((await sidebar.locator('[data-build-info]').textContent()).includes(`v${installed}`));
+    const localLibrary = await context.newPage();
+    await localLibrary.goto(`chrome-extension://${id}/src/dashboard.html`);
+    assert.equal(await localLibrary.locator('[data-build-info]').getAttribute('data-environment'), name);
+    await localLibrary.close();
   }
   assert.notEqual(environments[0].account.id, environments[1].account.id);
   for (const environment of environments) {
