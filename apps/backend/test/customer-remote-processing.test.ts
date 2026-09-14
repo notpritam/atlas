@@ -62,7 +62,7 @@ test('both authenticated file routes honor bounded, open and suffix ranges and r
   for(const range of ['bytes=9999-','bytes=4-2','bytes=-0','bytes=0-1,3-4','bytes=wat','bytes=9007199254740993-']){const response=await fileResponse(kind,owner,range);expect(response.status).toBe(416);expect(response.headers.get('content-range')).toBe(`bytes */${data.length}`);expect(await response.text()).toBe('');}
  }
 });
-test.each(['pause','withdraw','disable','edit','organization','delete','pro'])('%s during download cannot attach a file or charge',async action=>{
+test.each(['pause','withdraw','disable','edit','organization','delete'])('%s during download cannot attach a file or charge',async action=>{
  const s=service({remote:async()=>{
   if(action==='pause')s.configure(owner,{mode:'paused'});
   if(action==='withdraw')s.configure(owner,{fetchLinks:false});
@@ -70,9 +70,12 @@ test.each(['pause','withdraw','disable','edit','organization','delete','pro'])('
   if(action==='edit')db.query("UPDATE customer_captures SET source_url='https://example.com/edited.mp4' WHERE id=?").run(capture);
   if(action==='organization')db.query("UPDATE customer_captures SET summary='Concurrent organization',updated_at=2 WHERE id=?").run(capture);
   if(action==='delete')db.query('DELETE FROM customer_captures WHERE id=?').run(capture);
-  if(action==='pro')writeSubscription(db,owner,'revenuecat',{status:'inactive',expiresAt:0,renews:false,sandbox:false});
   return downloaded();
  }});s.enqueue(owner,capture,'manual');await s.tick();expect(saved()?.file_path??null).toBeNull();expect(files()).toHaveLength(0);expect(disposed).toHaveLength(1);expect(inputs).toHaveLength(0);expect(s.settings(owner).usage).toMatchObject({used:0,reserved:0});
+});
+test('subscription expiry does not cancel consented early-access processing within Free storage limits',async()=>{
+ const s=service({remote:async()=>{writeSubscription(db,owner,'revenuecat',{status:'inactive',expiresAt:0,renews:false,sandbox:false});return downloaded();}});
+ s.enqueue(owner,capture,'manual');await s.tick();expect(saved().file_path).toBeTruthy();expect(files()).toHaveLength(1);expect(s.settings(owner).usage).toMatchObject({used:1,reserved:0});
 });
 test.each(['global','account'])('%s quota race after staging removes the file without charging',async scope=>{
  const s=service({globalMaxBytes:scope==='global'?2000:3*1024**3,remote:async()=>downloaded({description:'Actual description'}),ai:{available:true,model:'test',organize:async()=>{db.query('UPDATE customer_captures SET storage_bytes=? WHERE id=?').run(scope==='global'?2000:2*1024**3,capture);return organized;}}});

@@ -12,7 +12,7 @@ type Deps = {
   jsonBody(c:C,max?:number):Promise<Record<string,unknown>>; verifyPassword(password:string,stored:string):Promise<boolean>;
   publicRate(c:C,action:string,email?:string):void;
 };
-type Flow = {id:string;issuer:string;provider:OAuthProvider;client:'web'|'ios'|'android';intent:'sign-in'|'delete';device_name:string;account_id:string|null;credential_id:string|null;credential_kind:'session'|'connection'|null;client_challenge:string;server_verifier:string;browser_hash:string|null;stage:string;code_hash:string|null;identity_json:string|null;expires_at:number};
+type Flow = {id:string;issuer:string;provider:OAuthProvider;client:'web'|'ios'|'android'|'agent';intent:'sign-in'|'delete';device_name:string;account_id:string|null;credential_id:string|null;credential_kind:'session'|'connection'|'agent'|null;client_challenge:string;server_verifier:string;browser_hash:string|null;stage:string;code_hash:string|null;identity_json:string|null;expires_at:number};
 const digest=(s:string)=>createHash('sha256').update(s).digest('hex');
 const secret=()=>randomBytes(32).toString('base64url');
 const validSecret=(x:unknown):x is string=>typeof x==='string'&&/^[A-Za-z0-9_-]{43}$/.test(x);
@@ -39,7 +39,7 @@ export function registerCustomerOAuth(app:Hono<CustomerEnv>,db:Database,gateway:
   function browserBound(c:C,f:Flow){const cookie=getCookie(c,cookieName(f.id));if(!cookie||!f.browser_hash||digest(cookie)!==f.browser_hash)throw invalid();}
   function liveCredential(f:Flow){
     if(f.intent!=='delete')return;
-    const table=f.credential_kind==='session'?'customer_sessions':'customer_connections';
+    const table=f.credential_kind==='session'?'customer_sessions':f.credential_kind==='agent'?'customer_agent_tokens':'customer_connections';
     const credential=db.query(`SELECT id FROM ${table} WHERE id=? AND account_id=? AND expires_at>?`).get(f.credential_id,f.account_id,Date.now());
     if(!credential||!d.account(f.account_id!))throw invalid();
   }
@@ -53,14 +53,16 @@ export function registerCustomerOAuth(app:Hono<CustomerEnv>,db:Database,gateway:
   app.get('/auth/providers',c=>c.json({providers:available(c.req.query('client'))}));
   app.post('/auth/oauth/start',async c=>{
     d.publicRate(c,'oauth-start');const b=await d.jsonBody(c);
-    if(!isProvider(b.provider)||!['web','ios','android'].includes(String(b.client))||!validSecret(b.codeChallenge)||!['sign-in','delete'].includes(String(b.intent||'sign-in')))throw new OAuthError('invalid_oauth_request','Choose a supported sign-in method.');
+    if(!isProvider(b.provider)||!['web','ios','android','agent'].includes(String(b.client))||!validSecret(b.codeChallenge)||!['sign-in','delete'].includes(String(b.intent||'sign-in')))throw new OAuthError('invalid_oauth_request','Choose a supported sign-in method.');
     if(b.client==='web'){
       d.website(c);
       if(c.req.header('origin')!==d.origin)throw new OAuthError('canonical_origin_required','Open foundkeep.app to sign in.',400);
     }
     if(!available(b.client).includes(b.provider))throw new OAuthError('provider_unavailable','This sign-in method is not enabled yet.',503);
     const intent=b.intent==='delete'?'delete':'sign-in';const current=intent==='delete'?d.auth(c):null;
-    if(current&&((b.client!=='web')!==(current.kind==='connection')))throw invalid();
+    if(b.client==='agent'||current?.kind==='agent'){
+      if(b.client!=='agent'||intent!=='delete'||current?.kind!=='agent')throw invalid();
+    }else if(current&&((b.client!=='web')!==(current.kind==='connection')))throw invalid();
     db.query('DELETE FROM customer_oauth_flows WHERE expires_at<=?').run(Date.now());
     db.query('DELETE FROM customer_auth_proofs WHERE expires_at<=?').run(Date.now());
     db.query('DELETE FROM customer_auth_tombstones WHERE expires_at<=?').run(Date.now());
@@ -91,16 +93,26 @@ export function registerCustomerOAuth(app:Hono<CustomerEnv>,db:Database,gateway:
       const identity=await gateway.identity(code,f.server_verifier,f.provider);liveCredential(f);
       identityIsActive(f.issuer,identity.subject);
       const handoff=secret();const changed=db.query("UPDATE customer_oauth_flows SET stage='complete',identity_json=?,code_hash=?,expires_at=? WHERE id=? AND stage='exchanging' AND expires_at>?").run(JSON.stringify(identity),digest(handoff),Date.now()+90_000,f.id,Date.now());if(!changed.changes)throw invalid();
+      if(f.client==='agent'){
+        deleteCookie(c,cookieName(f.id),cookieOptions);
+        c.header('Content-Security-Policy',"default-src 'none'; frame-ancestors 'none'");
+        return c.html('<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FoundKeep identity check</title><h1>Identity confirmed</h1><p>Return to your agent to finish the account action you requested. You can close this tab.</p></html>');
+      }
       return c.redirect(destination(f)+'?flow='+f.id+'&code='+handoff,302);
     }catch{
       db.query('DELETE FROM customer_oauth_flows WHERE id=?').run(f.id);deleteCookie(c,cookieName(f.id),cookieOptions);
+      if(f.client==='agent'){
+        c.header('Content-Security-Policy',"default-src 'none'; frame-ancestors 'none'");
+        return c.html('<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>FoundKeep identity check</title><h1>Identity check could not finish</h1><p>Return to your agent and start the check again. Your account has not been deleted.</p></html>',400);
+      }
       return c.redirect(destination(f)+'?flow='+f.id+'&error=oauth_failed',302);
     }
   });
   app.post('/auth/oauth/exchange',async c=>{
     d.publicRate(c,'oauth-exchange');const b=await d.jsonBody(c);const f=readFlow(b.flow);
     if(f.client==='web'){d.website(c);browserBound(c,f);}
-    if(f.stage!=='complete'||!validSecret(b.code)||!validVerifier(b.verifier)||digest(b.code)!==f.code_hash||challenge(b.verifier)!==f.client_challenge||!f.identity_json)throw invalid();
+    const handoffValid=f.client==='agent'||validSecret(b.code)&&digest(b.code)===f.code_hash;
+    if(f.stage!=='complete'||!handoffValid||!validVerifier(b.verifier)||challenge(b.verifier)!==f.client_challenge||!f.identity_json)throw invalid();
     const identity=JSON.parse(f.identity_json)as OAuthIdentity;liveCredential(f);
     const mapped=db.query('SELECT account_id FROM customer_auth_identities WHERE issuer=? AND subject=?').get(f.issuer,identity.subject)as {account_id:string}|null;
     if(f.intent==='delete'){

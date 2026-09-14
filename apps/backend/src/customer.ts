@@ -5,6 +5,9 @@ import {registerCustomerCollections} from './customer-collections';
 import {registerCustomerProcessing,createProcessingService} from './customer-processing.ts';
 import {registerAgentAccess} from './customer-agent-access.ts';
 import {registerCustomerMcp} from './customer-mcp.ts';
+import type {AgentAccess} from './customer-agent-access.ts';
+import type {AgentRequest} from './customer-mcp-catalog.ts';
+import {discardAgentUploads} from './customer-mcp-uploads.ts';
 import {registerCustomerGraph} from './customer-graph.ts';
 import { savedVia, type SavedVia } from '../../../packages/shared/src/collection-presentation.ts';
 import type { Database } from "bun:sqlite";
@@ -81,7 +84,7 @@ export interface CustomerCaptureRow {
   provenance_json: string | null; processing_options_json: string | null;
   manual_tags: string; folder_id: string | null; folder_name: string | null;
 }
-export interface Auth { account: AccountRow; kind: "session" | "connection"; credentialId: string }
+export interface Auth { account: AccountRow; kind: "session" | "connection" | "agent"; credentialId: string }
 export type CustomerEnv = { Bindings: { clientIp?: string }; Variables: { customerAuth: Auth } };
 type C = Context<CustomerEnv>;
 type JsonObject = Record<string, unknown>;
@@ -292,7 +295,19 @@ function decodeImage(raw: unknown): { data: Buffer | null; mime: string | null; 
 }
 
 export function customerRoutes(db: Database, oauthGateway: OAuthGateway = createSupabaseGateway(), previewFetcher = fetchCustomerPreview) {
+  return createCustomerApi(db,oauthGateway,previewFetcher).app;
+}
+export function createCustomerApi(db: Database, oauthGateway: OAuthGateway = createSupabaseGateway(), previewFetcher = fetchCustomerPreview) {
   const app = new Hono<CustomerEnv>();
+  // Authority is attached to an in-process Request object, never a header or
+  // request body. Only the finite MCP catalog can invoke this dispatcher.
+  const agentRequests=new WeakMap<Request,()=>AgentAccess>();
+  const dispatchAgentRequest:AgentRequest=async(request,authorize)=>{
+    authorize();agentRequests.set(request,authorize);
+    // Streaming exports/files may reauthenticate after fetch returns. Weak keys
+    // retain authority only for this request's lifetime; every check is live.
+    return app.fetch(request);
+  };
   const origin = config.customerOrigin;
   const websiteOrigins = new Set(config.customerOrigins);
   const extensionOrigins = new Set(config.customerExtensionIds.map((id) => `chrome-extension://${id}`));
@@ -314,6 +329,13 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
     if (expected !== undefined && expected !== accountId) fail(409, "account_changed", "Your signed-in account changed. Reload Foundkeep to continue.");
   }
   function auth(c: C, cookieOnly = false, countRequest = true): Auth {
+    const agent=agentRequests.get(c.req.raw);
+    if(agent){
+      const current=agent(),owner=account(current.accountId);
+      if(!owner)fail(401,'unauthorized','The account no longer exists.');
+      if(countRequest)rates.take(`account:${owner.id}`,600,60_000);
+      return {account:owner,kind:'agent',credentialId:current.id};
+    }
     const authorization = c.req.header("authorization");
     const kind = authorization ? "connection" : "session";
     const token = authorization ? /^Bearer ([A-Za-z0-9_-]{43})$/.exec(authorization)?.[1] : getCookie(c, cookieName);
@@ -379,6 +401,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
       db.query("DELETE FROM customer_accounts WHERE id = ?").run(current.account.id);
     })();
     cleanupPreserved();
+    discardAgentUploads(db,current.account.id);
     for (const file of ownedFiles) removeCustomerFile(config.dataDir, file.file_path);
   }
   function revoke(accountId: string, keepSession?: string) {
@@ -453,7 +476,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
   registerCustomerProcessing(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerPreservation(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerAgentAccess(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
-  registerCustomerMcp(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
+  registerCustomerMcp(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) },dispatchAgentRequest);
   registerCustomerGraph(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerCustomerCollections(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) }, c => { try { return auth(c); } catch(error) { if(error instanceof CustomerError && error.status===401)return null; throw error; } });
 
@@ -773,6 +796,25 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
     return c.json(readCustomerPreferences(db, current.account.id));
   });
 
+  function ownedNotificationDevice(c:C){
+    const current=auth(c,true),id=c.req.param('id');
+    if(!id)fail(404,'not_found','Mobile device not found.');
+    if(!db.query("SELECT 1 FROM customer_connections WHERE id=? AND account_id=? AND client_kind='mobile' AND expires_at>?").get(id,current.account.id,Date.now()))fail(404,'not_found','Mobile device not found.');
+    return {owner:current.account.id,id};
+  }
+  app.get('/connections/:id/notifications',c=>{
+    const {owner,id}=ownedNotificationDevice(c),row=db.query('SELECT enabled FROM customer_push_devices WHERE connection_id=? AND account_id=?').get(id,owner) as {enabled:number}|null;
+    return c.json({registered:!!row,enabled:row?.enabled===1});
+  });
+  app.put('/connections/:id/notifications',async c=>{
+    ownedNotificationDevice(c);const body=await jsonBody(c);
+    if(Object.keys(body).some(key=>key!=='enabled')||typeof body.enabled!=='boolean')fail(400,'invalid_input','Choose whether notifications are enabled.');
+    const {owner,id}=ownedNotificationDevice(c);
+    const changed=db.query('UPDATE customer_push_devices SET enabled=?,updated_at=? WHERE connection_id=? AND account_id=?').run(Number(body.enabled),Date.now(),id,owner);
+    if(!changed.changes&&body.enabled)fail(409,'device_registration_required','Enable notifications on this mobile device once to register its push token.');
+    return c.json({registered:!!changed.changes,enabled:!!changed.changes&&body.enabled});
+  });
+
   app.put("/preferences", async (c) => {
     const current = auth(c, true);
     const body = await jsonBody(c);
@@ -781,6 +823,11 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
         const verified = auth(c, true, false);
         if (verified.account.id !== current.account.id || verified.credentialId !== current.credentialId) {
           fail(401, "unauthorized", "Your session expired. Sign in again.");
+        }
+        if('expectedRevision' in body){
+          if(!Number.isSafeInteger(body.expectedRevision)||Number(body.expectedRevision)<0||Object.keys(body).some(key=>!['expectedRevision','preferences'].includes(key)))fail(400,'invalid_preferences','Send preferences and their revision.');
+          if(readCustomerPreferences(db,current.account.id).revision!==body.expectedRevision)fail(409,'preferences_changed','Your preferences changed. Read them again before editing.');
+          return writeCustomerPreferences(db,current.account.id,body.preferences);
         }
         return writeCustomerPreferences(db, current.account.id, body);
       })();
@@ -908,7 +955,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
 
   app.post("/mobile/captures/file", async (c) => {
     const current = auth(c);
-    if (current.kind !== "connection") fail(403, "mobile_connection_required", "Connect Foundkeep on this device to continue.");
+    if (current.kind !== "connection" && current.kind !== "agent") fail(403, "mobile_connection_required", "Connect Foundkeep on this device to continue.");
     rates.take(`upload:${current.account.id}`, 120, 60_000);
     let body: JsonObject;
     try { body = decodeCaptureHeader(c.req.header("x-foundkeep-capture") || null); }
@@ -1223,6 +1270,11 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
   });
   app.delete("/captures/:id", (c) => {
     const current = auth(c, true);
+    const expected=c.req.query('expectedRevision');
+    if(expected!==undefined){
+      if(!/^\d+$/.test(expected)||!Number.isSafeInteger(Number(expected)))fail(400,'invalid_revision','Use a valid save revision.');
+      if(findCapture(c.req.param('id'),current.account.id).updated_at!==Number(expected))fail(409,'revision_conflict','This save changed. Read it again before deleting.');
+    }
     const cleanupPreserved=preparePreservedCleanup(db,config.dataDir,current.account.id,c.req.param('id'));
     const row = db.query("SELECT file_path FROM customer_captures WHERE id = ? AND account_id = ?").get(c.req.param("id"), current.account.id) as { file_path: string | null } | null;
     if (!row) fail(404, "not_found", "Capture not found.");
@@ -1233,5 +1285,5 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
     return c.json({ ok: true });
   });
   app.all("*", (c) => c.json({ error: "not_found", message: "API route not found." }, 404));
-  return app;
+  return {app,dispatchAgentRequest};
 }

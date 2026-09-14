@@ -6,7 +6,7 @@ export type Plan = {
   billing:{revenuecat:{available:boolean;publicKey:string|null;appUserId:string;entitlementId:string;productId:string};stripe:{available:boolean;canManage:boolean}};
 };
 
-export type AutomationState={available:boolean;enabled:boolean;fetchLinks:boolean;images:boolean;consentVersion:string;pro:boolean;mode:'instant'|'scheduled'|'manual'|'paused';intervalHours:1|6|24;monthlyLimit:number;nextRunAt:number|null;usage:{used:number;reserved:number;limit:number;monthlyLimit:number}};
+export type AutomationState={available:boolean;enabled:boolean;fetchLinks:boolean;images:boolean;consentVersion:string;pro:boolean;canProcess?:boolean;mode:'instant'|'scheduled'|'manual'|'paused';intervalHours:1|6|24;monthlyLimit:number;nextRunAt:number|null;usage:{used:number;reserved:number;limit:number;monthlyLimit:number}};
 
 export type ProcessingState = {
   job: {id:string;status:string;error:string|null;updatedAt:number} | null;

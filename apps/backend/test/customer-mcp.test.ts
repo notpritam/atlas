@@ -71,6 +71,13 @@ test('credential rotation cannot accumulate duplicate relationship buckets',asyn
  expect((db.query('SELECT COUNT(*) n FROM customer_capture_links WHERE source_id=?').get(capture) as any).n).toBe(1);
 });
 
+test('agents can explicitly replace generated relationships as well as their own links',async()=>{
+ const target=crypto.randomUUID();db.query("INSERT INTO customer_captures(id,account_id,client_id,type,storage_bytes,captured_at,created_at,updated_at) VALUES(?,?,?,'note',0,2,2,2)").run(target,owner,target);
+ db.query("INSERT INTO customer_capture_links(account_id,source_id,target_id,origin,created_at) VALUES(?,?,?,'hosted',0)").run(owner,capture,target);
+ await createMcpOperations(db,'Bearer '+token).call('link_saves',{id:capture,expectedRevision:1,relatedIds:[],replace:'all'});
+ expect((await createMcpOperations(db,'Bearer '+token).call('read_save',{id:capture}) as any).links).toEqual([]);
+});
+
 test('MCP exposes bounded derivative chunks under the same file scope',async()=>{
  const ops=createMcpOperations(db,'Bearer '+token);
  db.query("INSERT INTO customer_derivatives(account_id,capture_id,kind,mime,data,bytes,source_hash,created_at) VALUES(?,?,'compact','video/mp4',?,10,'hash',0)").run(owner,capture,Buffer.from('0123456789'));

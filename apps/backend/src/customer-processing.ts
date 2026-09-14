@@ -35,7 +35,7 @@ export function createProcessingService(db:Database,options:Options={}){
  function settings(owner:string){
   const row=prefs(owner),plan=accountPlan(db,owner,now()),cycle=new Date(now()).toISOString().slice(0,7);
   const usage=db.query('SELECT used,reserved FROM customer_processing_usage WHERE account_id=? AND cycle=?').get(owner,cycle) as {used:number;reserved:number}|null;
-  return {available:ai.available,enabled:!!row?.enabled,fetchLinks:!!row?.fetch_links,images:!!row?.images,consentVersion:CONSENT_VERSION,provider:'OpenAI',model:ai.model,pro:plan.pro,mode:row?.mode||'instant',intervalHours:row?.interval_hours||24,monthlyLimit:row?.monthly_limit??plan.limits.monthlyProcessing,nextRunAt:row?.enabled&&row.mode==='scheduled'?row.next_run_at:null,
+  return {available:ai.available,enabled:!!row?.enabled,fetchLinks:!!row?.fetch_links,images:!!row?.images,consentVersion:CONSENT_VERSION,provider:'OpenAI',model:ai.model,pro:plan.pro,canProcess:plan.features.managedProcessing,mode:row?.mode||'instant',intervalHours:row?.interval_hours||24,monthlyLimit:row?.monthly_limit??plan.limits.monthlyProcessing,nextRunAt:row?.enabled&&row.mode==='scheduled'?row.next_run_at:null,
    usage:{cycle,used:usage?.used||0,reserved:usage?.reserved||0,limit:plan.limits.monthlyProcessing,monthlyLimit:Math.min(row?.monthly_limit??plan.limits.monthlyProcessing,plan.limits.monthlyProcessing)},
    activity:db.query('SELECT id,capture_id AS captureId,status,attempts,error,created_at AS createdAt,updated_at AS updatedAt FROM customer_processing_jobs WHERE account_id=? ORDER BY created_at DESC LIMIT 30').all(owner)};
  }
@@ -71,7 +71,7 @@ export function createProcessingService(db:Database,options:Options={}){
  function enqueue(owner:string,id:string,reason:'manual'|'new-save'|'agent'){
   return db.transaction(()=>{
    const row=getSave(owner,id);if(!row)moduleFail(404,'not_found','Saved item not found.');
-   if(!accountPlan(db,owner,now()).pro)moduleFail(403,'pro_required','Pro is required for managed processing.');
+   if(!accountPlan(db,owner,now()).features.managedProcessing)moduleFail(403,'processing_unavailable','Managed processing is not available on this plan.');
    const preference=prefs(owner);if(!preference?.enabled||preference.consent_version!==CONSENT_VERSION)moduleFail(409,'consent_required','Enable managed processing before sending content to OpenAI.');
    if(preference.mode==='paused')moduleFail(409,'processing_paused','Processing is paused. Resume it in settings first.');
    if(!ai.available)moduleFail(503,'processing_unavailable','Managed processing is not configured yet.');
@@ -110,7 +110,7 @@ export function createProcessingService(db:Database,options:Options={}){
    const owners=db.query("SELECT account_id FROM customer_automation WHERE enabled=1 AND consent_version=? AND mode<>'paused' AND account_id>? ORDER BY account_id LIMIT 100").all(CONSENT_VERSION,lastOwner) as {account_id:string}[];
    lastOwner=owners.length===100?owners.at(-1)!.account_id:'';
    for(const owner of owners)db.transaction(()=>{
-    if(!accountPlan(db,owner.account_id,now()).pro)return;
+    if(!accountPlan(db,owner.account_id,now()).features.managedProcessing)return;
     const preference=prefs(owner.account_id)!;
     const cutoff=preference.mode==='scheduled'?(preference.scheduled_cutoff??((preference.next_run_at??Infinity)<=now()?preference.next_run_at:null)):null;
     if(cutoff!==null&&preference.scheduled_cutoff===null)db.query('UPDATE customer_automation SET scheduled_cutoff=? WHERE account_id=?').run(cutoff,owner.account_id);
@@ -162,7 +162,7 @@ export function createProcessingService(db:Database,options:Options={}){
    const valid=()=>{
     const current=db.query("SELECT * FROM customer_processing_jobs WHERE id=? AND status='running' AND lease_token=? AND lease_until>=?").get(job.id,job.lease_token,now()) as Job|null;
     const row=getSave(job.account_id,job.capture_id),preference=prefs(job.account_id);
-    return current&&row&&row.updated_at===revision&&preference?.enabled&&preference.mode!=='paused'&&preference.consent_version===CONSENT_VERSION&&accountPlan(db,job.account_id,now()).pro&&fingerprint(row)===job.source_hash?{row,preference}:null;
+    return current&&row&&row.updated_at===revision&&preference?.enabled&&preference.mode!=='paused'&&preference.consent_version===CONSENT_VERSION&&accountPlan(db,job.account_id,now()).features.managedProcessing&&fingerprint(row)===job.source_hash?{row,preference}:null;
    };
    const cancellation=setInterval(()=>{if(!valid())controller.abort();},1000);
    try{

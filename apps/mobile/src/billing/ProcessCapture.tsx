@@ -36,7 +36,7 @@ export function ProcessCapture({id,status,onProcessed}:{id:string;status:string;
   },[client,account?.id,token,id,refresh]));
   const paused=settings?.mode==='paused';
   const active=state?.job?.status==='pending'||state?.job?.status==='running';
-  const canProcess=settings?.enabled&&settings.available&&settings.pro;
+  const canProcess=settings?.enabled&&settings.available&&(settings.canProcess??settings.pro);
   const message=processingMessage(state);
   if(!canProcess&&!message&&!error)return null;
   return <View style={{gap:8}}>

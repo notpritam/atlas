@@ -42,8 +42,8 @@ test('public submissions require approval, followers see approved content, and m
  expect((await req('/collections/'+c.id,b.token)).status).toBe(404);
 });
 
-test('Pro groups have accepted invitations, roles, revocation and preserved access after Pro expiry',async()=>{
- const a=await user(),b=await user();expect((await req('/collections',a.token,'POST',{title:'Group',slug:'a-group',kind:'group'})).status).toBe(403);
+test('groups have accepted invitations, roles, revocation and access on Free or Pro during early access',async()=>{
+ const a=await user(),b=await user();expect((await req('/collections',a.token,'POST',{title:'Group',slug:'a-group',kind:'group'})).status).toBe(201);
  writeSubscription(db,a.account.id,'paddle',{status:'active',expiresAt:Date.now()+86400000,renews:true,sandbox:true});
  const c=await collection(a,{kind:'group',submissionPolicy:'members'});
  expect((await req(`/collections/${c.id}/members`,a.token,'POST',{email:b.account.email,role:'contributor'})).status).toBe(200);
@@ -56,7 +56,7 @@ test('Pro groups have accepted invitations, roles, revocation and preserved acce
  db.query('UPDATE customer_subscriptions SET expires_at=0 WHERE account_id=?').run(a.account.id);
  expect((await req('/collections/'+c.id,b.token)).status).toBe(200);
  expect((await req(`/collections/${c.id}/members`,a.token,'POST',{email:b.account.email,role:'viewer'})).status).toBe(200);
- const newcomer=await user();expect((await req(`/collections/${c.id}/members`,a.token,'POST',{email:newcomer.account.email})).status).toBe(403);
+ const newcomer=await user();expect((await req(`/collections/${c.id}/members`,a.token,'POST',{email:newcomer.account.email})).status).toBe(200);
  expect((await req(`/collections/${c.id}/members/${b.account.id}`,a.token,'DELETE')).status).toBe(200);
  expect((await req('/collections/'+c.id,b.token)).status).toBe(404);
 });

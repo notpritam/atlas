@@ -27,8 +27,8 @@ export function requireFolder(db: Database, accountId: string, id: string): Fold
   if (!row) throw new CustomerOrganizationError(404, "folder_not_found", "Folder not found.");
   return row;
 }
-function userTags(value: unknown): string[] {
-  if (!Array.isArray(value) || value.length > 20) throw new CustomerOrganizationError(400, "invalid_organization", "Choose up to 20 personal tags.");
+export function normalizeCaptureTags(value: unknown): string[] {
+  if (!Array.isArray(value) || value.length > 20) throw new CustomerOrganizationError(400, "invalid_organization", "Choose up to 20 tags.");
   const names = new Map<string, string>();
   for (const raw of value) {
     const name = organizationName(raw, 40, "A tag");
@@ -39,7 +39,7 @@ function userTags(value: unknown): string[] {
 export function captureOrganization(db: Database, accountId: string, body: Record<string, unknown>, current?: { folder_id: string | null; manual_tags: string }) {
   const folderId = "folderId" in body ? folderIdentifier(body.folderId) : current?.folder_id ?? null;
   if (folderId) requireFolder(db, accountId, folderId);
-  const manualTags = "userTags" in body ? JSON.stringify(userTags(body.userTags)) : current?.manual_tags ?? "[]";
+  const manualTags = "userTags" in body ? JSON.stringify(normalizeCaptureTags(body.userTags)) : current?.manual_tags ?? "[]";
   return { folderId, manualTags };
 }
 export function organizationBytes(folderId: string | null, manualTags: string) {

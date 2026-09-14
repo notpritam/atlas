@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {SectionLoading,Spinner} from './loading';
 import './processing-controls.css';
 
-type Plan={pro:boolean};
+type Plan={pro:boolean;earlyAccess?:boolean;features?:{managedProcessing:boolean}};
 type Automation={available:boolean;enabled:boolean;fetchLinks:boolean;images:boolean;consentVersion:string;mode:'instant'|'scheduled'|'manual'|'paused';intervalHours:number;monthlyLimit:number;nextRunAt:number|null;usage:{used:number;reserved:number;limit:number};activity:{id:string;captureId:string;status:string;error:string|null}[]};
 export function CollectionServices(){
  const {me,request,confirm}=useDashboard(),cache=useQueryClient();const account=me.account.id;
@@ -23,10 +23,10 @@ export function CollectionServices(){
  };
  return <div className="collection-services" aria-busy={busy}>
   <section className="settings-section"><h3>Let your collection organize itself.</h3><p className="muted">FoundKeep can suggest tags, summarize content and connect related saves. Choose when new saves are processed and how much of your allowance to use. Older items wait until you request processing. A successfully preserved video uses one credit, even when no text or image can be organized.</p>
-   {plan.data && !plan.data.pro ? <p className="processing-plan-note">Managed processing is included with Pro. <Link className="text-link" href="/dashboard/plans">Explore plans</Link></p> : null}
+   {plan.data?.earlyAccess ? <p className="processing-plan-note">Managed processing is available on every plan during early access.</p> : plan.data && !plan.data.features?.managedProcessing ? <p className="processing-plan-note">View your processing allowance in <Link className="text-link" href="/dashboard/plans">Plans &amp; usage</Link>.</p> : null}
    {plan.isError ? <p className="form-message is-error" role="alert">{plan.error.message} <button className="subtle-button" onClick={()=>void plan.refetch()}>Retry plan</button></p> : null}
    {busy&&action.variables?.kind==='automation'?<p className="loading-caption" role="status"><Spinner/>Saving processing settings…</p>:null}
-   {settings?<><label className="preference-toggle"><span><strong>Managed processing</strong><small>{settings.available?'Uses OpenAI with your permission':'Provider setup is still in progress'}</small></span><input type="checkbox" checked={settings.enabled} disabled={busy||(!settings.enabled&&(!settings.available||!plan.data?.pro))} onChange={()=>void enable()}/></label>
+   {settings?<><label className="preference-toggle"><span><strong>Managed processing</strong><small>{settings.available?'Uses OpenAI with your permission':'Provider setup is still in progress'}</small></span><input type="checkbox" checked={settings.enabled} disabled={busy||(!settings.enabled&&(!settings.available||!(plan.data?.features?.managedProcessing??plan.data?.pro)))} onChange={()=>void enable()}/></label>
     <label className="preference-toggle"><span><strong>Read public link contents</strong><small>Fetch accessible articles and posts, and try to preserve an available video copy (up to 50 MiB and 30 minutes). Sign-in walls stay respected.</small></span><input type="checkbox" checked={settings.fetchLinks} disabled={busy||!settings.enabled} onChange={event=>action.mutate({kind:'automation',value:{fetchLinks:event.target.checked}})}/></label>
     <label className="preference-toggle"><span><strong>Understand images</strong><small>Send a bounded image or video preview to OpenAI for tagging.</small></span><input type="checkbox" checked={settings.images} disabled={busy||!settings.enabled} onChange={async event=>{const checked=event.target.checked;if(checked&&!await confirm('Include images in processing?','Saved images and video previews may be sent to OpenAI to understand their contents.','Allow images'))return;action.mutate({kind:'automation',value:{images:checked}});}}/></label>
     <fieldset className="processing-timing" disabled={busy||!settings.enabled}><legend>When should processing run?</legend><div className="processing-mode-grid">{([

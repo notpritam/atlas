@@ -33,7 +33,7 @@ describe("private capture preview proxy", () => {
     expect(options.hostname).toBe(PUBLIC.address);
     expect(options.servername).toBe("images.example.com");
     expect(options.path).toBe("/a.png?size=400");
-    expect(options.headers).toEqual({ Host: "images.example.com", Accept: "image/png,image/jpeg,image/webp,image/gif", "Accept-Encoding": "identity" });
+    expect(options.headers).toEqual({ Host: "images.example.com", Accept: "image/png,image/jpeg,image/webp,image/gif", "Accept-Encoding": "identity", "User-Agent": "FoundKeep/1.0 (+https://foundkeep.app)" });
     expect(options.agent).toBe(false);
     expect(options.rejectUnauthorized).toBe(true);
   });

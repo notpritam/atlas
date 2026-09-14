@@ -28,7 +28,7 @@ export function registerCustomerCollections(app:Hono<CustomerEnv>,db:Database,se
  function owned(id:string,accountId:string) {const row=read(id,accountId);if(row.owner_id!==accountId)fail(403,'collection_owner_required','Only the owner can change this collection.');return row;}
  function canSubmit(row:Collection,r:Role) {return moderator(r)||(row.submission_policy==='members'&&r==='contributor')||(row.visibility==='public'&&row.submission_policy==='anyone'&&r!=='viewer');}
  function publication(row:Collection,accountId:string) {const r=role(row,accountId);if(!canSubmit(row,r))fail(403,'collection_contribution_closed','This collection is not accepting contributions from your account.');return row.require_approval&&!moderator(r)?'pending':'approved';}
- function pro(accountId:string) {if(!accountPlan(db,accountId).pro)fail(403,'pro_required','Pro is required to create groups and invite group members. Joining and following are free.');}
+ function groupAccess(accountId:string) {if(!accountPlan(db,accountId).features.groupCollections)fail(403,'group_unavailable','Group collections are not available on this plan.');}
  function card(row:Collection,accountId?:string) {
   const r=role(row,accountId),counts=db.query("SELECT COUNT(*) count FROM customer_collection_entries WHERE collection_id=? AND status='approved'").get(row.id) as {count:number};
   return {id:row.id,slug:row.slug,title:row.title,description:row.description,tags:JSON.parse(row.tags),rules:row.rules,kind:row.kind,visibility:row.visibility,submissionPolicy:row.submission_policy,requireApproval:!!row.require_approval,createdAt:row.created_at,updatedAt:row.updated_at,
@@ -86,10 +86,10 @@ export function registerCustomerCollections(app:Hono<CustomerEnv>,db:Database,se
   const rows=db.query(`SELECT DISTINCT c.* FROM customer_collections c LEFT JOIN customer_collection_members m ON m.collection_id=c.id AND m.account_id=? AND m.accepted=1 LEFT JOIN customer_collection_follows f ON f.collection_id=c.id AND f.account_id=?
    WHERE c.owner_id=? OR m.account_id IS NOT NULL OR (f.account_id IS NOT NULL AND c.visibility='public') ORDER BY c.updated_at DESC,c.id LIMIT 300`).all(id,id,id) as Collection[];
   const invitations=db.query(`SELECT c.id,c.title,c.slug,m.role FROM customer_collection_members m JOIN customer_collections c ON c.id=m.collection_id WHERE m.account_id=? AND m.accepted=0 ORDER BY m.created_at DESC LIMIT 100`).all(id);
-  return c.json({collections:rows.map(row=>card(row,id)),invitations,canCreateGroup:accountPlan(db,id).pro});
+  return c.json({collections:rows.map(row=>card(row,id)),invitations,canCreateGroup:accountPlan(db,id).features.groupCollections});
  });
  app.post('/collections',c=>write(c,({account},body)=>{
-  const f=fields(body);if(f.kind==='group')pro(account.id);
+  const f=fields(body);if(f.kind==='group')groupAccess(account.id);
   const slug=text(body.slug,64,'Collection URL',true);if(!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug)||slug.length<3)fail(400,'invalid_slug','Use 3–64 lowercase letters, numbers and single hyphens.');
   if(db.query('SELECT 1 FROM customer_collections WHERE slug=?').get(slug))fail(409,'slug_taken','That collection URL is already in use. Choose another.');
   if((db.query('SELECT COUNT(*) count FROM customer_collections WHERE owner_id=?').get(account.id) as {count:number}).count>=100)fail(409,'collection_limit','You can own up to 100 collections.');
@@ -109,7 +109,7 @@ export function registerCustomerCollections(app:Hono<CustomerEnv>,db:Database,se
   const email=text(body.email,254,'Email',true).toLowerCase(),r=choice(body.role,['viewer','contributor','moderator'],'contributor');
   const target=db.query('SELECT id FROM customer_accounts WHERE email=?').get(email) as {id:string}|null;if(!target)fail(404,'account_not_found','Ask this person to create a Foundkeep account first.');if(target.id===account.id)fail(400,'already_owner','You already own this collection.');
   const existing=db.query('SELECT 1 FROM customer_collection_members WHERE collection_id=? AND account_id=?').get(row.id,target.id);
-  if(!existing)pro(account.id);
+  if(!existing)groupAccess(account.id);
   if(!existing&&(db.query('SELECT COUNT(*) count FROM customer_collection_members WHERE collection_id=?').get(row.id) as {count:number}).count>=100)fail(409,'member_limit','A group can have up to 100 invited members.');
   db.query('INSERT INTO customer_collection_members(collection_id,account_id,role,created_at) VALUES(?,?,?,?) ON CONFLICT(collection_id,account_id) DO UPDATE SET role=excluded.role').run(row.id,target.id,r,Date.now());return c.json({ok:true});
  }));

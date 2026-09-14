@@ -5,8 +5,10 @@ import { revenueCatSnapshot, createBillingService } from '../src/customer-billin
 let db: ReturnType<typeof openDb>; let id: string;
 beforeEach(() => { db=openDb(':memory:'); id=crypto.randomUUID(); db.query("INSERT INTO customer_accounts(id,email,name,password_hash,recovery_hash,created_at) VALUES(?,?,'Billing','','',0)").run(id,id+'@example.com'); });
 afterEach(() => db.close());
-test('Free includes imports and MCP; either verified subscription grants Pro until expiry', () => {
-  expect(accountPlan(db,id).features).toEqual({imports:true,mcp:true,managedProcessing:false,groupCollections:false});
+test('early access includes every feature on Free; only verified subscriptions grant paid identity and storage', () => {
+  expect(accountPlan(db,id).features).toEqual({imports:true,mcp:true,managedProcessing:true,groupCollections:true});
+  expect(accountPlan(db,id).pro).toBe(false);
+  expect(accountPlan(db,id).limits).toMatchObject({monthlyProcessing:500,maxBytes:200*1024**2});
   const active={status:'active',expiresAt:Date.now()+60_000,renews:true,sandbox:false};
   writeSubscription(db,id,'stripe',active,200); writeSubscription(db,id,'revenuecat',active,200);
   writeSubscription(db,id,'stripe',{...active,status:'inactive'},300);

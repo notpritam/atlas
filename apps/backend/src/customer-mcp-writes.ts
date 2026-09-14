@@ -3,7 +3,7 @@ import {z} from 'zod';
 import {customerCaptureDto,type CustomerCaptureRow} from './customer.ts';
 import type {AgentAccess} from './customer-agent-access.ts';
 import {accountPlan} from './customer-plans.ts';
-import {captureOrganization,organizationBytes} from './customer-organization.ts';
+import {captureOrganization,organizationBytes,normalizeCaptureTags} from './customer-organization.ts';
 import {moduleFail} from './customer-modules.ts';
 import {normalizeProvenance} from './customer-provenance.ts';
 
@@ -29,11 +29,11 @@ export const mcpWriteSpecs={
     }).strict(),
   },
   update_save:{
-    description:'Update explicit editable details on an owned save using its latest revision. Title, note, summary, and category edits wait for basic processing; personal folder and tag edits remain available. Limits: title 1,000, note 50,000, summary 2,000, category 80 characters; up to 20 personal tags of 40 characters. Omitted fields and original source content are preserved.',
+    description:'Edit an owned save using its latest revision: title, note, summary, category, generated tags, personal userTags, and folder. tags and userTags are separate editable arrays; [] clears one set and omitted fields are preserved. Each set allows 20 tags of 40 characters. Content and generated-tag edits wait for basic processing and cancel stale hosted work. Original source content is preserved.',
     scope:'library:write' as const,
     schema:z.object({
       id,expectedRevision:z.number().int().nonnegative(),sourceTitle:optionalText(1000),noteText:optionalText(50_000),
-      summary:optionalText(2000),category:z.string().trim().min(1).max(80).nullable().optional(),...organization,
+      summary:optionalText(2000),category:z.string().trim().min(1).max(80).nullable().optional(),tags:z.array(z.string().min(1).max(40)).max(20).optional(),...organization,
     }).strict().refine(value=>Object.keys(value).some(key=>key!=='id'&&key!=='expectedRevision'),{message:'Include at least one field to update.'}),
   },
 } as const;
@@ -70,7 +70,7 @@ function agentProvenance(value:Record<string,any>,capturedAt:number){
   };
 }
 
-function cancelHostedJobs(db:Database,owner:string,captureId:string,updatedAt:number){
+export function cancelHostedJobs(db:Database,owner:string,captureId:string,updatedAt:number){
   const active=db.query("SELECT cycle,credit FROM customer_processing_jobs WHERE account_id=? AND capture_id=? AND status IN ('pending','running','paused')")
     .all(owner,captureId) as {cycle:string;credit:number}[];
   if(!active.length)return;
@@ -108,7 +108,7 @@ export function callMcpWrite(db:Database,name:McpWriteName,value:Record<string,a
 
     const row=capture(db,owner,value.id);
     if(row.updated_at!==value.expectedRevision)moduleFail(409,'revision_conflict','This save changed. Read it again before editing.');
-    const editsDetails=['sourceTitle','noteText','summary','category'].some(key=>has(value,key));
+    const editsDetails=['sourceTitle','noteText','summary','category','tags'].some(key=>has(value,key));
     const basicBusy=row.status==='pending'||row.status==='processing'||row.status==='failed'&&row.enrich_attempts<3;
     if(editsDetails&&basicBusy)moduleFail(409,'capture_busy','This save is still being organized. Read it again after processing finishes.');
     const organizationValue=captureOrganization(db,owner,value,row);
@@ -116,8 +116,10 @@ export function callMcpWrite(db:Database,name:McpWriteName,value:Record<string,a
     const noteText=has(value,'noteText')?value.noteText:row.note_text;
     const summary=has(value,'summary')?value.summary:row.summary;
     const category=has(value,'category')?value.category:row.category;
+    const tags=has(value,'tags')?JSON.stringify(normalizeCaptureTags(value.tags)):row.tags;
     const delta=byteLength(sourceTitle)+byteLength(noteText)+byteLength(summary)+byteLength(category)
       -byteLength(row.source_title)-byteLength(row.note_text)-byteLength(row.summary)-byteLength(row.category)
+      +byteLength(tags==='[]'?null:tags)-byteLength(row.tags==='[]'?null:row.tags)
       +organizationBytes(organizationValue.folderId,organizationValue.manualTags)-organizationBytes(row.folder_id,row.manual_tags);
     if(delta>0){
       const plan=accountPlan(db,owner),usage=db.query('SELECT COALESCE(SUM(storage_bytes),0) bytes FROM customer_captures WHERE account_id=?').get(owner) as {bytes:number};
@@ -126,10 +128,10 @@ export function callMcpWrite(db:Database,name:McpWriteName,value:Record<string,a
       if(global.bytes+delta>limits.globalMaxBytes)moduleFail(503,'storage_unavailable','Foundkeep storage is temporarily full. Try saving again later.');
     }
     const updatedAt=Math.max(Date.now(),row.updated_at+1);
-    if(sourceTitle!==row.source_title||noteText!==row.note_text||summary!==row.summary||category!==row.category)cancelHostedJobs(db,owner,row.id,updatedAt);
-    const updated=db.query(`UPDATE customer_captures SET source_title=?,note_text=?,summary=?,category=?,folder_id=?,manual_tags=?,
+    if(sourceTitle!==row.source_title||noteText!==row.note_text||summary!==row.summary||category!==row.category||has(value,'tags'))cancelHostedJobs(db,owner,row.id,updatedAt);
+    const updated=db.query(`UPDATE customer_captures SET source_title=?,note_text=?,summary=?,category=?,tags=?,folder_id=?,manual_tags=?,
       storage_bytes=MAX(0,storage_bytes+?),updated_at=? WHERE id=? AND account_id=? AND updated_at=?`)
-      .run(sourceTitle,noteText,summary,category,organizationValue.folderId,organizationValue.manualTags,delta,updatedAt,row.id,owner,value.expectedRevision);
+      .run(sourceTitle,noteText,summary,category,tags,organizationValue.folderId,organizationValue.manualTags,delta,updatedAt,row.id,owner,value.expectedRevision);
     if(!updated.changes)moduleFail(409,'revision_conflict','This save changed. Read it again before editing.');
     return {capture:customerCaptureDto(capture(db,owner,row.id))};
   }).immediate();

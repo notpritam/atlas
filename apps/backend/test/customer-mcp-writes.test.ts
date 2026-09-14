@@ -110,6 +110,18 @@ test('create_save enforces account and global capture and UTF-8 byte quotas',asy
   await expect(createMcpOperations(db,'Bearer '+token,2*1024**3,{globalMaxCaptures:20_000}).call('create_save',input)).rejects.toMatchObject({code:'quota_exceeded'});
 });
 
+test('both MCP editors can clear generated tags while preserving personal tags and original content',async()=>{
+  const ops=createMcpOperations(db,'Bearer '+token);
+  const original=(await ops.call('create_save',{clientId:'editable-auto-tags',type:'tweet',selectionText:'Original tweet',noteText:'My note',userTags:['Keep personal']})) as any;
+  db.query('UPDATE customer_captures SET tags=?,storage_bytes=storage_bytes+? WHERE id=?').run('["actually","been"]',19,original.capture.id);
+  const first=await ops.call('update_save',{id:original.capture.id,expectedRevision:original.capture.updatedAt,tags:[' Design ','design','Motion']}) as any;
+  expect(first.capture).toMatchObject({tags:['Design','Motion'],userTags:['Keep personal'],noteText:'My note',selectionText:'Original tweet'});
+  const second=await ops.call('organize_save',{id:first.capture.id,expectedRevision:first.capture.updatedAt,tags:[]}) as any;
+  expect(second.capture).toMatchObject({tags:[],userTags:['Keep personal'],noteText:'My note',selectionText:'Original tweet'});
+  await expect(ops.call('update_save',{id:first.capture.id,expectedRevision:first.capture.updatedAt,tags:['stale']})).rejects.toMatchObject({code:'revision_conflict'});
+  await expect(ops.call('organize_save',{id:second.capture.id,expectedRevision:second.capture.updatedAt,tags:['line\nbreak']})).rejects.toThrow();
+});
+
 test('write schemas allow only supported text kinds, safe URLs, and documented field sizes',async()=>{
   const ops=createMcpOperations(db,'Bearer '+token);
   for(const [index,type] of ['note','bookmark','tweet','selection'].entries()){

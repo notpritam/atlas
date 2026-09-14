@@ -15,7 +15,7 @@ beforeEach(()=>{
 });
 afterEach(()=>db.close());
 function enable(s:ReturnType<typeof service>){s.configure(owner,{enabled:true,fetchLinks:false,images:false,consentVersion:CONSENT_VERSION});}
-test('processing requires Pro and explicit consent; enqueue reserves once and successful work preserves originals',async()=>{
+test('processing requires explicit consent; enqueue reserves once and successful work preserves originals on every plan',async()=>{
  const s=service();expect(()=>s.enqueue(owner,capture,'manual')).toThrow('Enable');enable(s);
  const first=s.enqueue(owner,capture,'manual');expect(s.enqueue(owner,capture,'manual').id).toBe(first.id);
  expect(s.settings(owner).usage).toMatchObject({reserved:1,used:0});await s.tick();
@@ -23,7 +23,8 @@ test('processing requires Pro and explicit consent; enqueue reserves once and su
  expect(db.query('SELECT note_text,manual_tags,summary FROM customer_captures WHERE id=?').get(capture)).toMatchObject({note_text:'My article',manual_tags:'["keep-me"]',summary:result.summary});
  expect(s.details(owner,capture)).toMatchObject({model:'test-model',sourceHash:expect.any(String)});
  writeSubscription(db,owner,'revenuecat',{status:'inactive',expiresAt:0,renews:false,sandbox:false});
- expect(()=>s.enqueue(owner,capture,'manual')).toThrow('Pro');
+ expect(s.enqueue(owner,capture,'manual').id).toBe(first.id);
+ expect(s.settings(owner).canProcess).toBe(true);
 });
 test('revoked consent while provider awaits cancels without applying results or charging a credit',async()=>{
  let started!:()=>void;let finish!:(value:typeof result)=>void;const entered=new Promise<void>(r=>started=r);
