@@ -21,6 +21,9 @@ import {
 import { cloudImageMime } from "./image-formats.js";
 
 protectCloudStorage().catch(() => {});
+// Use Chrome's native toolbar behavior so opening the panel keeps activeTab's
+// user-gesture grant. The same panel remains available as the user changes tabs.
+chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => {});
 chrome.runtime.onMessageExternal.addListener((msg, sender, respond) => {
   if (msg?.kind === "atlas-refresh-preferences") {
     if (!trustedPairingSender(sender)) {
@@ -394,21 +397,29 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg?.kind === "capture") {
     (async () => {
+      const sidebar = trustedLibrarySender(sender, chrome.runtime) && msg.source === "sidebar";
       const [tab] = await chrome.tabs.query({
         active: true,
-        currentWindow: true,
+        ...(sidebar && Number.isInteger(msg.windowId) ? { windowId: msg.windowId } : { currentWindow: true }),
       });
       if (!tab) return sendResponse({ ok: false, error: "Open a web page to capture it." });
+      if (sidebar && (tab.id !== msg.tabId || tab.url !== msg.tabUrl))
+        return sendResponse({ ok: false, error: "The page changed. Check the current page and try again." });
+      if (sidebar && !/^https?:\/\//i.test(tab.url || ""))
+        return sendResponse({ ok: false, error: "Open a web page and allow page access to capture it." });
       const acknowledgeStart = msg.action === "region";
       if (acknowledgeStart) sendResponse({ ok: true, started: true });
+      const finish = (result) => {
+        if (!acknowledgeStart) sendResponse(result);
+        else if (sidebar) chrome.runtime.sendMessage({ kind: "atlas-capture-finished", requestId: msg.requestId, ...result }).catch(() => {});
+      };
       try {
-        const capture = await performCapture(msg.action, { tab, trigger: "popup" });
-        configuredFlash(true);
-        if (!acknowledgeStart)
-          sendResponse({ ok: true, capture: capture ? { id: capture.id, type: capture.type, cloudStatus: capture.cloudStatus } : null });
+        const capture = await performCapture(msg.action, { tab, trigger: sidebar ? "sidebar" : "popup" });
+        if (capture) configuredFlash(true);
+        finish({ ok: true, capture: capture ? { id: capture.id, type: capture.type, cloudStatus: capture.cloudStatus } : null });
       } catch (e) {
         configuredFlash(false, String(e));
-        if (!acknowledgeStart) sendResponse({ ok: false, error: e.message || String(e) });
+        finish({ ok: false, error: e.message || String(e) });
       }
     })();
     return true;
@@ -440,19 +451,22 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
   }
   if (msg?.kind === "saveNote") {
     (async () => {
+      const sidebar = trustedLibrarySender(sender, chrome.runtime) && msg.source === "sidebar";
       const [tab] = await chrome.tabs.query({
         active: true,
-        currentWindow: true,
+        ...(sidebar && Number.isInteger(msg.windowId) ? { windowId: msg.windowId } : { currentWindow: true }),
       });
       try {
         const preferenceState = await getEffectivePreferences();
         if (!preferenceState.preferences.capture.note) throw new Error("Notes are disabled in your FoundKeep preferences.");
         const local = msg.source === "library";
         const attachSource = !local && preferenceState.preferences.notes.attachSource;
+        if (sidebar && attachSource && (tab?.id !== msg.tabId || tab?.url !== msg.tabUrl))
+          throw new Error("The page changed. Check the current page or save without attaching it.");
         const context = !attachSource
           ? { articleText: null, provenance: fallbackProvenance(null, local ? "library-note" : "extension-note", Date.now()) }
           : await capturePageContext(tab, { captureMethod: "extension-note" });
-        await saveCapture({
+        const capture = await saveCapture({
           type: "note",
           noteText: msg.text,
           sourceUrl: local ? null : context.provenance.pageUrl,
@@ -461,7 +475,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
           capturedAt: context.provenance.capturedAt,
           provenance: context.provenance,
         });
-        sendResponse({ ok: true });
+        sendResponse({ ok: true, capture: { id: capture.id, cloudStatus: capture.cloudStatus } });
       } catch (e) {
         sendResponse({ ok: false, error: String(e) });
       }
@@ -484,6 +498,7 @@ async function performCapture(action, { tab, info, trigger = "popup" }) {
   const limits = preferenceState.policy.limits;
   const feature = capturePreferenceKey(action);
   if (!preferences.capture[feature]) throw new Error(`${feature === "fullPage" ? "Full-page screenshot" : feature[0].toUpperCase() + feature.slice(1)} capture is disabled in your FoundKeep preferences.`);
+  if (trigger === "sidebar") await assertCaptureTab(tab);
   switch (action) {
     case "region":
       return regionScreenshot(tab, captureMethod, limits);
@@ -631,9 +646,11 @@ async function regionScreenshot(tab, captureMethod, limits) {
   });
   if (!result) return;
   const { rect, dpr } = result;
+  await assertCaptureTab(tab);
   const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
     format: "png",
   });
+  await assertCaptureTab(tab);
   const encoded = await cropDataUrl(dataUrl, rect, dpr, limits.imageBytes);
   const context = await capturePageContext(tab, { captureMethod });
   return saveCapture(
@@ -672,7 +689,12 @@ function regionSelectInPage() {
     const cleanup = () => {
       overlay.remove();
       hint.remove();
+      window.removeEventListener("keydown", onKey);
+      document.removeEventListener("visibilitychange", onVisibility);
     };
+    const cancel = () => { cleanup(); resolve(null); };
+    const onKey = (event) => { if (event.key === "Escape") cancel(); };
+    const onVisibility = () => { if (document.hidden) cancel(); };
     overlay.addEventListener("mousedown", (e) => {
       dragging = true;
       sx = e.clientX;
@@ -697,16 +719,8 @@ function regionSelectInPage() {
       if (w < 5 || h < 5) return resolve(null);
       resolve({ rect: { x, y, w, h }, dpr });
     });
-    window.addEventListener(
-      "keydown",
-      (e) => {
-        if (e.key === "Escape") {
-          cleanup();
-          resolve(null);
-        }
-      },
-      { once: true },
-    );
+    window.addEventListener("keydown", onKey);
+    document.addEventListener("visibilitychange", onVisibility);
   });
 }
 
@@ -739,6 +753,12 @@ const MAX_PAGE_PIXELS = 32_000_000;
 const MAX_IMAGE_DIMENSION = 32_768;
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
 
+async function assertCaptureTab(tab) {
+  const [active] = await chrome.tabs.query({ active: true, windowId: tab.windowId });
+  if (active?.id !== tab.id || active?.url !== tab.url)
+    throw new Error("The page changed during capture. Return to the page and try again.");
+}
+
 async function fullPageScreenshot(tab, captureMethod, limits) {
   const [{ result: dims }] = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
@@ -767,9 +787,11 @@ async function fullPageScreenshot(tab, captureMethod, limits) {
         args: [y],
       });
       await sleep(500);
+      await assertCaptureTab(tab);
       const dataUrl = await chrome.tabs.captureVisibleTab(tab.windowId, {
         format: "png",
       });
+      await assertCaptureTab(tab);
       shots.push({ y: actualY, dataUrl });
       if (actualY + dims.viewH >= totalH) break;
     }

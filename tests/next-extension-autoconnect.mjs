@@ -49,13 +49,13 @@ test('installed dev extension auto-connects from the library, stays paired acros
   const cookie=response.headers()['set-cookie'].split(';')[0];const me=await context.request.get(base+'/api/me');const account={...(await me.json()).account,password,cookie};accounts.push(account);return account;
  };
  // Before sign-in, merely installing the extension never pairs an account.
- const popup=await context.newPage();await popup.goto(`chrome-extension://${id}/src/popup.html`);
+ const popup=await context.newPage();await popup.goto(`chrome-extension://${id}/src/library.html`);
  assert.equal(await popup.evaluate(async()=> (await chrome.runtime.sendMessage({kind:'cloud-status'})).account),null);
  const accountA=await register();
  const page=await context.newPage();await page.goto(base+'/dashboard');
  await waitFor(async()=>await popup.evaluate(async()=> (await chrome.runtime.sendMessage({kind:'cloud-status'})).account?.id)===accountA.id);
  assert.equal(issuedCodes,1,'Opening My library should issue exactly one automatic pairing code');
- const note='Automatic dev sync check '+crypto.randomUUID();await popup.locator('#note').fill(note);await popup.locator('#save').click();
+ const note='Automatic dev sync check '+crypto.randomUUID();await popup.locator('#newNote').click();await popup.locator('#note').fill(note);await popup.locator('#save').click();
  await waitFor(async()=> (await (await context.request.get(base+'/api/captures')).json()).captures.some(c=>c.noteText===note));
  await page.locator('#open-setup').click();await page.waitForURL('**/dashboard/apps');
  await waitFor(async()=>await page.locator('#browser-connection-badge').textContent()==='Connected here');

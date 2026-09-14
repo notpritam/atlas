@@ -6,14 +6,16 @@ import {chromium} from 'playwright-core';
 let browser;before(async()=>{browser=await chromium.launch({headless:true,args:['--no-sandbox']});});after(async()=>browser?.close());
 async function fixture(t,width=390){
  const context=await browser.newContext({viewport:{width,height:850}});t.after(()=>context.close());
- await context.route('http://foundkeep-extension.test/**',async route=>{
+ await context.route('https://foundkeep-extension.test/**',async route=>{
   const file=new URL(route.request().url()).pathname;
   try{await route.fulfill({body:await readFile(path.join('apps/extension',file)),contentType:file.endsWith('.html')?'text/html':file.endsWith('.css')?'text/css':file.endsWith('.js')?'text/javascript':file.endsWith('.svg')?'image/svg+xml':undefined});}catch{await route.fulfill({status:404});}
  });
  await context.addInitScript(()=>{
-  window.fixture={account:'account-a',requests:[],captures:Array.from({length:12},(_,i)=>({id:'save-'+i,type:i%3?'bookmark':'note',sourceTitle:['A quiet place to think','Building better habits through small rituals','Design notes for the weekend'][i%3],sourceUrl:i%3?'https://example.com/read/'+i:null,noteText:i%3?null:'Keep the little things that make the day feel yours.',createdAt:Date.now()-i*65000,updatedAt:10,userTags:['inspiration'],folderId:'folder-a',savedVia:i%2?'iphone':'browser'}))};
-  const storage={};window.chrome={storage:{local:{get:async key=>({[key]:storage[key]}),set:async value=>Object.assign(storage,value)}},permissions:{request:async()=>false},bookmarks:{getTree:async()=>[]},runtime:{getManifest:()=>({version:"9.8.7"}),onMessage:{addListener:()=>{}},getURL:path=>'http://foundkeep-extension.test/'+path,sendMessage:async msg=>{
+  window.fixture={activeTab:{id:12,windowId:1,title:'A page to keep',url:'https://example.org/article'},listeners:[],tabListeners:[],account:'account-a',requests:[],captures:Array.from({length:12},(_,i)=>({id:'save-'+i,type:i%3?'bookmark':'note',sourceTitle:['A quiet place to think','Building better habits through small rituals','Design notes for the weekend'][i%3],sourceUrl:i%3?'https://example.com/read/'+i:null,noteText:i%3?null:'Keep the little things that make the day feel yours.',createdAt:Date.now()-i*65000,updatedAt:10,userTags:['inspiration'],folderId:'folder-a',savedVia:i%2?'iphone':'browser'}))};
+  const storage={};window.chrome={storage:{local:{get:async key=>({[key]:storage[key]}),set:async value=>Object.assign(storage,value)}},permissions:{request:async()=>false},bookmarks:{getTree:async()=>[]},runtime:{getManifest:()=>({version:"9.8.7"}),onMessage:{addListener:listener=>fixture.listeners.push(listener)},getURL:path=>'https://foundkeep-extension.test/'+path,sendMessage:async msg=>{
     fixture.requests.push(msg);
+    if(msg.kind==='capture')return {ok:true,capture:{id:'new-capture',cloudStatus:'local'}};
+    if(msg.kind==='saveNote')return fixture.noteError?{ok:false,error:fixture.noteError}:{ok:true,capture:{id:'new-note',cloudStatus:'local'}};
     if(msg.kind==='cloud-status')return{ok:true,account:fixture.account?{id:fixture.account,name:'Alex Morgan'}:null,status:fixture.account?'connected':'disconnected'};
     if(msg.kind==='bookmark-import-status')return{ok:true,data:null};
     if(msg.kind==='library-request'){
@@ -24,10 +26,10 @@ async function fixture(t,width=390){
       if(msg.operation==='import-preview')return{ok:true,data:{newBookmarks:msg.args.entries.length,duplicates:0,folders:1,skipped:0,fitsCaptureLimit:true}};
     }
     return{ok:true,data:{}};
-  }},tabs:{create:async()=>{}}};
+  }},windows:{getCurrent:async()=>({id:1})},tabs:{query:async()=>[fixture.activeTab],onActivated:{addListener:listener=>fixture.tabListeners.push(listener)},onUpdated:{addListener:()=>{}},create:async()=>{fixture.openedTab=true;}}};
  });
  const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
- await page.goto('http://foundkeep-extension.test/src/library.html');await page.locator('.save-card').first().waitFor();return{page,errors};
+ await page.goto('https://foundkeep-extension.test/src/library.html');await page.locator('.save-card').first().waitFor();return{page,errors};
 }
 test('sidebar searches, edits, switches layouts and has no horizontal overflow at narrow widths',async t=>{
  const {page,errors}=await fixture(t,320);assert.equal(await page.locator('.save-card').count(),12);
@@ -45,6 +47,27 @@ test('permission denial offers HTML import and shows a review before saving',asy
 });
 test('sidebar gallery preview is readable in light and dark appearance',async t=>{
  const {page,errors}=await fixture(t,400);await page.locator('#toggleView').click();await mkdir('docs/agentic-preview',{recursive:true});
- await page.screenshot({path:'docs/agentic-preview/sidebar-light.png',fullPage:true});await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:'docs/agentic-preview/sidebar-dark.png',fullPage:true});
+ await page.screenshot({path:'docs/agentic-preview/sidebar-light.png',fullPage:true,animations:'disabled'});await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:'docs/agentic-preview/sidebar-dark.png',fullPage:true,animations:'disabled'});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
+});
+
+test('sidebar captures the displayed tab, keeps note drafts on failure, and opens settings and local saves in place',async t=>{
+ const {page,errors}=await fixture(t,320);
+ await page.locator('#saveCurrent').click();
+ const capture=await page.evaluate(()=>fixture.requests.find(msg=>msg.kind==='capture'));
+ assert.equal(capture.source,'sidebar');assert.equal(capture.tabId,12);assert.equal(capture.windowId,1);assert.equal(capture.tabUrl,'https://example.org/article');
+ await page.evaluate(()=>{fixture.activeTab={id:13,windowId:1,title:'Next page',url:'https://example.org/next'};fixture.tabListeners.forEach(listener=>listener({windowId:1}));});
+ await page.waitForFunction(()=>document.querySelector('#currentPage').textContent==='Next page');
+ await page.locator('#newNote').click();await page.locator('#note').fill('Keep this draft');
+ await page.evaluate(()=>{fixture.noteError='Storage is full. Please try again.';});await page.locator('#save').click();
+ assert.match(await page.locator('#noteFeedback').textContent(),/Storage is full/);assert.equal(await page.locator('#note').inputValue(),'Keep this draft');
+ await page.evaluate(()=>{fixture.noteError=null;});await page.locator('#save').click();await page.waitForFunction(()=>!document.querySelector('#noteDialog').open);
+ assert.equal(await page.locator('#note').inputValue(),'');
+ await page.locator('#openSettings').click();assert.equal(await page.locator('#settingsDialog').evaluate(el=>el.open),true);
+ await page.locator('#settingsPageAccess').click();assert.match(await page.locator('#permissionFeedback').textContent(),/not granted/);
+ await page.getByRole('button',{name:'Close settings',exact:true}).click();
+ await page.evaluate(async()=>{await(await import('/src/db.js')).addCapture({type:'note',noteText:'Only in this browser'});});
+ await page.locator('#openLocal').click();await page.locator('#localItems .save-card').click();await page.waitForFunction(()=>!document.querySelector('#localDetail').hidden);assert.equal(await page.locator('#localText').textContent(),'Only in this browser');
+ await page.locator('#localDelete').click();await page.locator('#localCancelDelete').click();assert.equal(await page.evaluate(async()=>(await(await import('/src/db.js')).listCaptures()).length),1);
+ assert.equal(await page.evaluate(()=>!!fixture.openedTab),false);assert.deepEqual(errors,[]);
 });

@@ -67,3 +67,13 @@ An authenticated dashboard checks the configured environment’s extension IDs o
 The `atlas-ping` response advertises `autoConnect` support, its bound account (including when its token needs renewal), and an explicit-disconnect pause. `atlas-auto-connect` accepts only a one-use code and the expected account ID, from the same trusted top-level origins as manual pairing. The extension never accepts a caller-selected destination or credential. It revokes unsuccessful stale/mismatched claims, and a pending automatic claim cannot overwrite a newer manual choice or disconnect. Local historical saves are not imported by automatic pairing. Older extension versions retain manual connection until updated.
 
 `tests/next-extension-autoconnect.mjs` verifies the real extension and Next shell: automatic connection from My library, a cloud note save, deduplication across routes/focus, account-switch confirmation, and an explicit disconnect that stays disconnected. Use a disposable backend, or `FOUNDKEEP_ALLOW_DEV_TEST=1 BASE_URL=https://dev.foundkeep.app` for temporary dev-only accounts that the test deletes afterward. Production is rejected.
+
+## Sidebar entry point (extension 1.7.5)
+
+The toolbar action has no popup. The service worker sets `openPanelOnActionClick: true` for the packaged `src/library.html` side panel. Capture controls, quick notes, local saves, account connection settings, account search/editing, folders and bookmark imports all live in this panel. Legacy packaged popup/dashboard pages remain for compatibility with existing local links.
+
+Capture messages include the displayed tab ID, URL and browser window. The worker checks them before capture and checks the active tab before/after screenshot reads. Region completion or cancellation reports back to the panel without closing it. Quick-note drafts survive failures; notes and captures retain the existing account-bound durable queue and environment isolation.
+
+`<all_urls>` is optional, requested only by the visible **Allow page captures** action. Chrome's `captureVisibleTab` requires activeTab or all-URL access; a per-site grant alone does not enable screenshots across tabs. The initial toolbar grant still works without this optional permission. Install-time permissions stay unchanged.
+
+The action test opens a real Chrome side-panel target using an extension-page user gesture (headless Chrome cannot click browser toolbar chrome). It asserts the toolbar configuration, in-panel notes/settings/local saves, and stale-tab rejection. Use `FOUNDKEEP_HEADLESS=false xvfb-run -a node --test tests/extension-action.mjs` on a headless Linux host to verify native panel geometry; the normal headless run supplies a viewport to the native target.

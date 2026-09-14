@@ -15,7 +15,7 @@ export function cloudMarkup({ compact = false } = {}) {
 }
 export function bindCloud(
   container,
-  { compact = false, onStatus = () => {} } = {},
+  { compact = false, showDashboard = true, onStatus = () => {} } = {},
 ) {
   container.innerHTML = cloudMarkup({ compact });
   const field = (id) =>
@@ -34,7 +34,7 @@ export function bindCloud(
   };
   const openAccount = () =>
     chrome.tabs
-      .create({ url: CUSTOMER_ORIGIN + "/dashboard.html" })
+      .create({ url: CUSTOMER_ORIGIN + "/dashboard" })
       .catch(() =>
         message(
           field("cloudFeedback"),
@@ -51,6 +51,7 @@ export function bindCloud(
       state = result;
       field("cloudAccount").textContent =
         state.account?.email || "Keep your finds together.";
+      field("cloudAction").hidden = !showDashboard && !!state.account && state.status !== "reconnect";
       field("cloudAction").textContent =
         state.status === "reconnect"
           ? "Reconnect"

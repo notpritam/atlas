@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FoundKeep — Save what matters",
-  "version": "1.7.4",
+  "version": "1.7.5",
   "description": "Save readable pages, screenshots, highlights, images and notes with original source details in a private, searchable library.",
   "permissions": [
     "activeTab",
@@ -15,6 +15,7 @@
     "https://foundkeep.app/*"
   ],
   "optional_host_permissions": [
+    "<all_urls>",
     "http://*/*",
     "https://*/*"
   ],
@@ -29,7 +30,6 @@
     "type": "module"
   },
   "action": {
-    "default_popup": "src/popup.html",
     "default_title": "FoundKeep",
     "default_icon": {
       "16": "icons/icon16.png",

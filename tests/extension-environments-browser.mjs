@@ -116,10 +116,10 @@ test('dev and prod install together, pair separately, and save into isolated dat
     await poll(async () => (await request('/captures')).captures.some(capture => capture.noteText === `${name} isolated note`));
     const sidebar = await context.newPage();
     await sidebar.goto(`chrome-extension://${id}/src/library.html`);
-    assert.equal(await sidebar.locator('.brand').getAttribute('href'), origin + '/dashboard');
+    assert.equal(await sidebar.locator('.brand').getAttribute('href'), null, 'The sidebar brand stays in place');
     assert.equal(await sidebar.locator('.library-foot a').first().getAttribute('href'), origin + '/dashboard');
-    assert.equal(await sidebar.locator('[data-build-info]').getAttribute('data-environment'), name);
-    assert.ok((await sidebar.locator('[data-build-info]').textContent()).includes(`v${installed}`));
+    assert.equal(await sidebar.locator('[data-build-info]').first().getAttribute('data-environment'), name);
+    assert.ok((await sidebar.locator('[data-build-info]').first().textContent()).includes(`v${installed}`));
     const localLibrary = await context.newPage();
     await localLibrary.goto(`chrome-extension://${id}/src/dashboard.html`);
     assert.equal(await localLibrary.locator('[data-build-info]').getAttribute('data-environment'), name);

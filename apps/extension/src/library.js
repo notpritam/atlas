@@ -1,4 +1,7 @@
 import {bindCollections} from './collections-ui.js';
+import {bindSidebarCapture} from './sidebar-capture.js';
+import {bindSidebarLocal} from './sidebar-local.js';
+import {bindConnections} from './connections.js';
 import { $,icon,hydrateIcons,domain,ago,sourceUrl,openDialog,wireDialog } from './ui.js';
 import { parseBookmarkHtml,flattenBookmarkTree,IMPORT_MAX_BYTES } from './bookmark-import.js';
 import { CUSTOMER_ORIGIN } from './product.js';
@@ -57,11 +60,11 @@ async function refresh(){
   try{
     const state=await chrome.runtime.sendMessage({kind:'cloud-status'});if(!state?.ok)throw new Error(state?.error||'Could not load the connection.');
     const next=state.account?.id||null;
-    if(next!==accountId){sharedCollections.reset();epoch++;images.clear();rows=[];preview=null;detail=null;$('detail').hidden=true;document.querySelectorAll('dialog[open]').forEach(dialog=>dialog.close());}
+    if(next!==accountId){sharedCollections.reset();epoch++;images.clear();rows=[];preview=null;detail=null;$('detail').hidden=true;for(const id of ['importDialog','folderDialog','deleteDialog'])$(id).close();}
     accountId=next;const connected=!!accountId&&state.status!=='reconnect';
     $('accountLabel').textContent=state.account?`${state.account.name||'Your collection'} · ${state.status==='reconnect'?'Reconnect this browser':'Connected'}`:'Your own little corner of the internet';
     $('connect').hidden=connected;$('collection').hidden=!connected||!$('detail').hidden;
-    for(const key of ['newNote','openImport'])$(key).disabled=!connected;
+    $('openImport').disabled=!connected;
     if(!connected)return;
     const owner=accountId;const data=await api('organization');if(owner!==accountId)return;organization=data;renderOrganization();await loadCollection();await updateImportProgress();
   }catch(error){notice(error.message);}
@@ -136,13 +139,11 @@ async function updateImportProgress(){
 $('retryImport').onclick=()=>void message('bookmark-import-retry').then(updateImportProgress).catch(error=>{$('importError').textContent=error.message;});
 $('cancelImport').onclick=()=>void message('bookmark-import-cancel').then(()=>{preview=null;$('confirmImport').disabled=true;return updateImportProgress();});
 $('openImport').onclick=()=>{openDialog($('importDialog'));void updateImportProgress();};
-$('openLocal').onclick=()=>chrome.tabs.create({url:chrome.runtime.getURL('src/dashboard.html')});
 $('q').oninput=()=>{clearTimeout(searchTimer);searchTimer=setTimeout(()=>void loadCollection(),220);};
 $('folder').onchange=$('tag').onchange=()=>void loadCollection();
 $('types').onclick=event=>{const button=event.target.closest('[data-type]');if(!button)return;type=button.dataset.type;for(const item of $('types').children)item.setAttribute('aria-current',String(item===button));void loadCollection();};
 $('toggleView').onclick=()=>{mode=mode==='gallery'?'list':'gallery';$('toggleView').setAttribute('aria-label',`Switch to ${mode==='gallery'?'list':'gallery'} view`);renderRows();void chrome.storage.local.set({foundkeepLibraryView:mode});};
-$('newNote').onclick=()=>showEditor();$('back').onclick=back;$('refresh').onclick=()=>void refresh();$('more').onclick=()=>void loadCollection(true);
-$('saveCurrent').onclick=async()=>{const button=$('saveCurrent');button.disabled=true;try{const result=await chrome.runtime.sendMessage({kind:'capture',action:'savepage'});if(!result?.ok)throw new Error(result?.error||'Could not save the page.');notice('Page saved. It will appear here when the upload finishes.');setTimeout(()=>void refresh(),1200);}catch(error){notice(error.message);}finally{button.disabled=false;}};
+$('back').onclick=back;$('refresh').onclick=()=>void refresh();$('more').onclick=()=>void loadCollection(true);
 $('newFolder').onclick=()=>{renderOrganization();$('folderName').value='';$('folderError').textContent='';openDialog($('folderDialog'));};
 $('folderForm').onsubmit=async event=>{event.preventDefault();$('saveFolder').disabled=true;try{await api('create-folder',{name:$('folderName').value,parentId:$('folderParent').value||null});$('folderDialog').close();await refresh();}catch(error){$('folderError').textContent=error.message;}finally{$('saveFolder').disabled=false;}};
 $('deleteSave').onclick=()=>openDialog($('deleteDialog'));
@@ -156,3 +157,9 @@ document.addEventListener('keydown',event=>{if(event.key==='/'&&!['INPUT','TEXTA
 void chrome.storage.local.get('foundkeepLibraryView').then(value=>{mode=value.foundkeepLibraryView==='gallery'?'gallery':'list';}).then(refresh);
 
 const sharedCollections=bindCollections(document.getElementById('library-collections'),{getAccountId:()=>accountId,getSource:async()=>detail||{title:document.getElementById('editTitle').value}});
+
+const localLibrary=bindSidebarLocal();
+const settings=bindConnections($('connections'),{showDashboard:false});
+$('openSettings').onclick=()=>{openDialog($('settingsDialog'));void settings.load();};
+bindSidebarCapture({onSaved:()=>{void localLibrary.refresh();setTimeout(()=>void refresh(),1000);}});
+chrome.runtime.onMessage.addListener(event=>{if(event.kind==='atlas-changed'&&$('settingsDialog').open)void settings.load();});

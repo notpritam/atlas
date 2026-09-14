@@ -79,7 +79,11 @@ test("Chrome Web Store package is a focused version 1.0.1 MV3 build", async () =
   assert.equal(manifest.side_panel.default_path,"src/library.html");
   assert.ok(files.includes("src/bookmark-import.js"));
   assert.deepEqual(manifest.host_permissions, ["https://foundkeep.app/*"]);
+  assert.equal(manifest.action.default_popup, undefined);
+  assert.ok(files.includes("src/sidebar-capture.js"));
+  assert.ok(files.includes("src/sidebar-local.js"));
   assert.deepEqual(manifest.optional_host_permissions, [
+    "<all_urls>",
     "http://*/*",
     "https://*/*",
   ]);

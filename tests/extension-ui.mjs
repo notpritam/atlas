@@ -323,7 +323,7 @@ test("popup offers real account connection and preserves a local-library fallbac
   await page.locator("#popup-cloudAction").click();
   assert.equal(
     await page.evaluate(() => window.__opened),
-    "https://foundkeep.app/dashboard.html",
+    "https://foundkeep.app/dashboard",
   );
   await page.evaluate(() => {
     window.__cloudStatus = {

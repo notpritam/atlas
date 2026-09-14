@@ -2,9 +2,15 @@
 
 Keep readable page copies, screenshots, highlights, links, images, and notes with a record of where they came from. Connect your FoundKeep account to sync new captures to a private dashboard, with a local library available offline.
 
+## One sidebar for everything
+
+Click the pinned FoundKeep toolbar icon to open the native sidebar directly. Save the current page, selected text, a region or a full-page screenshot; use **+** for a note. Search and edit your account library, import bookmarks, open **Local saves**, and manage your connection from **Settings** without leaving the sidebar. The panel stays open as you browse.
+
+The initial toolbar click grants access to that page. To keep capturing after switching tabs, choose **Allow page captures** once and accept Chrome’s optional page-access prompt. Declining leaves notes and the library available. Browser-internal pages cannot be captured. Region selection happens on the page; Escape or switching tabs cancels it. A page change during a screenshot aborts the capture instead of saving the wrong tab.
+
 ## Check the environment and version
 
-The popup, side panel and local library show **DEV / Production**, the installed manifest version, and the fixed cloud destination. For dev testing, use **DEV · v1.7.4 · dev.foundkeep.app**, then sign in to the same account at [your dev dashboard](https://dev.foundkeep.app/dashboard). The extension connects automatically; no Connect button is needed. That page also shows the detected extension version and destination.
+The sidebar and local library show **DEV / Production**, the installed manifest version, and the fixed cloud destination. For dev testing, use **DEV · v1.7.5 · dev.foundkeep.app**, then sign in to the same account at [your dev dashboard](https://dev.foundkeep.app/dashboard). The extension connects automatically; no Connect button is needed. That page also shows the detected extension version and destination.
 
 Save a note named **Dev sync test**. Confirm it appears in My library at `dev.foundkeep.app` under the same account. A local save or a pending upload is not yet a cloud save. The production library at `foundkeep.app` is separate.
 
@@ -56,7 +62,7 @@ Changing these settings does not require an extension update. Manifest permissio
 
 ## Your libraries
 
-**Open dashboard** opens the private account library, including organized text, screenshots, capture settings, and a source record for traceable captures. **Local library** opens captures stored in this browser: browse, filter, sort, search by keyword, open details, or create a note. Local library notes follow the same account binding and sync queue as popup captures.
+**Your library** in the sidebar searches and edits your synced account saves. **Local saves** opens an in-panel browser of local captures: search, read text, view or download images, and delete browser copies. **+** creates a note through the same durable account-bound queue as page captures. **Open dashboard** remains available for full account administration.
 
 Local copies remain in IndexedDB. Deleting a local copy does not delete a synced account copy; use the account dashboard to manage that copy. Local **Export metadata** includes text and metadata but not image files, so it is not a complete backup. The account dashboard has its own export and account-deletion controls.
 

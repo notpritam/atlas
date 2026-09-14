@@ -10,6 +10,8 @@
   "assets/fonts/geist-latin.woff2",
   "src/library.html",
   "src/library.js",
+  "src/sidebar-capture.js",
+  "src/sidebar-local.js",
   "src/library.css",
   "src/library-api.js",
   "src/import-queue.js",
