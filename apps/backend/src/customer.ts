@@ -1,3 +1,6 @@
+import {enqueuePreservation,preservationDetails,preparePreservedCleanup} from './customer-preservation.ts';
+import {normalizeSocialContext,twitterPost} from './customer-twitter.ts';
+import {registerPreservation} from './customer-preservation-routes.ts';
 import {registerCustomerCollections} from './customer-collections';
 import {registerCustomerProcessing,createProcessingService} from './customer-processing.ts';
 import {registerAgentAccess} from './customer-agent-access.ts';
@@ -361,6 +364,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
     const body = await jsonBody(c);
     const deletionProof = typeof body.reauthToken === "string" ? body.reauthToken : null;
     if (!deletionProof && !(await verifyPassword(passwordField(body, "password", false), current.account.password_hash))) fail(401, "invalid_credentials", "The password is incorrect.");
+    const cleanupPreserved=preparePreservedCleanup(db,config.dataDir,current.account.id);
     const ownedFiles = db.query("SELECT file_path FROM customer_captures WHERE account_id = ? AND file_path IS NOT NULL").all(current.account.id) as { file_path: string }[];
     db.transaction(() => {
       const latest = auth(c, current.kind === "session");
@@ -374,6 +378,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
       db.query("DELETE FROM customer_captures WHERE account_id = ?").run(current.account.id);
       db.query("DELETE FROM customer_accounts WHERE id = ?").run(current.account.id);
     })();
+    cleanupPreserved();
     for (const file of ownedFiles) removeCustomerFile(config.dataDir, file.file_path);
   }
   function revoke(accountId: string, keepSession?: string) {
@@ -391,7 +396,8 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
     const origins = importOrigins(db, id, accountId);
     const processing = createProcessingService(db).details(accountId, id);
     const derivatives = db.query('SELECT kind,mime,bytes FROM customer_derivatives WHERE capture_id=? AND account_id=?').all(id,accountId);
-    return { ...(origins.length ? {importOrigins: origins} : {}), ...(processing ? {processing} : {}), ...(derivatives.length ? {derivatives} : {}) };
+    const preservation = preservationDetails(db,accountId,id);
+    return { ...(preservation ? {preservation} : {}), ...(origins.length ? {importOrigins: origins} : {}), ...(processing ? {processing} : {}), ...(derivatives.length ? {derivatives} : {}) };
   }
   function findCapture(id: string, accountId: string) {
     const row = db.query(`SELECT ${CAPTURE_COLUMNS} FROM customer_captures WHERE id = ? AND account_id = ?`).get(id, accountId) as CustomerCaptureRow | null;
@@ -445,6 +451,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
   registerCustomerImports(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerCustomerBilling(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerCustomerProcessing(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
+  registerPreservation(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerAgentAccess(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerCustomerMcp(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerCustomerGraph(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
@@ -872,9 +879,11 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
       if (error instanceof ProvenanceValidationError) fail(400, "invalid_capture_context", error.message);
       throw error;
     }
+    let socialContext;try { socialContext=normalizeSocialContext(body.socialContext); } catch { fail(400,'invalid_social_context','Invalid social attachment hints.'); }
     const provenanceJson = provenance ? JSON.stringify(provenance) : null;
     const processingOptionsJson = JSON.stringify(processingOptions);
-    const baseStorageBytes = image.bytes + [sourceUrl, sourceTitle, selectionText, noteText, articleText, clientId, batchId, provenanceJson, processingOptionsJson].reduce((sum, text) => sum + Buffer.byteLength(text || "", "utf8"), 0);
+    const socialContextJson = twitterPost(sourceUrl) ? JSON.stringify(socialContext) : null;
+    const baseStorageBytes = image.bytes + [sourceUrl, sourceTitle, selectionText, noteText, articleText, clientId, batchId, provenanceJson, processingOptionsJson, socialContextJson].reduce((sum, text) => sum + Buffer.byteLength(text || "", "utf8"), 0);
     const result = db.transaction(() => {
       // Authentication must still hold after the streamed body was received.
       auth(c);
@@ -890,6 +899,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
       const now = Date.now();
       db.query("INSERT INTO customer_captures(id,account_id,client_id,batch_id,type,source_url,source_title,selection_text,note_text,article_text,blob_data,blob_mime,blob_bytes,storage_bytes,width,height,captured_at,created_at,updated_at,provenance_json,processing_options_json,folder_id,manual_tags) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").run(id, current.account.id, clientId, batchId, type, sourceUrl, sourceTitle, selectionText, noteText, articleText, image.data, image.mime, image.bytes, storageBytes, width, height, capturedAt as number, now, now, provenanceJson, processingOptionsJson, organization.folderId, organization.manualTags);
       db.query("UPDATE customer_captures SET saved_via=? WHERE id=? AND account_id=?").run(savingClient(current), id, current.account.id);
+      enqueuePreservation(db,current.account.id,id,sourceUrl,socialContext);
         return { capture: customerCaptureDto(findCapture(id, current.account.id)), duplicate: false };
     })();
     return c.json(result, result.duplicate ? 200 : 201);
@@ -972,6 +982,7 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
           storageBytes,capturedAt as number,now,now,provenanceJson,processingOptionsJson,
           fileName,stored!.relativePath,stored!.mime,stored!.bytes,organization.folderId,organization.manualTags,
         );
+        enqueuePreservation(db,current.account.id,id,sourceUrl);
         db.query("UPDATE customer_captures SET saved_via=? WHERE id=? AND account_id=?").run(savingClient(current), id, current.account.id);
         return { capture: customerCaptureDto(findCapture(id, current.account.id)), duplicate: false };
       })();
@@ -1140,9 +1151,11 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
   });
   app.delete("/mobile/captures/:id", (c) => {
     const current = auth(c);
+    const cleanupPreserved=preparePreservedCleanup(db,config.dataDir,current.account.id,c.req.param('id'));
     const row = db.query("SELECT file_path FROM customer_captures WHERE id=? AND account_id=?").get(c.req.param("id"), current.account.id) as { file_path: string | null } | null;
     if (!row) fail(404, "not_found", "Capture not found.");
     db.query("DELETE FROM customer_captures WHERE id=? AND account_id=?").run(c.req.param("id"), current.account.id);
+    cleanupPreserved();
     removeCustomerFile(config.dataDir, row.file_path);
     return c.json({ ok: true });
   });
@@ -1210,10 +1223,12 @@ export function customerRoutes(db: Database, oauthGateway: OAuthGateway = create
   });
   app.delete("/captures/:id", (c) => {
     const current = auth(c, true);
+    const cleanupPreserved=preparePreservedCleanup(db,config.dataDir,current.account.id,c.req.param('id'));
     const row = db.query("SELECT file_path FROM customer_captures WHERE id = ? AND account_id = ?").get(c.req.param("id"), current.account.id) as { file_path: string | null } | null;
     if (!row) fail(404, "not_found", "Capture not found.");
     const deleted = db.query("DELETE FROM customer_captures WHERE id = ? AND account_id = ?").run(c.req.param("id"), current.account.id);
     if (!deleted.changes) fail(404, "not_found", "Capture not found.");
+    cleanupPreserved();
     removeCustomerFile(config.dataDir, row.file_path);
     return c.json({ ok: true });
   });

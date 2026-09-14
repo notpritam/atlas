@@ -34,7 +34,7 @@ html body .reader-surface .detail-origin dl{grid-template-columns:minmax(0,1fr);
 html body .reader-surface .detail-origin dt{font-size:11px;text-transform:none;letter-spacing:0;font-weight:400;margin-top:10px}
 html body .reader-surface .detail-origin dd{font-size:12px;line-height:1.7}
 html body .reader-surface .capture-collection-share{margin-top:22px;padding-top:18px;border-top:1px solid var(--fk-line)}
-html body .reader-surface .capture-collection-share>.button{width:100%;min-height:36px;border-radius:7px;font-size:12px;padding:9px 10px;border-color:var(--fk-line);color:var(--fk-ink)}
+html body .reader-surface .capture-collection-share>.button{width:100%;min-height:36px;border-radius:7px;font-size:12px;padding:9px 10px;border-color:var(--fk-line);color:var(--fk-ink);background:var(--fk-surface)}
 html body .reader-surface .capture-collection-share>.button:hover{background:var(--fk-soft);color:var(--fk-ink)}
 html body .reader-surface .capture-collection-share :is(p,label){font-size:12px}
 html body .reader-surface .capture-collection-share .entry-form{padding:12px;margin-top:16px;border-radius:8px}

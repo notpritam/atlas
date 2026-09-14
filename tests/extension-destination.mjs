@@ -11,7 +11,7 @@ test('an X save opens a destination review without saving until confirmation, an
  const extension=process.env.FOUNDKEEP_TEST_EXTENSION||path.resolve('apps/extension');
  context=await chromium.launchPersistentContext(profile,{headless:process.env.FOUNDKEEP_HEADLESS!=='false',executablePath:process.env.CHROMIUM_PATH,args:['--no-sandbox',`--disable-extensions-except=${extension}`,`--load-extension=${extension}`]});
  const worker=context.serviceWorkers()[0]||await context.waitForEvent('serviceworker');
- await context.route('https://x.com/**',route=>route.fulfill({contentType:'text/html',body:'<title>X fixture</title><article data-testid="tweet"><div data-testid="User-Name">Mina</div><a href="/mina/status/123456789"><time>Today</time></a><div data-testid="tweetText">A tweet worth keeping.</div><div role="group"><button data-testid="reply">Reply</button></div></article>'}));
+ await context.route('https://x.com/**',route=>route.fulfill({contentType:'text/html',body:`<title>X fixture</title><article data-testid="tweet"><div data-testid="User-Name">Mina</div><a href="/mina/status/123456789"><time>Today</time></a><div data-testid="tweetText">A tweet worth keeping.</div><div data-testid="tweetPhoto"><img src="https://pbs.twimg.com/media/own.jpg"></div><div data-testid="card.wrapper"><a href="https://t.co/blog" title="https://example.org/blog">Blog</a></div><div role="link"><a href="/neighbor/status/999">A quoted post</a><div data-testid="tweetPhoto"><img src="https://pbs.twimg.com/media/quoted.jpg"></div><div data-testid="tweetText"><a href="https://example.org/quoted">Quoted link</a></div></div><div data-testid="videoPlayer"><div data-testid="tweetPhoto"><img src="https://pbs.twimg.com/media/poster.jpg"></div></div><div data-testid="twitterArticleRichTextView">Visible long-form article</div><div role="group"><button data-testid="reply">Reply</button></div></article>`}));
  const web=await context.newPage();await web.goto('https://x.com/home');
  const button=web.locator('article [data-state]');await button.waitFor();await button.click();
  await web.waitForFunction(()=>document.querySelector('article [data-state]').dataset.state!=='saving');
@@ -31,6 +31,7 @@ test('an X save opens a destination review without saving until confirmation, an
  const saved=await panel.evaluate("import('./db.js').then(db=>db.listCaptures()).then(rows=>rows[0])");
  assert.equal(saved.selectionText,'A tweet worth keeping.');assert.equal(saved.cloudAccountId,null);
  assert.equal(saved.sourceUrl,'https://x.com/mina/status/123456789');
+ assert.deepEqual(saved.socialContext,{version:1,images:['https://pbs.twimg.com/media/own.jpg'],links:['https://example.org/blog'],articleText:'Visible long-form article'});
  await web.waitForFunction(()=>document.querySelector('article [data-state]').dataset.state==='saved');
  assert.doesNotMatch(await button.getAttribute('aria-label'),/atlas/i);
  // The draft survives a fresh module instance, and a different account cannot

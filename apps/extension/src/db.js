@@ -107,6 +107,7 @@ export async function addCapture(input, { id: stableId } = {}) {
     selectionContext: input.selectionContext ?? null,
     noteText: input.noteText ?? null,
     provenance: input.provenance ?? null,
+    socialContext: input.socialContext ?? null,
     processingOptions: input.processingOptions ?? null,
     blob: input.blob ?? null, // a Blob, stored directly by IndexedDB
     blobMime: input.blob?.type ?? null,

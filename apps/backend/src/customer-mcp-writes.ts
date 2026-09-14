@@ -102,6 +102,7 @@ export function callMcpWrite(db:Database,name:McpWriteName,value:Record<string,a
         VALUES(?,?,?,?,'done',?,?,?,?,?,?,?,?,?,?,?,?)`)
         .run(saveId,owner,value.clientId,value.type,value.sourceUrl??null,value.sourceTitle??null,value.selectionText??null,
           value.noteText??null,value.articleText??null,storageBytes,now,now,now,provenanceJson,organizationValue.folderId,organizationValue.manualTags);
+      enqueuePreservation(db,owner,saveId,value.sourceUrl??null);
       return {capture:customerCaptureDto(capture(db,owner,saveId)),duplicate:false};
     }
 
@@ -133,3 +134,4 @@ export function callMcpWrite(db:Database,name:McpWriteName,value:Record<string,a
     return {capture:customerCaptureDto(capture(db,owner,row.id))};
   }).immediate();
 }
+import {enqueuePreservation} from './customer-preservation.ts';

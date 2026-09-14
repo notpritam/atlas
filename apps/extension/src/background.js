@@ -457,11 +457,12 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (!trusted || !sender.tab || !p || typeof p.text !== 'string' || p.text.length > 50000 || typeof p.title !== 'string' || p.title.length > 1000 || !/^https:\/\/x\.com\/[A-Za-z0-9_]+\/status\/\d+$/.test(p.url || '')) {
       sendResponse({ ok: false, error: 'Open the tweet on X to save it.' }); return;
     }
+    if (p.socialContext !== undefined && (JSON.stringify(p.socialContext).length > 120000 || p.socialContext?.version !== 1)) { sendResponse({ ok: false, error: 'This post is too large to capture.' }); return; }
     const opened = openReviewPanel(sender.tab);
     void opened.then(async () => {
       const state = await getEffectivePreferences();
       if (!state.preferences.capture.tweet) throw new Error('Tweet capture is disabled in your FoundKeep preferences.');
-      const draft = await stageSaveReview({ action: 'tweet', tab: sender.tab, tweet: { url: p.url, text: p.text, title: p.title }, trigger: 'twitter' });
+      const draft = await stageSaveReview({ action: 'tweet', tab: sender.tab, tweet: { url: p.url, text: p.text, title: p.title, socialContext: p.socialContext || null }, trigger: 'twitter' });
       sendResponse({ ok: true, pending: true, draftId: draft.id });
     }).catch(error => sendResponse({ ok: false, error: error.message }));
     return true;
@@ -521,7 +522,7 @@ async function performCapture(action, { tab, info, tweet, text, attachPage, trig
     case 'tweet': {
       const capturedAt = Date.now();
       return commit({ type: 'highlight', cloudType: 'tweet', sourceUrl: tweet.url, sourceTitle: tweet.title,
-        selectionText: boundedText(tweet.text, limits.selectionCharacters, 'Post text'), capturedAt,
+        selectionText: boundedText(tweet.text, limits.selectionCharacters, 'Post text'), socialContext: tweet.socialContext || null, capturedAt,
         provenance: fallbackProvenance({ url: tweet.url, title: tweet.title }, 'twitter-action', capturedAt) });
     }
     case 'note': {

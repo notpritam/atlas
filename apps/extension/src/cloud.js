@@ -326,6 +326,7 @@ async function uploadBody(record) {
     noteText: record.noteText,
     articleText: record.articleText,
     provenance: record.provenance,
+    ...(record.socialContext ? {socialContext: record.socialContext} : {}),
     processingOptions: record.processingOptions,
     width: record.width,
     height: record.height,
@@ -501,7 +502,7 @@ export async function libraryRequest(operation, args, accountId) {
   if (!accountId || connection?.account?.id!==accountId || !connection.token || connection.status==='reconnect') throw new Error('Connect your FoundKeep account to open its collection.');
   const response=await fetch(CUSTOMER_ORIGIN+request.path,{
     method:request.method,credentials:'omit',redirect:'error',signal:AbortSignal.timeout(30_000),
-    headers:{Authorization:'Bearer '+connection.token,...(request.body?{'Content-Type':'application/json'}:{})},
+    headers:{Authorization:'Bearer '+connection.token,...(request.body?{'Content-Type':'application/json'}:{}),...(request.range?{Range:request.range}:{})},
     body:request.body?JSON.stringify(request.body):undefined,
   });
   if (!sameConnection(connection,await readState())) throw new Error('Your account changed. Open the collection again.');
@@ -515,6 +516,16 @@ export async function libraryRequest(operation, args, accountId) {
   } finally {void reader?.cancel().catch(()=>{});}
   if (!sameConnection(connection,await readState())) throw new Error('Your account changed. Open the collection again.');
   const blob=new Blob(chunks,{type:response.headers.get('Content-Type')||''});
+  if (request.binary && response.ok) {
+    const mime=blob.type.split(';')[0];
+    if (!['image/png','image/jpeg','image/webp','video/mp4','text/plain'].includes(mime)) throw new Error('This saved file type cannot be opened here.');
+    const total=Number(response.headers.get('Content-Range')?.split('/')[1]||blob.size);
+    if (!Number.isSafeInteger(total)||total<=0||total>50*1024*1024||blob.size>4*1024*1024) throw new Error('This saved file is too large to open here.');
+    const bytes=new Uint8Array(await blob.arrayBuffer());let binary='';
+    for(let i=0;i<bytes.length;i+=8192)binary+=String.fromCharCode(...bytes.subarray(i,i+8192));
+    if(!sameConnection(connection,await readState()))throw new Error('Your account changed.');
+    return {base64:btoa(binary),mime,total,bytes:bytes.length};
+  }
   if (request.image && response.ok) {
     if (!['image/png','image/jpeg','image/webp'].includes(blob.type)) throw new Error('No preview available.');
     const bitmap=await createImageBitmap(blob);

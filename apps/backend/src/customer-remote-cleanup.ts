@@ -31,6 +31,7 @@ export function createRemoteFileSweeper(db:Database,root:string){
      if(!lstatSync(join(root,'customer-files')).isDirectory()||!lstatSync(base).isDirectory()||!lstatSync(join(base,directory)).isDirectory())return;
      const info=lstatSync(path);if(!info.isFile()||info.mtimeMs>=now-3600_000)return;
      if(db.query('SELECT 1 FROM customer_captures WHERE file_path=? LIMIT 1').get(relativePath))return;
+     if(db.query('SELECT 1 FROM customer_media_assets WHERE file_path=? LIMIT 1').get(relativePath))return;
      unlinkSync(path);
     }).immediate();
    }

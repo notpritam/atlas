@@ -59,7 +59,10 @@ export function extractSource(html:string,url:string,requestedUrl=url):Omit<Sour
   // Social pages often expose a login/application shell. Only their explicit post data is treated as full text.
   const fallback=usable(root?.textContent,100_000);
   const body=platform==='web'?(paragraphs.length?[...new Set(paragraphs)].join('\n\n'):fallback!==title?fallback||'':''):'';
-  const readable=transcript||article||body;
+  // A short, ellipsis-ended teaser (for example Tumblr's public shell) is not
+  // evidence that the linked article body was actually available.
+  const teaser=body.length<1200&&/(?:\.\.\.|…)\s*$/.test(body);
+  const readable=transcript||article||(!teaser&&body);
   const text=(readable||description||'').slice(0,100_000),extractionStatus=readable?'readable':description||title?'metadata-only':'unavailable';
   const transcriptStatus=video?(transcript?'available':'unavailable'):'not-applicable';
   const notice=extractionStatus==='unavailable'?'This page did not expose readable public content. Save the text from the page with the extension, or add a note.':video&&!transcript?'Video metadata is available, but no transcript was exposed by this page.':extractionStatus==='metadata-only'?'Only the public preview was available. The full post or article was not exposed by this page.':null;

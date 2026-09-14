@@ -15,6 +15,13 @@ export function libraryOperation(operation, args = {}) {
   if (operation === 'submit-collection') return {method:'POST',path:`/api/collections/${id(args.id)}/entries`,body:args.value};
   if (operation === 'organization') return {method:'GET',path:'/api/organization'};
   if (operation === 'detail') return {method:'GET',path:`/api/mobile/captures/${id(args.id)}`};
+  if (operation === 'preservation') return {method:'GET',path:`/api/mobile/captures/${id(args.id)}/preservation`};
+  if (operation === 'retry-preservation') return {method:'POST',path:`/api/mobile/captures/${id(args.id)}/preservation`,body:{}};
+  if (operation === 'asset-chunk') {
+    const offset=args.offset??0;
+    if (!Number.isSafeInteger(offset)||offset<0||offset>=50*1024*1024) throw new Error('Invalid saved file offset.');
+    return {method:'GET',path:`/api/mobile/captures/${id(args.id)}/assets/${id(args.asset)}`,binary:true,range:`bytes=${offset}-${Math.min(offset+4*1024*1024-1,50*1024*1024-1)}`};
+  }
   if (operation === 'preview') return {method:'GET',path:`/api/mobile/captures/${id(args.id)}/preview`,image:true};
   if (operation === 'update') return {method:'PUT',path:`/api/mobile/captures/${id(args.id)}`,body:args.value};
   if (operation === 'delete') return {method:'DELETE',path:`/api/mobile/captures/${id(args.id)}`};

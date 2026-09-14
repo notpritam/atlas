@@ -25,9 +25,22 @@ function extract(article) {
     article.querySelector('[data-testid="User-Name"]')?.innerText?.split("\n")[0]?.trim() ||
     handle;
   const text = article.querySelector('[data-testid="tweetText"]')?.innerText?.trim() || "";
+  // Only media attached to this post. Quoted/nested posts are separate saves.
+  const own = node => {
+    if (node.closest('article[data-testid="tweet"]') !== article || node.closest('[data-testid="quoteTweet"], [data-testid="videoPlayer"]')) return false;
+    // X also renders quotes as an unlabelled linked card, with a different
+    // post permalink inside. Its photos must never become this post's files.
+    const card = node.closest('div[role="link"]');
+    return !card || ![...card.querySelectorAll('a[href*="/status/"]')].some(a => a.getAttribute('href')?.match(/\/status\/(\d+)/)?.[1] !== m[2]);
+  };
+  const images = [...article.querySelectorAll('[data-testid="tweetPhoto"] img')].filter(own).map(img => img.currentSrc || img.src).filter(url => /^https:\/\/pbs\.twimg\.com\/media\//.test(url)).slice(0, 8);
+  const links = [...article.querySelectorAll('[data-testid="tweetText"] a[href], [data-testid="card.wrapper"] a[href]')].filter(own).map(a => /^https?:\/\//.test(a.title) ? a.title : a.href).filter(url => { try { return /^https?:$/.test(new URL(url).protocol) && !/(^|\.)(x\.com|twitter\.com)$/.test(new URL(url).hostname); } catch { return false; } }).slice(0, 3);
+  const visibleArticle = article.querySelector('[data-testid="twitterArticleRichTextView"], [data-testid="twitterArticleReadView"]');
+  const socialContext = { version: 1, images: [...new Set(images)], links: [...new Set(links)], articleText: visibleArticle && own(visibleArticle) ? visibleArticle.innerText.slice(0, 100000) : '' };
   return {
     url,
     text,
+    socialContext,
     title: `${name} (@${handle}) on X`,
     favicon: "https://abs.twimg.com/favicons/twitter.3.ico",
   };

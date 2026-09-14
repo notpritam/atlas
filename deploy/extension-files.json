@@ -42,5 +42,6 @@
   "src/collections.css",
   "assets/fonts/InterVariable.woff2",
   "src/theme.js",
-  "src/legacy-review.js"
+  "src/legacy-review.js",
+  "src/preserved-source.js"
 ]

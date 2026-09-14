@@ -112,3 +112,8 @@ test('structured item preview takes priority over a generic platform head logo',
  const result=extractSource('<title>Instagram</title><meta property="og:image" content="https://cdn.example.com/instagram-logo.jpg"><script type="application/ld+json">'+JSON.stringify(item)+'</script>','https://instagram.com/reel/ridge/');
  expect(result).toMatchObject({title:'Sunrise hike',description:item.description,imageUrl:item.image,extractionStatus:'metadata-only'});
 });
+
+test('a truncated blog teaser cannot be reported as a preserved readable article',()=>{
+ const result=extractSource('<title>A public blog</title><meta name="description" content="Every December, we have a chance to see..."><main><div>ALT Meteor photo A public blogEvery December, we have a chance to see...</div></main>','https://nasa.tumblr.com/post/123/blog');
+ expect(result.extractionStatus).toBe('metadata-only');expect(result.notice).toContain('full post or article');
+});

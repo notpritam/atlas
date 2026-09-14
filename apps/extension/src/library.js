@@ -1,4 +1,5 @@
 import {bindCollections} from './collections-ui.js';
+import {bindPreservedSource} from './preserved-source.js';
 import {bindSidebarDestination} from './sidebar-destination.js';
 import {bindSidebarCapture} from './sidebar-capture.js';
 import {bindSidebarLocal} from './sidebar-local.js';
@@ -13,6 +14,7 @@ hydrateIcons();document.querySelectorAll('dialog').forEach(dialog=>{wireDialog(d
 function notice(text=''){ $('notice').hidden=!text;$('notice').textContent=text; }
 async function message(kind,args={}){const result=await chrome.runtime.sendMessage({kind,accountId,...args});if(!result?.ok)throw new Error(result?.error||'FoundKeep could not respond. Try again.');return result.data;}
 const api=(operation,args={})=>message('library-request',{operation,args});
+const preservedSource=bindPreservedSource($('preservedSource'),api);
 function options(select,empty,items){const selected=select.value;select.replaceChildren(new Option(empty,''));for(const item of items)select.add(new Option(item.displayName||item.name,item.id??item.name));if([...select.options].some(option=>option.value===selected))select.value=selected;}
 function renderOrganization(){
   options($('folder'),'All folders',[{id:'unfiled',name:'Unfiled'},...organization.folders]);
@@ -61,7 +63,7 @@ async function refresh(){
   try{
     const state=await chrome.runtime.sendMessage({kind:'cloud-status'});if(!state?.ok)throw new Error(state?.error||'Could not load the connection.');
     const next=state.account?.id||null;
-    if(next!==accountId){sharedCollections.reset();epoch++;images.clear();rows=[];preview=null;detail=null;$('detail').hidden=true;for(const id of ['importDialog','folderDialog','deleteDialog'])$(id).close();}
+    if(next!==accountId){preservedSource.reset();sharedCollections.reset();epoch++;images.clear();rows=[];preview=null;detail=null;$('detail').hidden=true;for(const id of ['importDialog','folderDialog','deleteDialog'])$(id).close();}
     accountId=next;const connected=!!accountId&&state.status!=='reconnect';
     $('accountLabel').textContent=state.account?`${state.account.name||'Your collection'} · ${state.status==='reconnect'?'Reconnect this browser':'Connected'}`:'Your own little corner of the internet';
     $('connect').hidden=connected;$('collection').hidden=!connected||!$('detail').hidden;
@@ -70,13 +72,14 @@ async function refresh(){
     const owner=accountId;const data=await api('organization');if(owner!==accountId)return;organization=data;renderOrganization();await loadCollection();await updateImportProgress();
   }catch(error){notice(error.message);}
 }
-function back(){detail=null;$('detail').hidden=true;$('collection').hidden=false;$('q').focus();}
+function back(){preservedSource.reset();detail=null;$('detail').hidden=true;$('collection').hidden=false;$('q').focus();}
 async function openSave(id){
   const owner=accountId;notice();
   try{const result=await api('detail',{id});if(owner!==accountId)return;showEditor(result.capture);}
   catch(error){notice(error.message);}
 }
 function showEditor(save=null){
+  void preservedSource.show(save);
   sharedCollections.reset();
   detail=save;renderOrganization();$('collection').hidden=true;$('detail').hidden=false;
   $('detailKind').textContent=save?`${save.type} · ${ago(save.createdAt)}`:'A new note';

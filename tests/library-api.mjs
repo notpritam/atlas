@@ -13,3 +13,9 @@ test('only packaged library and popup pages can proxy customer content',()=>{
  assert.equal(trustedLibrarySender({id:runtime.id,url:runtime.getURL('src/library.html')},runtime),true);
  for(const sender of [{id:'other',url:runtime.getURL('src/library.html')},{id:runtime.id,url:'https://foundkeep.app/dashboard'},{id:runtime.id,url:runtime.getURL('src/twitter.js')},{id:runtime.id,url:runtime.getURL('src/library.html/evil')}])assert.equal(trustedLibrarySender(sender,runtime),false);
 });
+
+test('private asset chunks use fixed owned routes and bounded ranges',()=>{
+ assert.deepEqual(libraryOperation('asset-chunk',{id:'save',asset:'photo',offset:4194304}),{method:'GET',path:'/api/mobile/captures/save/assets/photo',binary:true,range:'bytes=4194304-8388607'});
+ for(const offset of [-1,0.5,50*1024*1024,'0'])assert.throws(()=>libraryOperation('asset-chunk',{id:'save',asset:'photo',offset}));
+ assert.throws(()=>libraryOperation('asset-chunk',{id:'save',asset:'../private'}));
+});

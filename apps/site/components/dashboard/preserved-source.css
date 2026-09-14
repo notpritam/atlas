@@ -1,0 +1,72 @@
+.preserved-source {
+  margin-block: 28px;
+  padding-top: 24px;
+  border-top: 1px solid var(--fk-line);
+}
+.preserved-heading,
+.preserved-file {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.preserved-source h3 {
+  margin: 0;
+  font-size: 16px;
+}
+.preserved-source > .muted {
+  font-size: 13px;
+  line-height: 1.6;
+  margin-block: 12px;
+}
+.preserved-assets {
+  display: grid;
+  gap: 22px;
+}
+.preserved-asset {
+  min-width: 0;
+}
+.preserved-asset > img,
+.preserved-asset > video {
+  display: block;
+  max-width: 100%;
+  width: auto;
+  max-height: 600px;
+  border-radius: 16px;
+  background: var(--fk-soft);
+  margin-bottom: 12px;
+}
+.preserved-file > span {
+  min-width: 0;
+  flex: 1;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.preserved-file small {
+  display: block;
+  color: var(--fk-muted);
+  margin-top: 4px;
+}
+.preserved-asset details {
+  margin-top: 12px;
+}
+.preserved-asset summary {
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--fk-accent);
+  padding-block: 8px;
+}
+.preserved-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 14px;
+  line-height: 1.8;
+  max-height: 60vh;
+  overflow: auto;
+  padding: 16px 0;
+}
+.preserved-source :is(a, button, summary):focus-visible {
+  outline: 2px solid var(--fk-accent);
+  outline-offset: 4px;
+}

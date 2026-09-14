@@ -171,7 +171,7 @@ export function createProcessingService(db:Database,options:Options={}){
     if(preference.fetch_links&&row.source_url){try{source=await (options.source||fetchCustomerSource)(row.source_url);}catch{sourceError='The source did not expose readable public content.';}}
     if(!valid()){db.transaction(()=>settle(job,'cancelled',null)).immediate();return 1;}
     let preservation:Preservation|undefined;
-    if(preference.fetch_links&&row.source_url&&!row.file_path&&remoteVideoCandidate(row.source_url,source)){
+    if(preference.fetch_links&&row.source_url&&!row.file_path&&remoteVideoCandidate(row.source_url,source)&&!db.query('SELECT 1 FROM customer_preservation_jobs WHERE capture_id=?').get(row.id)){
      preservation=await preserveRemoteVideo(row.source_url,options.root||config.dataDir,controller.signal,options.remote);
      staged=preservation.file;
     }

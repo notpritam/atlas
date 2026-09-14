@@ -18,6 +18,7 @@ export function bindSidebarDestination() {
     const collection = collections.find(item => 'collection:' + item.id === value);
     $('destinationConfirm').disabled = busy || !value;
     $('destinationShare').hidden = !collection;
+    $('destinationPreservation').hidden = draft?.action !== 'tweet' || !value || value === 'local';
     $('destinationTitle').required = !!collection;
     $('destinationImageLabel').hidden = !collection || !['region','fullpage','save-image'].includes(draft?.action);
     $('destinationConfirm').textContent = collection ? (collection.requireApproval && !collection.canModerate ? 'Submit for approval' : 'Save to collection') : value === 'local' ? 'Save in this browser' : 'Save';

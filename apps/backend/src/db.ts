@@ -542,6 +542,25 @@ const MIGRATIONS: string[] = [
    ALTER TABLE customer_automation ADD COLUMN next_run_at INTEGER;`,
   // A due scheduled cohort survives bounded pages, quota holds and worker restarts.
   `ALTER TABLE customer_automation ADD COLUMN scheduled_cutoff INTEGER;`,
+  // Durable social preservation is independent of managed AI processing.
+  `CREATE TABLE customer_preservation_jobs (
+    capture_id TEXT PRIMARY KEY REFERENCES customer_captures(id) ON DELETE CASCADE,
+    account_id TEXT NOT NULL REFERENCES customer_accounts(id) ON DELETE CASCADE,
+    source_url TEXT NOT NULL, context_json TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'pending', attempts INTEGER NOT NULL DEFAULT 0,
+    error TEXT, lease_token TEXT, lease_until INTEGER, next_attempt_at INTEGER NOT NULL DEFAULT 0,
+    created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+   );
+   CREATE INDEX customer_preservation_queue ON customer_preservation_jobs(status,next_attempt_at);
+   CREATE TABLE customer_media_assets (
+    id TEXT PRIMARY KEY, capture_id TEXT NOT NULL REFERENCES customer_captures(id) ON DELETE CASCADE,
+    account_id TEXT NOT NULL REFERENCES customer_accounts(id) ON DELETE CASCADE,
+    source_key TEXT NOT NULL, source_url TEXT NOT NULL, kind TEXT NOT NULL,
+    position INTEGER NOT NULL, title TEXT NOT NULL, mime TEXT NOT NULL,
+    file_path TEXT, body_text TEXT, bytes INTEGER NOT NULL, sha256 TEXT NOT NULL,
+    created_at INTEGER NOT NULL, UNIQUE(capture_id,source_key)
+   );
+   CREATE INDEX customer_media_files ON customer_media_assets(file_path);`,
 ];
 
 export const DATABASE_SCHEMA_VERSION = MIGRATIONS.length;

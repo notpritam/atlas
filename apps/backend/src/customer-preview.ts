@@ -94,7 +94,7 @@ export function previewRequestOptions(target: PreviewTarget): RequestOptions {
     method: "GET", agent: false, maxHeaderSize: 16 * 1024,
     servername: isIP(hostname) ? undefined : hostname,
     rejectUnauthorized: true,
-    headers: { Host: target.url.host, Accept: "image/png,image/jpeg,image/webp,image/gif", "Accept-Encoding": "identity" },
+    headers: { Host: target.url.host, "User-Agent": "FoundKeep/1.0 (+https://foundkeep.app)", Accept: "image/png,image/jpeg,image/webp,image/gif", "Accept-Encoding": "identity" },
   };
 }
 

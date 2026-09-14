@@ -12,6 +12,7 @@ import { ReaderIcon } from '../reader/reader-tools';
 import '../reader/reader.css';
 import { DashboardImage } from './dashboard-image';
 import {CaptureShare} from '../collections/capture-share';
+import {PreservedSource} from './preserved-source';
 import { ProcessingDetails } from './processing-details';
 import { Dialog } from './dialog';
 import { ExternalLink } from '../ui/external-link';
@@ -57,6 +58,7 @@ export default function DetailPanel({ id, fullPage = false, initialCapture, init
       {blob ? <DashboardImage src={blob} alt={capture.fileName || capture.sourceTitle || 'Saved capture'} mode="detail" width={capture.width} height={capture.height} kind={kindLabel(capture.type)} /> : null}
       {file ? <>{capture.fileMime?.startsWith('image/') ? null : capture.fileMime?.startsWith('video/') ? <video src={file} className="detail-media" controls preload="metadata" /> : capture.fileMime?.startsWith('audio/') ? <audio src={file} className="detail-audio" controls preload="metadata" /> : null}<section className="detail-file"><h3>{capture.fileName || 'Shared file'}</h3><p>{capture.fileMime || 'File'} · {fileBytes(capture.fileBytes)}</p><a href={file} target="_blank" rel="noopener noreferrer" className="button secondary compact">{capture.fileMime === 'application/octet-stream' ? 'Download saved file' : 'Open saved file'}</a></section></> : null}
       {([['Highlight', capture.selectionText], ['Note', capture.noteText], ['Summary', capture.summary], ['Article text', capture.articleText], ['Text in image', capture.ocrText]] as const).filter(([, content]) => content).map(([title, content]) => <section className="detail-section" key={title}><h3>{title}</h3><p>{content}</p></section>)}
+      <PreservedSource key={`source-${capture.id}`} id={capture.id} sourceUrl={capture.sourceUrl} />
       <ProcessingDetails key={capture.id} id={capture.id} />
       </article><aside className="reader-context" aria-label="Capture details"><h3>Saved in your library</h3><dl className="reader-metadata"><div><dt>Saved</dt><dd>{dateLabel(savedTimestamp(capture), true)}</dd></div><div><dt>Type</dt><dd>{kindLabel(capture.type)}</dd></div></dl>
       {capture.category ? <p className="muted">Category: {capture.category}</p> : null}{Array.isArray(capture.tags) && capture.tags.length ? <ul className="detail-tags" aria-label="Capture tags">{capture.tags.map((tag, index) => <li key={index}>{String(tag)}</li>)}</ul> : null}

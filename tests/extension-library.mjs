@@ -23,6 +23,8 @@ async function fixture(t,width=390){
       if(msg.operation==='organization')return{ok:true,data:{folders:[{id:'folder-a',name:'Reading',count:12}],tags:[{name:'inspiration',count:12}]}};
       if(msg.operation==='list'){const values=fixture.captures.filter(c=>!msg.args.q||c.sourceTitle.toLowerCase().includes(msg.args.q.toLowerCase()));return{ok:true,data:{captures:values,total:values.length,nextCursor:null}};}
       if(msg.operation==='detail')return{ok:true,data:{capture:fixture.captures.find(c=>c.id===msg.args.id)}};
+      if(msg.operation==='preservation')return{ok:true,data:{preservation:fixture.preservation||null}};
+      if(msg.operation==='asset-chunk')return{ok:true,data:fixture.assetChunk};
       if(msg.operation==='update'){const c=fixture.captures.find(c=>c.id===msg.args.id);Object.assign(c,msg.args.value,{updatedAt:11});return{ok:true,data:{capture:c}};}
       if(msg.operation==='import-preview')return{ok:true,data:{newBookmarks:msg.args.entries.length,duplicates:0,folders:1,skipped:0,fitsCaptureLimit:true}};
     }
@@ -95,4 +97,26 @@ test('sidebar captures the displayed tab, keeps note drafts on failure, and open
  await page.locator('#openLocal').click();await page.locator('#localItems .save-card').click();await page.waitForFunction(()=>!document.querySelector('#localDetail').hidden);assert.equal(await page.locator('#localText').textContent(),'Only in this browser');
  await page.locator('#localDelete').click();await page.locator('#localCancelDelete').click();assert.equal(await page.evaluate(async()=>(await(await import('/src/db.js')).listCaptures()).length),1);
  assert.equal(await page.evaluate(()=>!!fixture.openedTab),false);assert.deepEqual(errors,[]);
+});
+
+test('sidebar reads preserved text and private photo copies in place and clears them on navigation',async t=>{
+ const {page,errors}=await fixture(t);
+ await page.evaluate(()=>{
+  fixture.captures[0].sourceUrl='https://x.com/mina/status/12345';
+  const base64='iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aEwoAAAAASUVORK5CYII=';
+  const bytes=atob(base64).length;
+  fixture.preservation={status:'ready',error:null,assets:[{id:'post',kind:'post',title:'Saved post',text:'The exact archived post',bytes:23,mime:'text/plain'},{id:'photo',kind:'image',title:'Photo 1.png',mime:'image/png',bytes}]};
+  fixture.assetChunk={base64,bytes,total:bytes,mime:'image/png'};
+ });
+ await page.locator('.save-card').first().click();
+ await page.getByRole('heading',{name:'Source saved',exact:true}).waitFor();
+ await page.getByText('Read archived post',{exact:true}).click();
+ assert.equal(await page.getByText('The exact archived post',{exact:true}).isVisible(),true);
+ await page.getByRole('button',{name:'Load saved photo',exact:true}).click();
+ await page.locator('#preservedSource img').waitFor();
+ await page.waitForFunction(()=>document.querySelector('#preservedSource img').naturalWidth===1);
+ assert.equal(await page.getByRole('link',{name:'Download file',exact:true}).getAttribute('download'),'Photo 1.png');
+ assert.ok(await page.evaluate(()=>fixture.requests.some(r=>r.operation==='asset-chunk'&&r.accountId==='account-a'&&r.args.asset==='photo'&&r.args.offset===0)));
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
+ await page.locator('#back').click();assert.equal(await page.locator('#preservedSource img').count(),0);assert.deepEqual(errors,[]);
 });

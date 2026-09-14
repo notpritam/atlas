@@ -41,7 +41,7 @@ export default function Agents() {
   const busy = action.isPending;
   const connections = agents.data?.agents;
   const instructions = agents.data?.nudges.filter(item => item.status === 'pending') || [];
-  const config = secret ? JSON.stringify({ mcpServers: { foundkeep: { type: 'http', url: `${window.location.origin}/api/mcp`, headers: { Authorization: 'Bearer ' + secret } } } }, null, 2) : '';
+  const config = secret ? JSON.stringify({ mcpServers: { [window.location.hostname === 'dev.foundkeep.app' ? 'foundkeep-dev' : 'foundkeep']: { type: 'http', url: `${window.location.origin}/api/mcp`, headers: { Authorization: 'Bearer ' + secret } } } }, null, 2) : '';
   const copy = async () => {
     try { await navigator.clipboard.writeText(config); toast('Configuration copied.'); }
     catch { toast('Select the configuration and copy it manually.'); }

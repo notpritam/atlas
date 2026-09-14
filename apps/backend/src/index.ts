@@ -1,3 +1,4 @@
+import {createPreservationService} from './customer-preservation.ts';
 import {createProcessingService} from './customer-processing.ts';
 import {pruneCustomerChanges} from './customer-changes.ts';
 import { processBillingCleanup, reconcileBilling } from "./customer-billing.ts";
@@ -14,6 +15,9 @@ const app = createApp(db);
 const hub = new RelayHub(db);
 const stopCustomerWorker = startCustomerWorker(db);
 const managedProcessing = createProcessingService(db);
+const preservation = createPreservationService(db);
+const preservationTimer = setInterval(() => { void preservation.tick().catch(() => {}); }, 3000);
+preservationTimer.unref();
 const processingTimer = setInterval(() => { void managedProcessing.tick().catch(() => {}); }, 10_000);
 processingTimer.unref();
 const changesTimer = setInterval(() => pruneCustomerChanges(db), 3600_000);
@@ -65,6 +69,8 @@ console.log(`  relay:    wss://<host>/agent`);
 for (const signal of ["SIGINT", "SIGTERM"] as const) {
   process.on(signal, () => {
     stopCustomerWorker();
+    clearInterval(preservationTimer);
+    preservation.close();
     clearInterval(processingTimer);
     clearInterval(changesTimer);
     clearInterval(authCleanupTimer);
