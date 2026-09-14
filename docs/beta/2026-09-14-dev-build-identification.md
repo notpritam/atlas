@@ -14,4 +14,6 @@ Verification: 66 extension tests, including two real MV3 extensions against isol
 
 When exporting a local Expo preview after switching build environments, use `expo export --clear`: Metro may otherwise reuse the prior environment's embedded app manifest. Always inspect the compiled manifest and visible destination before testing. Do not infer a realm from `__DEV__`.
 
+The public versioned ZIP and all dev ZIP aliases byte-match the tested 1.7.3 artifact. A final end-to-end check through the real dev website paired the packaged extension, detected its version and destination, saved a note from its popup, and found the upload in the dev web library. The temporary dev account, connection and note were deleted afterward. Production’s manual extension still reports 1.7.2.
+
 Promote this candidate to production only after Pritam finishes dev testing and asks for promotion. No production service, published extension or phone build is changed by this dev release.
