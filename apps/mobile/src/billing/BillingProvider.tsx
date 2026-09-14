@@ -4,6 +4,7 @@ import type { PurchasesPackage } from 'react-native-purchases';
 import { useSession } from '../session/SessionProvider.tsx';
 import { purchases } from './native';
 import type { Plan } from './types.ts';
+import { appStorePurchaseOutcome } from './controller.ts';
 
 type Billing = {plan:Plan|null;monthly:PurchasesPackage|null;loading:boolean;busy:boolean;error:string;notice:string;refresh():Promise<void>;purchase():Promise<void>;restore():Promise<void>};
 const Context=createContext<Billing|null>(null);
@@ -64,9 +65,9 @@ export function BillingProvider({children}:{children:ReactNode}) {
       if(!active())return;
       await client.syncRevenueCat();
       if(!active())return;
-      const updated=await client.plan();verified=updated.pro;
+      const updated=await client.plan();const outcome=appStorePurchaseOutcome(updated,kind);verified=outcome.verified;
       if(!active())return;
-      setPlan(updated);setNotice(updated.pro?'Pro is ready across your FoundKeep account.':kind==='restore'?'No active Pro purchase was found for this Apple Account.':'Your purchase is pending verification. You can restore it again shortly.');
+      setPlan(updated);setNotice(outcome.notice);
     }catch(value){cancelled=!!(value as {userCancelled?:boolean})?.userCancelled;if(active() && !cancelled)setError(value instanceof Error?value.message:'The App Store could not complete this request.');}
     finally{if(reservation&&(!storeStarted||cancelled||verified||kind==='restore'))await client.cancelMobilePurchase(reservation).catch(()=>{});pending.current=false;if(active())setBusy(false);}
   };

@@ -1,5 +1,5 @@
 export type Plan = {
-  plan:'free'|'pro';pro:boolean;purchaseAttemptId?:string;
+  plan:'free'|'pro';pro:boolean;complimentaryPro?:boolean;purchaseAttemptId?:string;
   subscriptions:{provider:'stripe'|'revenuecat';status:string;expiresAt:number;renews:boolean;sandbox:boolean;active:boolean}[];
   features:{imports:boolean;mcp:boolean;managedProcessing:boolean};
   limits:{monthlyProcessing:number;maxCaptures:number;maxBytes:number};

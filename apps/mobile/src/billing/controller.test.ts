@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { createPurchasesController } from './controller.ts';
+import { appStorePurchaseOutcome, createPurchasesController } from './controller.ts';
 function sdk() {
   let user=''; const calls:string[]=[];
   return {calls,configure:({appUserID}:any) => {user=appUserID; calls.push('configure:'+user);},getAppUserID:async()=>user,
@@ -35,4 +35,27 @@ test('a stale screen cannot begin a purchase or restore under a newly signed-in 
   await assert.rejects(controller.purchase(a.appUserId,{}),/account changed/);
   await assert.rejects(controller.restore(a.appUserId),/account changed/);
   assert.equal(native.calls.some(call=>call.startsWith('purchase:')||call.startsWith('restore:')),false);
+});
+
+
+test('complimentary and web Pro cannot verify an App Store transaction',()=>{
+  for (const plan of [
+    {pro:true,complimentaryPro:true,subscriptions:[]},
+    {pro:true,complimentaryPro:false,subscriptions:[{provider:'stripe' as const,status:'active',expiresAt:0,renews:true,sandbox:false,active:true}]},
+    {pro:true,complimentaryPro:true,subscriptions:[{provider:'revenuecat' as const,status:'expired',expiresAt:0,renews:false,sandbox:false,active:false}]},
+  ]) {
+    const restore=appStorePurchaseOutcome(plan,'restore');
+    assert.equal(restore.verified,false);
+    assert.match(restore.notice,/No active Pro purchase/);
+    const purchase=appStorePurchaseOutcome(plan,'purchase');
+    assert.equal(purchase.verified,false);
+    assert.match(purchase.notice,/pending verification/);
+  }
+});
+test('an active RevenueCat subscription verifies the transaction and complimentary restoration stays truthful',()=>{
+  const result=appStorePurchaseOutcome({pro:true,subscriptions:[{provider:'revenuecat',status:'active',expiresAt:0,renews:true,sandbox:false,active:true}]},'restore');
+  assert.equal(result.verified,true);
+  assert.match(result.notice,/Pro is ready/);
+  const complimentary=appStorePurchaseOutcome({pro:true,complimentaryPro:true,subscriptions:[]},'restore');
+  assert.match(complimentary.notice,/complimentary beta access remains available/);
 });

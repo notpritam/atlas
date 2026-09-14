@@ -1,3 +1,5 @@
+import type { Plan } from './types.ts';
+
 // The SDK is process-wide. Serialize identity changes with StoreKit operations;
 // never return a purchase result into a different FoundKeep session.
 export type PurchaseIdentity = { appUserId:string; publicKey:string };
@@ -39,4 +41,12 @@ export function createPurchasesController<Package,Offerings>(sdk:PurchasesSdk<Pa
     purchase:(expectedUserId:string,value:Package)=>authenticated(expectedUserId,()=>sdk.purchasePackage(value)),
     restore:(expectedUserId:string)=>authenticated(expectedUserId,()=>sdk.restorePurchases()),
   };
+}
+
+export function appStorePurchaseOutcome(plan: Pick<Plan, 'pro' | 'complimentaryPro' | 'subscriptions'>, kind: 'purchase' | 'restore') {
+  const verified=plan.subscriptions.some(item=>item.provider==='revenuecat' && item.active);
+  const notice=verified ? 'Pro is ready across your FoundKeep account.' : kind === 'restore'
+    ? 'No active Pro purchase was found for this Apple Account.'+(plan.complimentaryPro?' Your complimentary beta access remains available.':'')
+    : 'Your purchase is pending verification. You can restore it again shortly.';
+  return {verified,notice};
 }
