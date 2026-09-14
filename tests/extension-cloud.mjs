@@ -771,3 +771,42 @@ test('automatic pairing renews only the same revoked account and resumes its que
   });
   assert.equal(result.response.account.id, 'account-a'); assert.equal(result.state.status, 'connected'); assert.equal(result.uploaded, 1);
 });
+
+test('a selected folder survives upload and a collection retry reuses the private capture and submission ID',async t=>{
+ const page=await fixture(t);await pair(page);
+ const result=await page.evaluate(async()=>{
+  const originalFetch=window.fetch;let submissions=0;const entries=new Map();
+  window.fetch=async(url,options={})=>{
+   if(url.endsWith('/api/collections'))return new Response(JSON.stringify({collections:[{id:'collection-a',visibility:'private',canSubmit:true}]}));
+   if(url.endsWith('/api/collections/collection-a/entries')){
+    const body=JSON.parse(options.body);submissions++;entries.set(body.clientId,body);
+    if(submissions===1)throw new TypeError('Lost acknowledgement after collection commit');
+    return new Response(JSON.stringify({entry:{id:'entry-a',status:'approved'}}));
+   }
+   return originalFetch(url,options);
+  };
+  const record=await db.addCapture({type:'note',noteText:'My private annotation',folderId:'folder-a',...(await cloud.captureBinding()),collectionSubmission:{id:'collection-a',visibility:'private',entry:{title:'A shared thought',url:'https://example.org',body:'Only this text is shared',tags:[],shareImage:false}}});
+  await cloud.drainCloudQueue();const first=await db.getCapture(record.id);
+  await cloud.retryCloudSync();const final=await db.getCapture(record.id);
+  return{first,final,submissions,entries:[...entries.values()],posts:requests.filter(r=>r.url.endsWith('/api/captures'))};
+ });
+ assert.equal(result.first.cloudStatus,'queued');assert.ok(result.first.cloudRemoteId);
+ assert.equal(result.final.cloudStatus,'synced');assert.equal(result.final.collectionEntryStatus,'approved');
+ assert.equal(result.posts.length,1,'Retry the collection submission without re-uploading the private save');assert.equal(result.posts[0].body.folderId,'folder-a');
+ assert.equal(result.submissions,2);assert.equal(result.entries.length,1);assert.equal(result.entries[0].body,'Only this text is shared');assert.equal(result.entries[0].noteText,undefined);
+});
+
+test('a collection whose visibility changes does not receive the queued private text',async t=>{
+ const page=await fixture(t);await pair(page);
+ const result=await page.evaluate(async()=>{
+  const originalFetch=window.fetch;let submitted=false;
+  window.fetch=async(url,options={})=>{
+   if(url.endsWith('/api/collections'))return new Response(JSON.stringify({collections:[{id:'collection-a',visibility:'public',canSubmit:true}]}));
+   if(url.endsWith('/entries')){submitted=true;throw new Error('Unexpected sharing');}
+   return originalFetch(url,options);
+  };
+  const record=await db.addCapture({type:'note',noteText:'Keep private',...(await cloud.captureBinding()),collectionSubmission:{id:'collection-a',visibility:'private',entry:{title:'Private entry',body:'Only for members',url:'',tags:[],shareImage:false}}});
+  await cloud.drainCloudQueue();return{record:await db.getCapture(record.id),submitted};
+ });
+ assert.equal(result.submitted,false);assert.equal(result.record.cloudStatus,'failed');assert.match(result.record.cloudError,/visibility changed/);assert.ok(result.record.cloudRemoteId);
+});

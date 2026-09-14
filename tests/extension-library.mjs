@@ -14,7 +14,7 @@ async function fixture(t,width=390){
   window.fixture={activeTab:{id:12,windowId:1,title:'A page to keep',url:'https://example.org/article'},listeners:[],tabListeners:[],account:'account-a',requests:[],captures:Array.from({length:12},(_,i)=>({id:'save-'+i,type:i%3?'bookmark':'note',sourceTitle:['A quiet place to think','Building better habits through small rituals','Design notes for the weekend'][i%3],sourceUrl:i%3?'https://example.com/read/'+i:null,noteText:i%3?null:'Keep the little things that make the day feel yours.',createdAt:Date.now()-i*65000,updatedAt:10,userTags:['inspiration'],folderId:'folder-a',savedVia:i%2?'iphone':'browser'}))};
   const storage={};window.chrome={storage:{local:{get:async key=>({[key]:storage[key]}),set:async value=>Object.assign(storage,value)}},permissions:{request:async()=>false},bookmarks:{getTree:async()=>[]},runtime:{getManifest:()=>({version:"9.8.7"}),onMessage:{addListener:listener=>fixture.listeners.push(listener)},getURL:path=>'https://foundkeep-extension.test/'+path,sendMessage:async msg=>{
     fixture.requests.push(msg);
-    if(msg.kind==='capture')return {ok:true,capture:{id:'new-capture',cloudStatus:'local'}};
+    if(msg.kind==='prepare-save'){if(msg.action==='note'&&fixture.noteError)return{ok:false,error:fixture.noteError};return{ok:true,draft:{id:'review',action:msg.action,text:msg.text}};}
     if(msg.kind==='saveNote')return fixture.noteError?{ok:false,error:fixture.noteError}:{ok:true,capture:{id:'new-note',cloudStatus:'local'}};
     if(msg.kind==='cloud-status')return{ok:true,account:fixture.account?{id:fixture.account,name:'Alex Morgan'}:null,status:fixture.account?'connected':'disconnected'};
     if(msg.kind==='bookmark-import-status')return{ok:true,data:null};
@@ -54,7 +54,7 @@ test('sidebar gallery preview is readable in light and dark appearance',async t=
 test('sidebar captures the displayed tab, keeps note drafts on failure, and opens settings and local saves in place',async t=>{
  const {page,errors}=await fixture(t,320);
  await page.locator('#saveCurrent').click();
- const capture=await page.evaluate(()=>fixture.requests.find(msg=>msg.kind==='capture'));
+ const capture=await page.evaluate(()=>fixture.requests.find(msg=>msg.kind==='prepare-save'));
  assert.equal(capture.source,'sidebar');assert.equal(capture.tabId,12);assert.equal(capture.windowId,1);assert.equal(capture.tabUrl,'https://example.org/article');
  await page.evaluate(()=>{fixture.activeTab={id:13,windowId:1,title:'Next page',url:'https://example.org/next'};fixture.tabListeners.forEach(listener=>listener({windowId:1}));});
  await page.waitForFunction(()=>document.querySelector('#currentPage').textContent==='Next page');
@@ -62,6 +62,8 @@ test('sidebar captures the displayed tab, keeps note drafts on failure, and open
  await page.evaluate(()=>{fixture.noteError='Storage is full. Please try again.';});await page.locator('#save').click();
  assert.match(await page.locator('#noteFeedback').textContent(),/Storage is full/);assert.equal(await page.locator('#note').inputValue(),'Keep this draft');
  await page.evaluate(()=>{fixture.noteError=null;});await page.locator('#save').click();await page.waitForFunction(()=>!document.querySelector('#noteDialog').open);
+ assert.equal(await page.locator('#note').inputValue(),'Keep this draft','Do not discard the draft before destination confirmation');
+ await page.evaluate(()=>document.dispatchEvent(new CustomEvent('foundkeep-save-completed',{detail:{draft:{action:'note',text:'Keep this draft'},result:{ok:true,capture:{id:'new-note',cloudStatus:'local'}}}})));
  assert.equal(await page.locator('#note').inputValue(),'');
  await page.locator('#openSettings').click();assert.equal(await page.locator('#settingsDialog').evaluate(el=>el.open),true);
  await page.locator('#settingsPageAccess').click();assert.match(await page.locator('#permissionFeedback').textContent(),/not granted/);

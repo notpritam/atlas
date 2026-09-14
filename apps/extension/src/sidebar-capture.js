@@ -58,11 +58,12 @@ export function bindSidebarCapture({ onSaved = () => {} } = {}) {
   for (const button of buttons) button.onclick = async () => {
     if (busy || button.disabled) return;
     const requestId = crypto.randomUUID(); busy = requestId; updateButtons();
-    message($('captureFeedback'), button.dataset.capture === 'region' ? 'Drag over the page to select a region. Esc cancels.' : 'Saving this page…');
+    message($('captureFeedback'), 'Preparing your save…');
     try {
-      const result = await chrome.runtime.sendMessage({ kind: 'capture', action: button.dataset.capture, requestId, ...target() });
+      const result = await chrome.runtime.sendMessage({ kind: 'prepare-save', action: button.dataset.capture, ...target() });
       if (busy !== requestId) return;
-      if (!result?.started) finished(result);
+      if (result?.draft) { busy = null; updateButtons(); message($('captureFeedback'), 'Choose where to save in the sidebar.'); }
+      else if (!result?.started) finished(result);
     } catch (error) { if (busy === requestId) finished({ ok: false, error: error.message }); }
   };
   function requestPageAccess(event) {
@@ -93,11 +94,10 @@ export function bindSidebarCapture({ onSaved = () => {} } = {}) {
     if (!text.trim()) { message($('noteFeedback'), 'Write something to keep.', 'error'); return; }
     $('save').disabled = true; message($('noteFeedback'), 'Saving…');
     try {
-      const result = await chrome.runtime.sendMessage({ kind: 'saveNote', text, ...($('attachPage').checked ? noteTarget : { source: 'library' }) });
+      const result = await chrome.runtime.sendMessage({ kind: 'prepare-save', action: 'note', text, ...noteTarget, attachPage: $('attachPage').checked });
       if (!result?.ok) throw new Error(result?.error || 'Could not save this note. Try again.');
-      if ($('note').value === text) { $('note').value = ''; $('noteDialog').close(); }
-      message($('captureFeedback'), result.capture?.cloudStatus === 'local' ? 'Note saved in this browser.' : 'Note saved in this browser. Waiting to sync.', 'success');
-      message($('noteFeedback'), 'Saved.', 'success'); onSaved();
+      $('noteDialog').close();
+      message($('captureFeedback'), 'Choose where to save your note.');
     } catch (error) { message($('noteFeedback'), error.message, 'error'); }
     finally { $('save').disabled = false; }
   };
@@ -108,5 +108,9 @@ export function bindSidebarCapture({ onSaved = () => {} } = {}) {
     if (event.kind === 'atlas-preferences-changed') void loadPreferences();
   });
   window.addEventListener('focus', () => void refreshTab());
+  document.addEventListener('foundkeep-save-completed', event => {
+    if (event.detail.draft.action === 'note' && $('note').value === event.detail.draft.text) $('note').value = '';
+    finished(event.detail.result);
+  });
   void refreshTab(); void loadPreferences();
 }

@@ -8,9 +8,17 @@ Click the pinned FoundKeep toolbar icon to open the native sidebar directly. Sav
 
 The initial toolbar click grants access to that page. To keep capturing after switching tabs, choose **Allow page captures** once and accept Chrome’s optional page-access prompt. Declining leaves notes and the library available. Browser-internal pages cannot be captured. Region selection happens on the page; Escape or switching tabs cancels it. A page change during a screenshot aborts the capture instead of saving the wrong tab.
 
+## Choose where each save goes
+
+Tweet buttons, sidebar captures and notes, right-click captures, and keyboard captures open **Where should this go?** in the sidebar. Choose **My library**, a private folder, a collection, or **This browser only**, then confirm. Cancel discards the request without creating a save. Sign in on your matching FoundKeep dashboard to see account destinations.
+
+Collection choices show their public/private audience and approval rules. Review the title, link and text that will be shared; images are included only if you select the image checkbox. Your full capture stays in your private account library. The chosen folder or collection stays attached to the upload queue if connectivity drops. The extension checks account ownership again before confirmation.
+
+After updating the extension, refresh open X/Twitter tabs so they load the new FoundKeep bookmark icon and destination-picker button.
+
 ## Check the environment and version
 
-The sidebar and local library show **DEV / Production**, the installed manifest version, and the fixed cloud destination. For dev testing, use **DEV · v1.7.5 · dev.foundkeep.app**, then sign in to the same account at [your dev dashboard](https://dev.foundkeep.app/dashboard). The extension connects automatically; no Connect button is needed. That page also shows the detected extension version and destination.
+The sidebar and local library show **DEV / Production**, the installed manifest version, and the fixed cloud destination. For dev testing, use **DEV · v1.7.6 · dev.foundkeep.app**, then sign in to the same account at [your dev dashboard](https://dev.foundkeep.app/dashboard). The extension connects automatically; no Connect button is needed. That page also shows the detected extension version and destination.
 
 Save a note named **Dev sync test**. Confirm it appears in My library at `dev.foundkeep.app` under the same account. A local save or a pending upload is not yet a cloud save. The production library at `foundkeep.app` is separate.
 

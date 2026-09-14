@@ -19,3 +19,5 @@
 @media(prefers-reduced-motion:reduce){.shimmer{animation:none}.save-card{transition:none}}
 
 .btn.primary{color:var(--on-button)}.btn.primary:hover{background:color-mix(in srgb,var(--button),var(--ink) 12%)}.shared-collection-picker :is(input:not([type=checkbox]),select,textarea){background:var(--card);border-color:var(--line)}
+
+.destination-source{font-size:14px;font-weight:600;line-height:1.5;overflow-wrap:anywhere}.destination-excerpt{font-size:12px;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere;max-height:100px;overflow:auto;margin:8px 0 20px}#destinationRules{padding:10px 0}#destinationShare{border-top:1px solid var(--line);padding-top:12px;margin-top:8px}#destinationShare .field{margin-bottom:12px}#destinationDialog[data-busy=true] .editor-actions{opacity:.65}

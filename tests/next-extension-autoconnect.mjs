@@ -55,8 +55,17 @@ test('installed dev extension auto-connects from the library, stays paired acros
  const page=await context.newPage();await page.goto(base+'/dashboard');
  await waitFor(async()=>await popup.evaluate(async()=> (await chrome.runtime.sendMessage({kind:'cloud-status'})).account?.id)===accountA.id);
  assert.equal(issuedCodes,1,'Opening My library should issue exactly one automatic pairing code');
+ const folderResponse=await context.request.post(base+'/api/mobile/folders',{headers:{Origin:base},data:{name:'Temporary extension destination'}});assert.equal(folderResponse.status(),201);const folder=(await folderResponse.json()).folder;
  const note='Automatic dev sync check '+crypto.randomUUID();await popup.locator('#newNote').click();await popup.locator('#note').fill(note);await popup.locator('#save').click();
- await waitFor(async()=> (await (await context.request.get(base+'/api/captures')).json()).captures.some(c=>c.noteText===note));
+ await popup.locator('#saveDestination').selectOption('folder:'+folder.id);await popup.locator('#destinationConfirm').click();
+ await waitFor(async()=> (await (await context.request.get(base+'/api/captures')).json()).captures.some(c=>c.noteText===note&&c.folderId===folder.id));
+ const collectionResponse=await context.request.post(base+'/api/collections',{headers:{Origin:base},data:{title:'Temporary destination review',slug:'review-'+crypto.randomUUID(),kind:'personal',visibility:'private',submissionPolicy:'owner'}});assert.equal(collectionResponse.status(),201);const collection=(await collectionResponse.json()).collection;
+ const privateText='Private annotation '+crypto.randomUUID(),sharedText='Only the quote chosen for this collection.';
+ await popup.locator('#newNote').click();await popup.locator('#note').fill(privateText);await popup.locator('#save').click();await popup.locator('#saveDestination').selectOption('collection:'+collection.id);
+ assert.match(await popup.locator('#destinationRules').textContent(),/Private collection/);
+ await popup.locator('#destinationTitle').fill('A chosen quote');await popup.locator('#destinationBody').fill(sharedText);await popup.locator('#destinationConfirm').click();
+ await waitFor(async()=> (await (await context.request.get(base+'/api/collections/'+collection.id)).json()).entries.some(entry=>entry.body===sharedText));
+ const entries=(await(await context.request.get(base+'/api/collections/'+collection.id)).json()).entries;assert.ok(!JSON.stringify(entries).includes(privateText));
  await page.locator('#open-setup').click();await page.waitForURL('**/dashboard/apps');
  await waitFor(async()=>await page.locator('#browser-connection-badge').textContent()==='Connected here');
  assert.equal(await page.locator('#connect-extension').isVisible(),false,'No redundant connect button for an already connected account');

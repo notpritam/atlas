@@ -36,7 +36,9 @@ test('toolbar opens the native sidebar with no popup, and notes, local saves and
     await panel.evaluate('document.querySelector("#note").focus()');
     await panel.send('Input.insertText', { text: 'Saved from the native sidebar' });
     await panel.evaluate('document.querySelector("#save").click()');
-    await panel.waitFor('!document.querySelector("#noteDialog").open');
+    await panel.waitFor('document.querySelector("#destinationDialog").open');
+    await panel.evaluate('document.querySelector("#saveDestination").value="local";document.querySelector("#saveDestination").dispatchEvent(new Event("change"));document.querySelector("#destinationConfirm").click()');
+    await panel.waitFor('!document.querySelector("#destinationDialog").open');
     assert.equal(await panel.evaluate("import('./db.js').then(db => db.listCaptures()).then(rows => rows[0].noteText)"), 'Saved from the native sidebar');
     await panel.evaluate('document.querySelector("#openLocal").click()');
     await panel.waitFor('document.querySelectorAll("#localItems .save-card").length === 1');

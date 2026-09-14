@@ -84,9 +84,9 @@ function newId() {
 }
 
 /** Insert a capture. `input` carries the client fields; server-ish fields are set here. */
-export async function addCapture(input) {
+export async function addCapture(input, { id: stableId } = {}) {
   const now = Date.now();
-  const id = newId();
+  const id = stableId || newId();
   const rec = {
     id,
     type: input.type,
@@ -98,6 +98,8 @@ export async function addCapture(input) {
     cloudError: null,
     cloudAttempts: 0,
     cloudNextRetryAt: 0,
+    folderId: input.folderId || null,
+    collectionSubmission: input.collectionSubmission || null,
     sourceUrl: input.sourceUrl ?? null,
     sourceTitle: input.sourceTitle ?? null,
     faviconUrl: input.faviconUrl ?? null,
@@ -126,6 +128,13 @@ export async function addCapture(input) {
     enrichedAt: null,
   };
   return write(async (store) => {
+    if (stableId) {
+      const existing = await reqToPromise(store.get(id));
+      if (existing) {
+        if (existing.cloudAccountId !== rec.cloudAccountId) throw new Error('This save belongs to a different account.');
+        return existing;
+      }
+    }
     await reqToPromise(store.add(rec));
     return rec;
   });

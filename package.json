@@ -11,7 +11,7 @@
     "test": "bun test",
     "release": "node deploy/release-extension.mjs",
     "release:publish": "node deploy/release-extension.mjs --publish",
-    "test:extension": "node --test tests/extension-ui.mjs tests/extension-smoke.mjs tests/extension-action.mjs tests/extension-cloud.mjs tests/extension-db.mjs tests/extension-extractor.mjs tests/extension-preferences.mjs tests/extension-policy.mjs tests/extension-store.mjs tests/bookmark-import.mjs tests/library-api.mjs tests/extension-library.mjs tests/extension-environments.mjs tests/extension-environments-browser.mjs tests/extension-collections.mjs",
+    "test:extension": "node --test tests/extension-ui.mjs tests/extension-smoke.mjs tests/extension-action.mjs tests/extension-destination.mjs tests/extension-cloud.mjs tests/extension-db.mjs tests/extension-extractor.mjs tests/extension-preferences.mjs tests/extension-policy.mjs tests/extension-store.mjs tests/bookmark-import.mjs tests/library-api.mjs tests/extension-library.mjs tests/extension-environments.mjs tests/extension-environments-browser.mjs tests/extension-collections.mjs",
     "store:pack": "bash deploy/pack-store.sh",
     "store:verify": "node --test tests/extension-store.mjs",
     "store:assets": "node scripts/render-store-assets.mjs",

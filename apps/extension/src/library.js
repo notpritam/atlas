@@ -1,4 +1,5 @@
 import {bindCollections} from './collections-ui.js';
+import {bindSidebarDestination} from './sidebar-destination.js';
 import {bindSidebarCapture} from './sidebar-capture.js';
 import {bindSidebarLocal} from './sidebar-local.js';
 import {bindConnections} from './connections.js';
@@ -163,3 +164,5 @@ const settings=bindConnections($('connections'),{showDashboard:false});
 $('openSettings').onclick=()=>{openDialog($('settingsDialog'));void settings.load();};
 bindSidebarCapture({onSaved:()=>{void localLibrary.refresh();setTimeout(()=>void refresh(),1000);}});
 chrome.runtime.onMessage.addListener(event=>{if(event.kind==='atlas-changed'&&$('settingsDialog').open)void settings.load();});
+
+bindSidebarDestination();

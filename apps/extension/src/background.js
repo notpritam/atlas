@@ -1,3 +1,4 @@
+import { stageSaveReview, readSaveReview, confirmSaveReview, cancelSaveReview } from "./save-review.js";
 import { PRODUCT_NAME } from "./product.js";
 import { trustedLibrarySender } from "./library-api.js";
 import { startBookmarkImport, resumeBookmarkImport, cancelBookmarkImport, importProgress } from "./import-queue.js";
@@ -286,40 +287,56 @@ async function reconcileContextMenus(preferences) {
   }
 }
 
-chrome.contextMenus.onClicked.addListener(async (info, tab) => {
-  try {
+function openReviewPanel(tab) {
+  // Called before awaiting storage or network so Chrome retains the gesture.
+  return chrome.sidePanel.open({ windowId: tab.windowId });
+}
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+  const opened = openReviewPanel(tab);
+  void opened.then(async () => {
     if (info.menuItemId === "save-image") await requestImageHostAccess(info.srcUrl);
-    await performCapture(info.menuItemId, { tab, info, trigger: "context" });
-    configuredFlash(true);
-  } catch (e) {
-    configuredFlash(false, String(e));
-  }
+    await stageSaveReview({ action: info.menuItemId, tab, info, trigger: "context" });
+  }).catch(error => configuredFlash(false, error.message));
 });
 
-// ---------------------------------------------------------------------------
-// Keyboard commands
-// ---------------------------------------------------------------------------
-chrome.commands.onCommand.addListener(async (command) => {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab) return;
-  const action = {
-    "region-screenshot": "region",
-    "full-page-screenshot": "fullpage",
-    "save-highlight": "highlight",
-  }[command];
+chrome.commands.onCommand.addListener((command, tab) => {
+  const action = { "region-screenshot": "region", "full-page-screenshot": "fullpage", "save-highlight": "highlight" }[command];
   if (!action) return;
-  try {
-    await performCapture(action, { tab, trigger: "keyboard" });
-    configuredFlash(true);
-  } catch (e) {
-    configuredFlash(false, String(e));
-  }
+  const begin = tab => {
+    if (!tab) return;
+    const opened = openReviewPanel(tab);
+    void opened.then(() => stageSaveReview({ action, tab, trigger: "keyboard" })).catch(error => configuredFlash(false, error.message));
+  };
+  if (tab) begin(tab);
+  else void chrome.tabs.query({ active: true, currentWindow: true }).then(([tab]) => begin(tab));
 });
 
 // ---------------------------------------------------------------------------
 // Messages from popup / content scripts
 // ---------------------------------------------------------------------------
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (['prepare-save', 'save-review-get', 'save-review-confirm', 'save-review-cancel'].includes(msg?.kind)) {
+    if (!trustedLibrarySender(sender, chrome.runtime) || !Number.isInteger(msg.windowId)) { sendResponse({ ok: false, error: 'Open the FoundKeep sidebar to choose a destination.' }); return; }
+    void (async () => {
+      if (msg.kind === 'save-review-get') return { draft: await readSaveReview(msg.windowId) };
+      if (msg.kind === 'save-review-cancel') { await cancelSaveReview(msg.windowId, msg.id); return {}; }
+      if (msg.kind === 'save-review-confirm') {
+        const record = await confirmSaveReview(msg, (draft, commit) => performCapture(draft.action, { ...draft, commit }));
+        return { capture: record ? { id: record.id, cloudStatus: record.cloudStatus, type: record.type } : null };
+      }
+      if (!['savepage','highlight','region','fullpage','note'].includes(msg.action)) throw new Error('Choose a supported capture method.');
+      const [tab] = await chrome.tabs.query({ active: true, windowId: msg.windowId });
+      if (!tab) throw new Error('Open a browser tab to continue.');
+      if (msg.action !== 'note' || msg.attachPage) {
+        if (tab.id !== msg.tabId || tab.url !== msg.tabUrl) throw new Error('The page changed. Check the current page and try again.');
+        if (!/^https?:\/\//.test(tab.url || '')) throw new Error('Open a web page and allow page access to capture it.');
+      }
+      if (msg.action === 'note' && (typeof msg.text !== 'string' || !msg.text.trim() || msg.text.length > 50000)) throw new Error('Write a note of up to 50,000 characters.');
+      const draft = await stageSaveReview({ action: msg.action, tab, trigger: 'sidebar', ...(msg.action === 'note' ? { text: msg.text, attachPage: msg.attachPage === true } : {}) });
+      return { draft };
+    })().then(data => sendResponse({ ok: true, ...data })).catch(error => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
   if (msg?.kind === "library-request" || msg?.kind?.startsWith("bookmark-import-")) {
     if (!trustedLibrarySender(sender, chrome.runtime)) { sendResponse({ok:false,error:"Open your FoundKeep library to continue."}); return; }
     (async()=>{
@@ -425,28 +442,18 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg?.kind === "saveTweet") {
-    (async () => {
-      try {
-        const preferenceState = await getEffectivePreferences();
-        if (!preferenceState.preferences.capture.tweet) throw new Error("Tweet capture is disabled in your FoundKeep preferences.");
-        const p = msg.payload;
-        boundedText(p.text, preferenceState.policy.limits.selectionCharacters, "Post text");
-        const capturedAt = Date.now();
-        await saveCapture({
-          type: "highlight",
-          cloudType: "tweet",
-          sourceUrl: p.url,
-          sourceTitle: p.title,
-          selectionText: p.text,
-          faviconUrl: p.favicon,
-          capturedAt,
-          provenance: fallbackProvenance({ url: p.url, title: p.title, favIconUrl: p.favicon }, "twitter-action", capturedAt),
-        });
-        sendResponse({ ok: true });
-      } catch (e) {
-        sendResponse({ ok: false, error: String(e) });
-      }
-    })();
+    const trusted = sender.id === chrome.runtime.id && sender.frameId === 0 && /^https:\/\/(?:www\.)?(?:x|twitter)\.com\//.test(sender.url || '');
+    const p = msg.payload;
+    if (!trusted || !sender.tab || !p || typeof p.text !== 'string' || p.text.length > 50000 || typeof p.title !== 'string' || p.title.length > 1000 || !/^https:\/\/x\.com\/[A-Za-z0-9_]+\/status\/\d+$/.test(p.url || '')) {
+      sendResponse({ ok: false, error: 'Open the tweet on X to save it.' }); return;
+    }
+    const opened = openReviewPanel(sender.tab);
+    void opened.then(async () => {
+      const state = await getEffectivePreferences();
+      if (!state.preferences.capture.tweet) throw new Error('Tweet capture is disabled in your FoundKeep preferences.');
+      const draft = await stageSaveReview({ action: 'tweet', tab: sender.tab, tweet: { url: p.url, text: p.text, title: p.title }, trigger: 'twitter' });
+      sendResponse({ ok: true, pending: true, draftId: draft.id });
+    }).catch(error => sendResponse({ ok: false, error: error.message }));
     return true;
   }
   if (msg?.kind === "saveNote") {
@@ -491,21 +498,36 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
 // ---------------------------------------------------------------------------
 // The one place every capture action is defined.
 // ---------------------------------------------------------------------------
-async function performCapture(action, { tab, info, trigger = "popup" }) {
+async function performCapture(action, { tab, info, tweet, text, attachPage, trigger = "popup", commit = saveCapture }) {
   const captureMethod = methodFor(action, trigger);
   const preferenceState = await getEffectivePreferences();
   const preferences = preferenceState.preferences;
   const limits = preferenceState.policy.limits;
   const feature = capturePreferenceKey(action);
   if (!preferences.capture[feature]) throw new Error(`${feature === "fullPage" ? "Full-page screenshot" : feature[0].toUpperCase() + feature.slice(1)} capture is disabled in your FoundKeep preferences.`);
-  if (trigger === "sidebar") await assertCaptureTab(tab);
+  if (trigger === "sidebar" && action !== "note") await assertCaptureTab(tab);
   switch (action) {
+    case 'tweet': {
+      const capturedAt = Date.now();
+      return commit({ type: 'highlight', cloudType: 'tweet', sourceUrl: tweet.url, sourceTitle: tweet.title,
+        selectionText: boundedText(tweet.text, limits.selectionCharacters, 'Post text'), capturedAt,
+        provenance: fallbackProvenance({ url: tweet.url, title: tweet.title }, 'twitter-action', capturedAt) });
+    }
+    case 'note': {
+      if (attachPage) await assertCaptureTab(tab);
+      const context = attachPage && preferences.notes.attachSource
+        ? await capturePageContext(tab, { captureMethod: 'extension-note' })
+        : { provenance: fallbackProvenance(null, 'library-note', Date.now()) };
+      return commit({ type: 'note', noteText: text, sourceUrl: context.provenance.pageUrl,
+        sourceTitle: context.provenance.pageTitle, faviconUrl: context.provenance.faviconUrl,
+        capturedAt: context.provenance.capturedAt, provenance: context.provenance });
+    }
     case "region":
-      return regionScreenshot(tab, captureMethod, limits);
+      return regionScreenshot(tab, captureMethod, limits, commit);
     case "fullpage":
-      return fullPageScreenshot(tab, captureMethod, limits);
+      return fullPageScreenshot(tab, captureMethod, limits, commit);
     case "highlight":
-      return saveHighlight(tab, captureMethod, limits);
+      return saveHighlight(tab, captureMethod, limits, commit);
     case "savepage": {
       const context = await capturePageContext(tab, {
         captureMethod,
@@ -514,7 +536,7 @@ async function performCapture(action, { tab, info, trigger = "popup" }) {
         headings: preferences.bookmark.headings,
         maxArticleCharacters: limits.articleCharacters,
       });
-      return saveCapture({
+      return commit({
         type: "bookmark",
         sourceUrl: context.provenance.pageUrl,
         sourceTitle: context.provenance.pageTitle,
@@ -526,7 +548,7 @@ async function performCapture(action, { tab, info, trigger = "popup" }) {
     }
     case "save-selection": {
       const context = await capturePageContext(tab, { captureMethod });
-      return saveCapture({
+      return commit({
         type: "highlight",
         sourceUrl: context.provenance.pageUrl,
         sourceTitle: context.provenance.pageTitle,
@@ -538,7 +560,7 @@ async function performCapture(action, { tab, info, trigger = "popup" }) {
     }
     case "save-link": {
       const context = await capturePageContext(tab, { captureMethod, targetUrl: info.linkUrl });
-      return saveCapture({
+      return commit({
         type: "bookmark",
         sourceUrl: info.linkUrl,
         sourceTitle: (info.linkText || info.linkUrl || "").slice(0, 1000),
@@ -548,13 +570,13 @@ async function performCapture(action, { tab, info, trigger = "popup" }) {
       });
     }
     case "save-image":
-      return saveImage(info.srcUrl, tab, captureMethod, limits);
+      return saveImage(info.srcUrl, tab, captureMethod, limits, commit);
     default:
       return null;
   }
 }
 
-async function saveImage(srcUrl, tab, captureMethod, limits) {
+async function saveImage(srcUrl, tab, captureMethod, limits, commit) {
   const context = await capturePageContext(tab, { captureMethod, targetUrl: srcUrl });
   const source = publicHttpUrl(srcUrl);
   if (!source) throw new Error("FoundKeep can only save images from public web addresses outside private networks.");
@@ -591,7 +613,7 @@ async function saveImage(srcUrl, tab, captureMethod, limits) {
   }
   const blob = new Blob(chunks, { type: mime });
   cloudImageMime(blob);
-  return saveCapture({
+  return commit({
     type: "image",
     blob,
     sourceUrl: context.provenance.pageUrl,
@@ -602,7 +624,7 @@ async function saveImage(srcUrl, tab, captureMethod, limits) {
   });
 }
 
-async function saveHighlight(tab, captureMethod, limits) {
+async function saveHighlight(tab, captureMethod, limits, commit) {
   const [{ result }] = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: () => {
@@ -622,7 +644,7 @@ async function saveHighlight(tab, captureMethod, limits) {
   if (!result?.text) throw new Error("no text selected");
   boundedText(result.text, limits.selectionCharacters, "Selected text");
   const context = await capturePageContext(tab, { captureMethod });
-  return saveCapture(
+  return commit(
     {
       type: "highlight",
       sourceUrl: context.provenance.pageUrl,
@@ -639,7 +661,7 @@ async function saveHighlight(tab, captureMethod, limits) {
 // ---------------------------------------------------------------------------
 // Region screenshot
 // ---------------------------------------------------------------------------
-async function regionScreenshot(tab, captureMethod, limits) {
+async function regionScreenshot(tab, captureMethod, limits, commit) {
   const [{ result }] = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: regionSelectInPage,
@@ -653,7 +675,7 @@ async function regionScreenshot(tab, captureMethod, limits) {
   await assertCaptureTab(tab);
   const encoded = await cropDataUrl(dataUrl, rect, dpr, limits.imageBytes);
   const context = await capturePageContext(tab, { captureMethod });
-  return saveCapture(
+  return commit(
     {
       type: "screenshot",
       sourceUrl: context.provenance.pageUrl,
@@ -759,7 +781,7 @@ async function assertCaptureTab(tab) {
     throw new Error("The page changed during capture. Return to the page and try again.");
 }
 
-async function fullPageScreenshot(tab, captureMethod, limits) {
+async function fullPageScreenshot(tab, captureMethod, limits, commit) {
   const [{ result: dims }] = await chrome.scripting.executeScript({
     target: { tabId: tab.id },
     func: prepFullPage,
@@ -803,7 +825,7 @@ async function fullPageScreenshot(tab, captureMethod, limits) {
   }
   const encoded = await stitch(shots, dims, totalH, limits.imageBytes);
   const context = await capturePageContext(tab, { captureMethod });
-  return saveCapture(
+  return commit(
     {
       type: "screenshot",
       sourceUrl: context.provenance.pageUrl,

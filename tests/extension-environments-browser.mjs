@@ -150,7 +150,7 @@ test('dev and prod install together, pair separately, and save into isolated dat
   await context.route('https://x.com/__environment-test', route => route.fulfill({ contentType: 'text/html', body: '<!doctype html><article data-testid="tweet"><a href="/example/status/123"><time>Today</time></a><div data-testid="tweetText">Separate tweet capture</div><div role="group"><button data-testid="reply">Reply</button></div></article>' }));
   const tweet = await context.newPage();
   await tweet.goto('https://x.com/__environment-test');
-  await tweet.getByRole('button', { name: 'Save to FoundKeep Dev', exact: true }).waitFor();
-  await tweet.getByRole('button', { name: 'Save to FoundKeep', exact: true }).waitFor();
+  await tweet.getByRole('button', { name: 'Choose where to save in FoundKeep Dev', exact: true }).waitFor();
+  await tweet.getByRole('button', { name: 'Choose where to save in FoundKeep', exact: true }).waitFor();
   assert.equal(await tweet.locator('[data-atlas], [data-foundkeep-dev]').count(), 2, 'Both extension buttons must coexist');
 });

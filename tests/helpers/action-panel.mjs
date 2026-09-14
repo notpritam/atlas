@@ -1,5 +1,5 @@
 // Native extension side panels, like toolbar popups, are separate CDP targets.
-export async function actionPanel(context, tab, worker) {
+export async function actionPanel(context, tab, worker, { open = true } = {}) {
   const cdp = await context.newCDPSession(tab);
   async function attach(targetId) {
     const { sessionId } = await cdp.send('Target.attachToTarget', { targetId, flatten: false });
@@ -25,6 +25,7 @@ export async function actionPanel(context, tab, worker) {
   }
   // A real extension-page click supplies Chrome's user gesture; CDP evaluation
   // in a service worker does not. The bootstrap tab closes once the panel opens.
+  if (open) {
   const launcher = await context.newPage();
   await launcher.goto(await worker.evaluate(() => chrome.runtime.getURL('src/popup.html')));
   const windowId = await launcher.evaluate(async () => (await chrome.windows.getCurrent()).id);
@@ -38,6 +39,7 @@ export async function actionPanel(context, tab, worker) {
   await launcher.waitForFunction(() => document.querySelector('#test-open-panel').dataset.open === 'true');
   await launcher.close();
   await tab.bringToFront();
+  }
   const panelUrl = await worker.evaluate(() => chrome.runtime.getURL('src/library.html'));
   const deadline = Date.now() + 5000; let target;
   while (!target && Date.now() < deadline) {

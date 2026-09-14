@@ -5,8 +5,17 @@ import * as db from "./db.js";
 import { captureBinding, drainCloudQueue } from "./cloud.js";
 
 /** Save a capture locally and kick off a drain attempt. */
-export async function saveCapture(input) {
-  const rec = await db.addCapture({ ...input, ...(await captureBinding()) });
+export async function saveCapture(input, { destination, id } = {}) {
+  const binding = await captureBinding();
+  if (destination && binding.cloudAccountId !== destination.reviewAccountId)
+    throw new Error('Your connected account changed. Choose the destination again.');
+  const rec = await db.addCapture({ ...input, ...binding,
+    ...(destination ? {
+      cloudAccountId: destination.kind === 'local' ? null : destination.reviewAccountId,
+      folderId: destination.folderId || null,
+      collectionSubmission: destination.collection || null,
+    } : {}),
+  }, { id });
   drainQueue().catch(() => {});
   broadcast();
   return rec;
