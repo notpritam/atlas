@@ -90,6 +90,12 @@ export function bindSidebarDestination() {
     busy = true; dialog.dataset.busy = 'true'; $('destinationCancel').disabled = true; $('saveDestination').disabled = true; selection();
     message($('destinationFeedback'), draft.action === 'region' ? 'Drag over the page to select a region. Press Esc on the page to cancel.' : 'Saving…');
     try {
+      // Request on this submit gesture, after the user chooses where to save.
+      // Doing this after worker/storage awaits loses Chrome's gesture grant.
+      if (pending.action === 'save-image') {
+        const origin = new URL(pending.info.srcUrl).origin + '/*';
+        if (!await chrome.permissions.request({ origins: [origin] })) throw new Error('Allow access to the image’s site to save its original file, then try again.');
+      }
       const result = await request('save-review-confirm', { id: pending.id, choice });
       draft = null; epoch++; dialog.close();
       document.dispatchEvent(new CustomEvent('foundkeep-save-completed', { detail: { draft: pending, result } }));

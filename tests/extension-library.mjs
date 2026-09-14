@@ -14,6 +14,7 @@ async function fixture(t,width=390){
   window.fixture={activeTab:{id:12,windowId:1,title:'A page to keep',url:'https://example.org/article'},listeners:[],tabListeners:[],account:'account-a',requests:[],captures:Array.from({length:12},(_,i)=>({id:'save-'+i,type:i%3?'bookmark':'note',sourceTitle:['A quiet place to think','Building better habits through small rituals','Design notes for the weekend'][i%3],sourceUrl:i%3?'https://example.com/read/'+i:null,noteText:i%3?null:'Keep the little things that make the day feel yours.',createdAt:Date.now()-i*65000,updatedAt:10,userTags:['inspiration'],folderId:'folder-a',savedVia:i%2?'iphone':'browser'}))};
   const storage={};window.chrome={storage:{local:{get:async key=>({[key]:storage[key]}),set:async value=>Object.assign(storage,value)}},permissions:{request:async()=>false},bookmarks:{getTree:async()=>[]},runtime:{getManifest:()=>({version:"9.8.7"}),onMessage:{addListener:listener=>fixture.listeners.push(listener)},getURL:path=>'https://foundkeep-extension.test/'+path,sendMessage:async msg=>{
     fixture.requests.push(msg);
+    if(msg.kind==='save-review-get')return{ok:true,draft:fixture.reviewDraft||null};
     if(msg.kind==='prepare-save'){if(msg.action==='note'&&fixture.noteError)return{ok:false,error:fixture.noteError};return{ok:true,draft:{id:'review',action:msg.action,text:msg.text}};}
     if(msg.kind==='saveNote')return fixture.noteError?{ok:false,error:fixture.noteError}:{ok:true,capture:{id:'new-note',cloudStatus:'local'}};
     if(msg.kind==='cloud-status')return{ok:true,account:fixture.account?{id:fixture.account,name:'Alex Morgan'}:null,status:fixture.account?'connected':'disconnected'};
@@ -39,6 +40,26 @@ test('sidebar searches, edits, switches layouts and has no horizontal overflow a
  await page.locator('#toggleView').click();assert.equal(await page.locator('.items.gallery').count(),1);
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
 });
+
+test('image permission is requested only after destination confirmation and denial retains the review',async t=>{
+ const {page,errors}=await fixture(t);
+ await page.evaluate(()=>{
+  fixture.permissionRequests=[];
+  chrome.permissions.request=async value=>{fixture.permissionRequests.push(value);return false;};
+  fixture.reviewDraft={id:'image-review',accountId:null,action:'save-image',tab:{id:12,windowId:1,url:'https://example.org/article',title:'An image worth keeping'},info:{srcUrl:'https://images.example.org/photo.png'}};
+  fixture.listeners.forEach(listener=>listener({kind:'foundkeep-save-review-changed'}));
+ });
+ await page.waitForFunction(()=>document.querySelector('#destinationDialog').open);
+ assert.equal(await page.evaluate(()=>fixture.permissionRequests.length),0);
+ await page.locator('#saveDestination').selectOption('local');
+ await page.locator('#destinationConfirm').click();
+ await page.waitForFunction(()=>document.querySelector('#destinationFeedback').textContent.includes('Allow access'));
+ assert.deepEqual(await page.evaluate(()=>fixture.permissionRequests),[{origins:['https://images.example.org/*']}]);
+ assert.equal(await page.evaluate(()=>fixture.requests.some(msg=>msg.kind==='save-review-confirm')),false);
+ assert.equal(await page.locator('#destinationDialog').evaluate(dialog=>dialog.open),true);
+ assert.equal(await page.locator('#destinationConfirm').isEnabled(),true);
+ assert.deepEqual(errors,[]);
+});
 test('permission denial offers HTML import and shows a review before saving',async t=>{
  const {page,errors}=await fixture(t);await page.locator('#openImport').click();await page.locator('#readBrowser').click();assert.match(await page.locator('#importError').innerText(),/not granted/);
  await page.locator('#importFile').setInputFiles({name:'bookmarks.html',mimeType:'text/html',buffer:Buffer.from('<!DOCTYPE NETSCAPE-Bookmark-file-1><DL><DT><H3>Reading</H3><DL><DT><A HREF="https://example.org/read" ADD_DATE="1000">Keep this</A></DL></DL>')});
@@ -47,6 +68,8 @@ test('permission denial offers HTML import and shows a review before saving',asy
 });
 test('sidebar gallery preview is readable in light and dark appearance',async t=>{
  const {page,errors}=await fixture(t,400);await page.locator('#toggleView').click();await mkdir('docs/agentic-preview',{recursive:true});
+ await page.evaluate(()=>document.fonts.ready);
+ await page.waitForFunction(()=>document.querySelector('#items').getBoundingClientRect().height>500);
  await page.screenshot({path:'docs/agentic-preview/sidebar-light.png',fullPage:true,animations:'disabled'});await page.emulateMedia({colorScheme:'dark'});await page.screenshot({path:'docs/agentic-preview/sidebar-dark.png',fullPage:true,animations:'disabled'});
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.deepEqual(errors,[]);
 });

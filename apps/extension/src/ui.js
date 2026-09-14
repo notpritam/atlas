@@ -1,3 +1,4 @@
+import "./theme.js";
 // Shared presentation helpers. Captured text is always inserted with textContent.
 import { PRODUCT_NAME, CUSTOMER_ORIGIN, EXTENSION_ENVIRONMENT } from "./product.js";
 export const $ = (id) => document.getElementById(id);

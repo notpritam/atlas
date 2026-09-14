@@ -46,6 +46,22 @@ test('toolbar opens the native sidebar with no popup, and notes, local saves and
     await panel.waitFor('document.querySelector("#localText").textContent === "Saved from the native sidebar"');
     await panel.evaluate('document.querySelector("#localDialog").close();document.querySelector("#openSettings").click()');
     await panel.waitFor('document.querySelector("#settingsDialog").open');
+    await panel.evaluate('document.querySelector("[data-theme-choice]").value="dark";document.querySelector("[data-theme-choice]").dispatchEvent(new Event("change"))');
+    await panel.waitFor('document.documentElement.dataset.theme === "dark"');
+    assert.equal(await panel.evaluate('getComputedStyle(document.body).backgroundColor'), 'rgb(8, 9, 10)');
+    assert.match(await panel.evaluate('getComputedStyle(document.body).fontFamily'), /Inter/);
+    await panel.send('Page.reload');
+    await panel.waitFor('document.documentElement?.dataset.theme === "dark" && document.body?.dataset.preferencesReady === "true"');
+    await panel.evaluate('document.querySelector("#openSettings").click()');
+    assert.equal(await panel.evaluate('document.querySelector("[data-theme-choice]").value'), 'dark', 'Appearance survives reopening the extension view');
+    await panel.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
+    assert.equal(await panel.evaluate('getComputedStyle(document.body).backgroundColor'), 'rgb(8, 9, 10)', 'Explicit dark appearance overrides a light device');
+    await panel.evaluate('document.querySelector("[data-theme-choice]").value="system";document.querySelector("[data-theme-choice]").dispatchEvent(new Event("change"))');
+    await panel.waitFor('document.documentElement.dataset.theme === "system"');
+    assert.equal(await panel.evaluate('getComputedStyle(document.body).backgroundColor'), 'rgb(250, 250, 250)');
+    await panel.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'dark' }] });
+    assert.equal(await panel.evaluate('getComputedStyle(document.body).backgroundColor'), 'rgb(8, 9, 10)', 'System appearance reacts without reloading');
+    await panel.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: 'light' }] });
     assert.equal(context.pages().length, tabCount, 'No local library or settings tabs opened');
     await panel.evaluate('document.querySelector("#settingsDialog").close()');
     if (process.env.FOUNDKEEP_PANEL_SCREENSHOT) {

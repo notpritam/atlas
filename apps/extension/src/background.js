@@ -70,7 +70,7 @@ chrome.runtime.onMessageExternal.addListener((msg, sender, respond) => {
 // ---------------------------------------------------------------------------
 async function flash(ok, label) {
   await chrome.action.setBadgeBackgroundColor({
-    color: ok ? "#c63b23" : "#d03b3b",
+    color: ok ? "#0d7a50" : "#ad3b35",
   });
   await chrome.action.setBadgeText({ text: ok ? "✓" : "!" });
   if (!ok && label) console.error("[atlas]", label);
@@ -133,15 +133,6 @@ function publicHttpUrl(value) {
   const safe = safeHttpUrl(value);
   if (!safe) return null;
   return obviousPrivateHost(new URL(safe).hostname) ? null : safe;
-}
-
-async function requestImageHostAccess(value) {
-  const source = publicHttpUrl(value);
-  if (!source) throw new Error("FoundKeep can only save images from public web addresses outside private networks.");
-  const origin = new URL(source).origin + "/*";
-  if (await chrome.permissions.contains({ origins: [origin] })) return;
-  const granted = await chrome.permissions.request({ origins: [origin] });
-  if (!granted) throw new Error("Allow access to this image's site to save its original file.");
 }
 
 async function contentHash(text) {
@@ -294,7 +285,7 @@ function openReviewPanel(tab) {
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   const opened = openReviewPanel(tab);
   void opened.then(async () => {
-    if (info.menuItemId === "save-image") await requestImageHostAccess(info.srcUrl);
+    if (info.menuItemId === "save-image" && !publicHttpUrl(info.srcUrl)) throw new Error('FoundKeep can only save images from public web addresses.');
     await stageSaveReview({ action: info.menuItemId, tab, info, trigger: "context" });
   }).catch(error => configuredFlash(false, error.message));
 });
@@ -315,6 +306,24 @@ chrome.commands.onCommand.addListener((command, tab) => {
 // Messages from popup / content scripts
 // ---------------------------------------------------------------------------
 chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (msg?.kind === 'prepare-legacy-save') {
+    if (!trustedLibrarySender(sender, chrome.runtime) || !Number.isInteger(msg.windowId)) {
+      sendResponse({ ok: false, error: 'Open FoundKeep to choose a destination.' }); return;
+    }
+    const opened = openReviewPanel({ windowId: msg.windowId });
+    void opened.then(async () => {
+      if (!['note','savepage','highlight','region','fullpage'].includes(msg.action)) throw new Error('Choose a supported capture method.');
+      const [tab] = await chrome.tabs.query({ active: true, windowId: msg.windowId });
+      if (!tab) throw new Error('Open a browser tab to continue.');
+      const { preferences } = await getEffectivePreferences();
+      if (!preferences.capture[capturePreferenceKey(msg.action)]) throw new Error('This capture method is disabled in your FoundKeep settings.');
+      if (msg.action === 'note' && (typeof msg.text !== 'string' || !msg.text.trim() || msg.text.length > 50000)) throw new Error('Write a note of up to 50,000 characters.');
+      if (msg.action !== 'note' && !safeHttpUrl(tab.url)) throw new Error('Open a web page to capture it.');
+      const draft = await stageSaveReview({ action: msg.action, tab, trigger: 'sidebar', ...(msg.action === 'note' ? { text: msg.text, attachPage: msg.attachPage === true && preferences.notes.attachSource && !!safeHttpUrl(tab.url) } : {}) });
+      sendResponse({ ok: true, pending: true, draftId: draft.id });
+    }).catch(error => sendResponse({ ok: false, error: error.message }));
+    return true;
+  }
   if (['prepare-save', 'save-review-get', 'save-review-confirm', 'save-review-cancel'].includes(msg?.kind)) {
     if (!trustedLibrarySender(sender, chrome.runtime) || !Number.isInteger(msg.windowId)) { sendResponse({ ok: false, error: 'Open the FoundKeep sidebar to choose a destination.' }); return; }
     void (async () => {
@@ -413,6 +422,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg?.kind === "capture") {
+    if (!trustedLibrarySender(sender, chrome.runtime)) { sendResponse({ ok: false, error: 'Open FoundKeep to capture a page.' }); return; }
     (async () => {
       const sidebar = trustedLibrarySender(sender, chrome.runtime) && msg.source === "sidebar";
       const [tab] = await chrome.tabs.query({
@@ -457,6 +467,7 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     return true;
   }
   if (msg?.kind === "saveNote") {
+    if (!trustedLibrarySender(sender, chrome.runtime)) { sendResponse({ ok: false, error: 'Open FoundKeep to save a note.' }); return; }
     (async () => {
       const sidebar = trustedLibrarySender(sender, chrome.runtime) && msg.source === "sidebar";
       const [tab] = await chrome.tabs.query({
@@ -505,7 +516,7 @@ async function performCapture(action, { tab, info, tweet, text, attachPage, trig
   const limits = preferenceState.policy.limits;
   const feature = capturePreferenceKey(action);
   if (!preferences.capture[feature]) throw new Error(`${feature === "fullPage" ? "Full-page screenshot" : feature[0].toUpperCase() + feature.slice(1)} capture is disabled in your FoundKeep preferences.`);
-  if (trigger === "sidebar" && action !== "note") await assertCaptureTab(tab);
+  if (action !== "note" && action !== "tweet") await assertCaptureTab(tab);
   switch (action) {
     case 'tweet': {
       const capturedAt = Date.now();

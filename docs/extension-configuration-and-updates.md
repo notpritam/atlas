@@ -85,3 +85,11 @@ X/Twitter content-script buttons open the native side panel from the click's use
 Confirmation validates the account and selected folder/collection again. Collection review displays visibility, submission rules and the exact shared fields; images require an explicit checkbox. A stable capture ID makes a retry after worker interruption idempotent. The private capture stores `folderId` and optional `collectionSubmission` alongside its existing account-bound outbox. Upload retries retain the chosen destination, persist the remote capture ID before collection submission, and reuse a stable submission client ID. Changing collection visibility/access stops sharing with a recoverable local error. Existing captures and identities are preserved without a database migration.
 
 `tests/extension-destination.mjs` exercises the actual X content script and native side-panel review, cancellation, confirmation, draft restoration and account-change rejection. The cloud tests cover folder delivery, ambiguous collection acknowledgements and visibility changes. The dev end-to-end test verifies a sidebar note reaches its chosen folder and a separate reviewed quote reaches a private collection without exposing the full private note.
+
+## Appearance and remaining entry points (extension 1.7.7)
+
+All packaged extension screens use the website's Inter font and a shared green light/dark palette. Sidebar Settings offers System, Light and Dark, persisted within each installed extension's independent storage. System reacts to device changes; explicit choices override it without a reload.
+
+Visible actions in retained popup/local-library tabs now open the common native-sidebar destination review and retain their drafts. Right-click image capture requests host permission on the final confirmation gesture, after destination selection. Non-note/non-tweet captures recheck the target tab at confirmation. Legacy internal capture messages are restricted to trusted packaged UI senders.
+
+The complete entry-point audit and the next social-media preservation design are in [the 14 September audit](beta/2026-09-14-extension-audit-and-social-media.md). The 1.7.7 extension release does not introduce the new multi-asset/transcription backend.

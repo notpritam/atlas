@@ -9,8 +9,8 @@ const BUTTON_ATTRIBUTE = PRODUCT_NAME === "FoundKeep Dev" ? "data-foundkeep-dev"
 const OWN_BUTTON = `[${BUTTON_ATTRIBUTE}="${chrome.runtime.id}"]`;
 const MARK_SVG = '<svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12v18l-6-4-6 4z"/></svg>';
 const CHECK_SVG = `<svg width="19" height="19" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
-const IDLE = "rgb(113, 118, 123)";
-const ACCENT = "#0d7a50";
+const IDLE = "var(--foundkeep-idle, #686868)";
+const ACCENT = "var(--foundkeep-accent, #0d7a50)";
 
 function extract(article) {
   const link = [...article.querySelectorAll('a[href*="/status/"]')].find((a) =>
@@ -33,7 +33,17 @@ function extract(article) {
   };
 }
 
+function updatePalette(btn) {
+  // X has its own appearance setting, which can differ from the OS. Use the
+  // actual post text to choose a contrasting shade of FoundKeep's green.
+  const text = btn.closest('article')?.querySelector('[data-testid="tweetText"], [data-testid="User-Name"]');
+  const rgb = text && getComputedStyle(text).color.match(/[\d.]+/g)?.slice(0, 3).map(Number);
+  const dark = rgb ? rgb.reduce((a, b) => a + b, 0) > 420 : matchMedia('(prefers-color-scheme: dark)').matches;
+  btn.style.setProperty('--foundkeep-accent', dark ? '#4cc38a' : '#0d7a50');
+  btn.style.setProperty('--foundkeep-idle', dark ? '#a5aab2' : '#686868');
+}
 function setState(btn, state) {
+  updatePalette(btn);
   btn.dataset.state = state;
   if (state === "saving") {
     btn.style.color = ACCENT;
@@ -86,15 +96,18 @@ function makeButton() {
   reset(btn);
 
   btn.addEventListener("mouseenter", () => {
+    updatePalette(btn);
     if (btn.dataset.state === "saved") return;
     btn.style.color = ACCENT;
     btn.style.background = "rgba(13,122,80,0.1)";
   });
   btn.addEventListener("mouseleave", () => {
-    if (btn.dataset.state === "saved") return;
+    if (['saved', 'saving', 'choosing', 'error'].includes(btn.dataset.state)) return;
     btn.style.color = IDLE;
     btn.style.background = "transparent";
   });
+  btn.addEventListener('focus', () => updatePalette(btn));
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) btn.style.transition = 'none';
 
   btn.addEventListener("click", (e) => {
     if (!e.isTrusted) return;
@@ -130,7 +143,9 @@ function inject() {
     if (g.querySelector(OWN_BUTTON)) continue;
     // Only the action bar (it has the reply button); skip metric-only groups.
     if (!g.querySelector('[data-testid="reply"]')) continue;
-    g.appendChild(makeButton());
+    const wrapper = makeButton();
+    g.appendChild(wrapper);
+    updatePalette(wrapper.querySelector('button'));
   }
 }
 

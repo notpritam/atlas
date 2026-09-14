@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "FoundKeep — Save what matters",
-  "version": "1.7.6",
+  "version": "1.7.7",
   "description": "Save readable pages, screenshots, highlights, images and notes with original source details in a private, searchable library.",
   "permissions": [
     "activeTab",

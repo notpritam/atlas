@@ -39,5 +39,8 @@
   "src/twitter.js",
   "src/ui.js",
   "src/collections-ui.js",
-  "src/collections.css"
+  "src/collections.css",
+  "assets/fonts/InterVariable.woff2",
+  "src/theme.js",
+  "src/legacy-review.js"
 ]

@@ -1,3 +1,4 @@
+import { reviewLegacySave } from "./legacy-review.js";
 import * as db from "./db.js";
 import {
   $,
@@ -375,24 +376,8 @@ $("noteForm").addEventListener("submit", async (e) => {
   noteSaving = true;
   $("saveLibraryNote").disabled = true;
   try {
-    const response = await chrome.runtime.sendMessage({
-      kind: "saveNote",
-      text,
-      source: "library",
-    });
-    if (!response?.ok)
-      throw new Error(response?.error || "Could not save this note.");
-    if ($("libraryNote").value === draft) {
-      $("libraryNote").value = "";
-      $("noteDialog").close();
-    } else
-      message(
-        $("noteFeedback"),
-        "Saved. Your new edits are still here.",
-        "success",
-      );
-    chrome.runtime.sendMessage({ kind: "drain" }).catch(() => {});
-    resetFilters();
+    await reviewLegacySave('note', { text, attachPage: false });
+    message($("noteFeedback"), "Choose where to save in the sidebar. Your draft stays here until you finish.");
   } catch {
     message(
       $("noteFeedback"),

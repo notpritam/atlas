@@ -1,3 +1,4 @@
+import { reviewLegacySave } from "./legacy-review.js";
 import {bindCollections} from './collections-ui.js';
 import * as db from "./db.js";
 import { $, title, domain, ago, icon, hydrateIcons, message } from "./ui.js";
@@ -120,16 +121,15 @@ function updateSave() {
 async function saveNote() {
   const text = $("note").value.trim();
   if (!text || saving) return;
-  const draft = $("note").value;
   saving = true;
   updateSave();
   $("save").textContent = "Saving…";
   message($("saveFeedback"), "");
   try {
-    const response = await chrome.runtime.sendMessage({ kind: "saveNote", text });
+    const response = await reviewLegacySave("note", { text, attachPage: true });
     if (!response?.ok) throw new Error(response?.error || "Could not save your note. Try again.");
-    if ($("note").value === draft) $("note").value = "";
-    message($("saveFeedback"), "Saved in your library.", "success");
+    // Keep the draft until the user completes the sidebar review.
+    message($("saveFeedback"), "Choose where to save in the sidebar.");
     await renderRecent();
   } catch (error) {
     message($("saveFeedback"), error.message || "Could not save. Your draft is still here.", "error");
@@ -151,13 +151,9 @@ async function runCapture(button) {
   if (label) label.textContent = action === "savepage" ? "Saving page…" : "Capturing…";
   message($("captureFeedback"), action === "savepage" ? "Collecting readable text and source details…" : "Starting capture…");
   try {
-    const response = await chrome.runtime.sendMessage({ kind: "capture", action });
+    const response = await reviewLegacySave(action);
     if (!response?.ok) throw new Error(response?.error || "Could not capture this page.");
-    if (action === "region") {
-      window.close();
-      return;
-    }
-    message($("captureFeedback"), "Saved in your FoundKeep library.", "success");
+    message($("captureFeedback"), "Choose where to save in the sidebar.");
     await renderRecent();
   } catch (error) {
     message($("captureFeedback"), error.message || "Could not start capture. Reload this page and try again.", "error");

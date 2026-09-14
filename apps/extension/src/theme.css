@@ -1,33 +1,36 @@
+/* FoundKeep platform palette. All extension surfaces consume these tokens. */
 @font-face {
-  font-family: Geist;
-  src: url("../assets/fonts/geist-latin.woff2") format("woff2");
+  font-family: Inter;
+  src: url("../assets/fonts/InterVariable.woff2") format("woff2");
   font-weight: 100 900;
   font-display: swap;
 }
-@font-face {
-  font-family: Clarity;
-  src: url("../assets/fonts/ClarityCity-SemiBold.woff2") format("woff2");
-  font-weight: 600;
-  font-display: swap;
-}
 :root {
+  color-scheme: light;
+  --bg: #fafafa; --sidebar: #fff; --card: #fff; --panel: #f1f3f1;
+  --hover: #e6ece7; --line: #e4e4e4; --control: #929292;
+  --ink: #202020; --muted: #686868; --faint: #686868;
+  --accent: #0d7a50; --button: #0d7a50; --button-hover: #0a6242;
+  --on-button: #fff; --accent-bg: #e6f2ea; --good: #286c56; --bad: #ad3b35;
+  --font: Inter, system-ui, sans-serif; --display: var(--font);
+}
+:root[data-theme="dark"] {
   color-scheme: dark;
-  --bg: #141513;
-  --sidebar: #111210;
-  --card: #1b1d1a;
-  --panel: #22241f;
-  --hover: #2b2d27;
-  --line: #32352e;
-  --ink: #f1f2ec;
-  --muted: #b0b4a8;
-  --faint: #949b8c;
-  --accent: #e86548;
-  --button: #c63b23;
-  --accent-bg: #39211a;
-  --good: #a7d4b1;
-  --bad: #ffab93;
-  --font: Geist, system-ui, sans-serif;
-  --display: Clarity, Geist, sans-serif;
+  --bg: #08090a; --sidebar: #0f1011; --card: #0f1011; --panel: #1a1c20;
+  --hover: #262a2e; --line: #34373d; --control: #646872;
+  --ink: #f7f8f8; --muted: #a5aab2; --faint: #a5aab2;
+  --accent: #4cc38a; --button: #4cc38a; --button-hover: #6bd3a1;
+  --on-button: #05130d; --accent-bg: #163426; --good: #a7d4b1; --bad: #ffb5a8;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]):not([data-theme="dark"]) {
+  color-scheme: dark;
+  --bg: #08090a; --sidebar: #0f1011; --card: #0f1011; --panel: #1a1c20;
+  --hover: #262a2e; --line: #34373d; --control: #646872;
+  --ink: #f7f8f8; --muted: #a5aab2; --faint: #a5aab2;
+  --accent: #4cc38a; --button: #4cc38a; --button-hover: #6bd3a1;
+  --on-button: #05130d; --accent-bg: #163426; --good: #a7d4b1; --bad: #ffb5a8;
+  }
 }
 * {
   box-sizing: border-box;
@@ -81,8 +84,8 @@ textarea {
   caret-color: var(--accent);
 }
 ::selection {
-  color: #fff;
-  background: #a13724;
+  color: var(--on-button);
+  background: var(--button);
 }
 ::placeholder {
   color: var(--faint);
@@ -145,10 +148,10 @@ svg {
 }
 .primary {
   background: var(--button);
-  color: #fff;
+  color: var(--on-button);
 }
 .primary:hover:not(:disabled) {
-  background: #df492e;
+  background: var(--button-hover);
 }
 .secondary {
   border-color: var(--line);
@@ -260,9 +263,9 @@ svg {
   height: 22px;
   flex-shrink: 0;
   padding: 2px !important;
-  border: 1px solid #626957 !important;
+  border: 1px solid var(--control) !important;
   border-radius: 20px !important;
-  background: #3a4034 !important;
+  background: var(--panel) !important;
   cursor: pointer;
   position: relative;
   margin: 2px 0;
@@ -273,7 +276,7 @@ svg {
   width: 16px;
   height: 16px;
   border-radius: 50%;
-  background: #e9eee1;
+  background: var(--ink);
   transition: transform 0.15s;
 }
 .toggle:checked {
@@ -378,7 +381,7 @@ dialog::backdrop {
   border: 0;
 }
 * {
-  scrollbar-color: #555c4b var(--bg);
+  scrollbar-color: var(--control) var(--bg);
   scrollbar-width: thin;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -464,3 +467,6 @@ dialog::backdrop {
 .build-identity[data-environment="dev"] strong { background: var(--accent-bg); color: var(--accent); }
 .build-destination { overflow-wrap: anywhere; }
 .settings-panel .build-identity, .sidebar .build-identity { margin-inline: 0; }
+
+.theme-choice{display:grid;gap:8px;font-size:12px;color:var(--muted)}
+.theme-choice select{width:100%;padding:10px;border:1px solid var(--control);border-radius:10px;color:var(--ink);background:var(--card)}

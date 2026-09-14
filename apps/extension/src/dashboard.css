@@ -47,7 +47,7 @@
 }
 .nav-item.on {
   background: var(--accent-bg);
-  color: #f58a70;
+  color: var(--accent);
 }
 .nav-item svg {
   width: 16px;
@@ -268,7 +268,7 @@
   color: var(--ink);
 }
 .capture-card:hover {
-  border-color: #626a57;
+  border-color: var(--control);
   transform: translateY(-2px);
 }
 .capture-card:focus-visible {
@@ -315,7 +315,7 @@
   margin: 20px 0;
 }
 .capture-card[data-type="note"] {
-  background: #25271f;
+  background: var(--panel);
 }
 .capture-card[data-type="note"] .card-title {
   font-size: 19px;

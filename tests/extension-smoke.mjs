@@ -154,6 +154,13 @@ test(
       assert.ok(shots.some((c) => c.width === 200 && c.height === 140));
       await popup.locator("#note").fill("Actual extension note");
       await popup.locator("#save").click();
+      await popup.waitForFunction(() => document.querySelector('#saveFeedback').textContent.includes('Choose where'));
+      const reviewed = await popup.evaluate(async () => {
+        const { id: windowId } = await chrome.windows.getCurrent();
+        const { draft } = await chrome.runtime.sendMessage({ kind: 'save-review-get', windowId });
+        return chrome.runtime.sendMessage({ kind: 'save-review-confirm', windowId, id: draft.id, choice: { kind: 'local' } });
+      });
+      assert.equal(reviewed.ok, true, reviewed.error);
       await count(5);
       await worker.evaluate(async () => {
         const preferences = {

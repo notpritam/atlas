@@ -44,4 +44,17 @@ test('an X save opens a destination review without saving until confirmation, an
  await panel.evaluate('chrome.storage.local.remove("atlasCustomer")');
  await panel.evaluate('document.querySelector("#destinationCancel").click()');
 
+ // A retained local-library tab must use the same native review, never silently
+ // save to the current account when the user writes a note there.
+ const legacy = await context.newPage();
+ await legacy.goto(new URL('dashboard.html', worker.url()).href);
+ await legacy.locator('#newNote').click();
+ await legacy.locator('#libraryNote').fill('A note from the older local library');
+ await legacy.locator('#saveLibraryNote').click();
+ await panel.waitFor('document.querySelector("#destinationDialog").open');
+ assert.equal(await count(), 1, 'The older screen must wait for a destination');
+ assert.equal(await legacy.locator('#libraryNote').inputValue(), 'A note from the older local library');
+ await panel.evaluate('document.querySelector("#destinationCancel").click()');
+ assert.equal(await count(), 1);
+
 });

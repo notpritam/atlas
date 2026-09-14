@@ -71,6 +71,7 @@ async function pageWithExtension(t, { saveFails = false, preferences = null } = 
       };
       window.__imports = [];
       window.chrome = {
+        windows: { getCurrent: async () => ({ id: 1 }) },
         storage: {
           local: {
             get: async () => settings,
@@ -85,6 +86,11 @@ async function pageWithExtension(t, { saveFails = false, preferences = null } = 
           getURL: (p) => "http://atlas.test/" + p,
           onMessage: { addListener: () => {}, removeListener: () => {} },
           sendMessage: async (m) => {
+            if (m.kind === 'prepare-legacy-save') {
+              window.__captureRequests.push(m);
+              await new Promise(resolve => setTimeout(resolve, 60));
+              return saveFails ? { ok: false, error: 'Disk full' } : { ok: true, pending: true };
+            }
             if (m.kind === "preferences-status")
               return { ok: true, preferences: window.__preferences, revision: 1, source: "cache" };
             if (m.kind === "capture") {
@@ -174,26 +180,15 @@ async function seed(page, records) {
     return ids;
   }, records);
 }
-test("successful note save persists locally, clears only the saved draft, and links to its detail", async (t) => {
+test("older popup reviews a note in the sidebar and retains the draft before confirmation", async t => {
   const page = await pageWithExtension(t);
   await page.goto("http://atlas.test/src/popup.html");
   await page.locator("#note").fill("A useful thought");
   await page.locator("#save").click();
-  await page.waitForFunction(() =>
-    document.querySelector("#saveFeedback").textContent.includes("Saved"),
-  );
-  assert.equal(await page.locator("#note").inputValue(), "");
-  const notes = await page.evaluate(async () => {
-    const db = await import("/src/db.js");
-    return db.listCaptures();
-  });
-  assert.equal(notes.length, 1);
-  assert.equal(notes[0].noteText, "A useful thought");
-  await page.locator(".recent-item").click();
-  assert.equal(
-    await page.evaluate(() => window.__opened),
-    `http://atlas.test/src/dashboard.html#capture=${notes[0].id}`,
-  );
+  await page.waitForFunction(() => document.querySelector("#saveFeedback").textContent.includes("Choose where"));
+  assert.equal(await page.locator("#note").inputValue(), "A useful thought");
+  assert.equal(await page.evaluate(async () => (await (await import('/src/db.js')).listCaptures()).length), 0);
+  assert.deepEqual(await page.evaluate(() => window.__captureRequests), [{ kind: 'prepare-legacy-save', windowId: 1, action: 'note', text: 'A useful thought', attachPage: true }]);
 });
 test("keyword search, type/tag filters and sort preserve actual capture records", async (t) => {
   const page = await pageWithExtension(t);
@@ -450,23 +445,28 @@ test("popup follows customer action controls and reports capture progress withou
   const capture = page.locator("#savePage");
   await capture.click({ noWaitAfter: true });
   await page.waitForFunction(() => document.querySelector("#savePage")?.getAttribute("aria-busy") === "true");
-  await page.waitForFunction(() => document.querySelector("#captureFeedback")?.textContent.includes("Saved"));
+  await page.waitForFunction(() => document.querySelector("#captureFeedback")?.textContent.includes("Choose where"));
   assert.equal(await capture.getAttribute("aria-busy"), null);
   assert.equal(await page.evaluate(() => window.__closed), false);
   assert.deepEqual(await page.evaluate(() => window.__captureRequests), [
-    { kind: "capture", action: "savepage" },
+    { kind: "prepare-legacy-save", windowId: 1, action: "savepage" },
   ]);
   const footer = await page.locator(".popup-foot").boundingBox();
   assert.ok(footer.y + footer.height <= 600);
   if (process.env.ATLAS_POPUP_SCREENSHOT)
     await page.screenshot({ path: process.env.ATLAS_POPUP_SCREENSHOT });
 });
-test("new library note saves and deletion requires confirmation", async (t) => {
+test("older library notes open the sidebar review and local deletion requires confirmation", async (t) => {
   const page = await pageWithExtension(t);
   await page.goto("http://atlas.test/src/dashboard.html");
   await page.locator("#newNote").click();
   await page.locator("#libraryNote").fill("A library thought");
   await page.locator("#saveLibraryNote").click();
+  await page.waitForFunction(() => document.querySelector('#noteFeedback').textContent.includes('Choose where'));
+  assert.equal(await page.locator('#libraryNote').inputValue(), 'A library thought');
+  assert.equal(await page.evaluate(async () => (await (await import('/src/db.js')).listCaptures()).length), 0);
+  await seed(page, [{ type: 'note', noteText: 'A library thought' }]);
+  await page.reload();
   await page.waitForSelector(".capture-card");
   assert.match(
     await page.locator(".card-title").textContent(),
