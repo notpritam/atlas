@@ -46,7 +46,7 @@ function Library({ me: initialMe, initialCaptures, initialState, initialError, r
     navigate({ item: '', panel: '' });
   }, [navigate, readingPage, accountId, router]);
   const preferences = { data: savedPreferences, isPending: !savedPreferences };
-  const captures = useInfiniteQuery({ queryKey: ['captures', accountId, state.q, state.type], queryFn: ({ pageParam, signal }) => request<CapturePage>(capturesPath(state, pageParam), { signal }), initialPageParam: undefined as string | undefined, getNextPageParam: page => page.nextCursor || undefined, initialData: initialCaptures && state.q === initialState.q && state.type === initialState.type ? { pages: [initialCaptures], pageParams: [undefined] } : undefined, enabled: !readingPage, refetchOnWindowFocus: true, refetchInterval: 15000, refetchIntervalInBackground: false });
+  const captures = useInfiniteQuery({ queryKey: ['captures', accountId, state.q, state.type], queryFn: ({ pageParam, signal }) => request<CapturePage>(capturesPath(state, pageParam), { signal }), initialPageParam: undefined as string | undefined, getNextPageParam: page => page.nextCursor || undefined, initialData: initialCaptures && state.q === initialState.q && state.type === initialState.type ? { pages: [initialCaptures], pageParams: [undefined] } : undefined, enabled: !readingPage, refetchOnWindowFocus: true, refetchInterval: query => query.state.data?.pages.some(page=>page.captures.some(capture=>['pending','running'].includes(capture.preservedMedia?.status||'')))?3000:15000, refetchIntervalInBackground: false });
   const pages = captures.data?.pages || [];
   const unique = new Map<string, Capture>();
   for (const page of pages) for (const capture of page.captures) if (!unique.has(capture.id)) unique.set(capture.id, capture);

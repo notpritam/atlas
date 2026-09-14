@@ -36,6 +36,8 @@ export interface Capture {
   previewUrl?: string; width?: number; height?: number; fileName?: string; fileMime?: string; fileBytes?: number; selectionText?: string; noteText?: string; summary?: string; articleText?: string; ocrText?: string;
   createdAt?: number | string; savedVia?: 'iphone' | 'android' | 'browser' | 'dashboard' | null;
   capturedAt: number | string; status: string; category?: string; tags?: string[]; provenance?: Provenance; enrichError?: string;
+  userTags?: string[];
+  preservedMedia?: {status:string;imageCount:number;videoCount:number;excerpt?:string|null;items:{id:string;kind:'image'|'video';url:string}[]}|null;
 }
 export interface CapturePage { captures: Capture[]; nextCursor: string | null; total: number }
 export type PopupAction = 'bookmark' | 'highlight' | 'region' | 'fullPage';
@@ -63,6 +65,7 @@ export function safeBlob(value: string | undefined, id: string) {
   try { const url = new URL(value, window.location.origin); return url.origin === window.location.origin && url.pathname === expected && !url.search && !url.hash ? expected : null; } catch { return null; }
 }
 export function safeFileUrl(value: string | undefined, id: string) { const expected = `/api/captures/${encodeURIComponent(id)}/file`; return value === expected ? expected : null; }
+export function captureMedia(capture:Capture){return (capture.preservedMedia?.items||[]).filter(item=>/^[a-f0-9-]{36}$/i.test(item.id)&&['image','video'].includes(item.kind)&&item.url===`/api/captures/${encodeURIComponent(capture.id)}/assets/${item.id}`).slice(0,4);}
 export function dateLabel(value: string | number, full = false) {
   const date = new Date(value);
   return Number.isNaN(date.valueOf()) ? 'Date unavailable' : date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', ...(full ? { year: 'numeric', hour: '2-digit', minute: '2-digit' } : {}) });

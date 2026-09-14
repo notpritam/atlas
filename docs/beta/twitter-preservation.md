@@ -51,3 +51,31 @@ Availability can change upstream. These checks establish this dev slice, not com
 - Rollback: previous site `20260914-auto-connect-1.7.4`, static downloads `20260914-entry-audit-1.7.7`, backend `20260913-141918-remote-media-ebe9e2e`. The old backend service drop-in is retained beside the current file as `foundkeep-media-release.conf.before-twitter-1.7.8`; it is not loaded by systemd. The migration is additive; preserve the new tables and saved files if rolling back application code.
 - Existing dev data was backed up with SQLite's online backup API before migration. The original five accounts and 22 saves were retained. Automated live checks create/delete only their temporary accounts.
 - Dev Agent connections now generate the MCP server name `foundkeep-dev`; production keeps `foundkeep`. Credentials are still generated per connection and never hardcoded into the app.
+
+
+## Library previews (1.7.12)
+
+Library and mobile capture DTOs now include bounded `preservedMedia` metadata:
+status, photo/video counts, up to four owned media URLs, and a 480-character
+post excerpt. MCP reads use the same metadata selection. Original files, private
+filesystem paths and complete post/article bodies are not included in cards.
+The authenticated preview endpoint can serve the first preserved photo, so
+already-downloaded saves work without a new preservation job.
+
+Dashboard cards show a compact media grid, photo/video counts, and personal
+and generated tags. Saved video previews are lazy, muted and paused; playback
+remains in the reader. The library polls every three seconds while visible
+saves have pending/running preservation, returning to its usual interval when
+finished. Reader preservation updates also invalidate the associated card and
+item query. Retry sends the normal JSON object through the shared API helper.
+
+`customer-preservation-routes.test.ts` checks pending-to-ready card metadata,
+owned image bytes, web/mobile parity, preview bounds and account isolation.
+`tests/next-library-media.mjs` checks real photo/video saves appearing without a
+page reload, private URLs, tags, dark mode, narrow screens and opening the
+corresponding reader. It creates and removes its own temporary dev account and
+requires `FOUNDKEEP_ALLOW_DEV_TEST=1`.
+
+Backend/site dev release: `20260914-library-media-1.7.12`. Preserve the prior
+`20260914-mcp-parity-1.7.11` releases for rollback. No database migration or
+extension/mobile binary update is required for this web fix.

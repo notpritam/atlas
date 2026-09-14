@@ -88,6 +88,40 @@ const worker = () =>
     }),
     read: async (url) => ({ url, mime: "image/png", data: png }),
   });
+test('library cards discover saved tweet media and serve its private preview after preservation finishes',async()=>{
+ const owner=await register(),other=await register(),capture=await save(owner.cookie,{userTags:['Design reference']});
+ const list=async()=>((await (await request('/captures?view=cards','GET',undefined,owner.cookie)).json()) as any).captures.find((item:any)=>item.id===capture.id);
+ const queued=await list();expect(queued.preservedMedia).toMatchObject({status:'pending',imageCount:0,videoCount:0,items:[]});
+ expect(queued.previewUrl).toBeNull();
+ const service=worker();try{await service.tick();}finally{service.close();}
+ const card=await list();expect(card.previewUrl).toBe(`/api/captures/${capture.id}/preview`);
+ expect(card.preservedMedia).toMatchObject({status:'ready',imageCount:1,videoCount:0});
+ expect(card.preservedMedia.items).toHaveLength(1);expect(card.preservedMedia.items[0].kind).toBe('image');
+ expect(card.preservedMedia.items[0].url).toBe(`/api/captures/${capture.id}/assets/${card.preservedMedia.items[0].id}`);
+ expect(card.userTags).toEqual(['Design reference']);
+ expect(JSON.stringify(card.preservedMedia)).not.toContain('file_path');
+ expect(JSON.stringify(card.preservedMedia)).not.toContain('pbs.twimg.com');
+ const image=await request(`/captures/${capture.id}/preview`,'GET',undefined,owner.cookie);
+ expect(image.status).toBe(200);expect(image.headers.get('cache-control')).toContain('no-store');expect(Buffer.from(await image.arrayBuffer())).toEqual(png);
+ expect((await request(`/captures/${capture.id}/preview`,'GET',undefined,other.cookie)).status).toBe(404);
+ const login=await request('/mobile/login','POST',{email:owner.account.email,password,deviceName:'Preview test'});
+ expect(login.status).toBe(200);
+ const bearer='Bearer '+((await login.json()) as any).token;
+ const mobileResponse=await request('/mobile/captures?view=cards','GET',undefined,bearer);expect(mobileResponse.status).toBe(200);
+ const mobile=((await mobileResponse.json()) as any).captures[0];
+ expect(mobile.preservedMedia).toEqual(card.preservedMedia);
+});
+test('card media metadata stays bounded and excludes another account even with a mismatched asset record',async()=>{
+ const owner=await register(),other=await register(),capture=await save(owner.cookie);
+ const service=worker();try{await service.tick();}finally{service.close();}
+ const original=db.query("SELECT * FROM customer_media_assets WHERE capture_id=? AND kind='image'").get(capture.id) as any;
+ for(let index=1;index<=6;index++)db.query('INSERT INTO customer_media_assets(id,capture_id,account_id,source_key,source_url,kind,position,title,mime,file_path,bytes,sha256,created_at) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)').run(crypto.randomUUID(),capture.id,index===6?other.account.id:owner.account.id,'extra-'+index,original.source_url,'image',index,'Saved image',original.mime,original.file_path,original.bytes,original.sha256,Date.now());
+ db.query("UPDATE customer_media_assets SET body_text=? WHERE capture_id=? AND kind='post'").run('Long post '.repeat(1000),capture.id);
+ const {captures}=await (await request('/captures?view=cards','GET',undefined,owner.cookie)).json() as any;
+ expect(captures[0].preservedMedia.imageCount).toBe(6);expect(captures[0].preservedMedia.items).toHaveLength(4);expect(captures[0].preservedMedia.excerpt).toHaveLength(480);
+ const foreign=db.query('SELECT id FROM customer_media_assets WHERE capture_id=? AND account_id=?').get(capture.id,other.account.id) as any;
+ expect(JSON.stringify(captures[0].preservedMedia)).not.toContain(foreign.id);
+});
 test("new X saves queue once on Free and expose private ranged copies through cookie and mobile credentials", async () => {
   const owner = await register(),
     other = await register(),

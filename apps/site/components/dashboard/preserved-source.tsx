@@ -1,5 +1,6 @@
 "use client";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {useEffect} from 'react';
 import { useDashboard } from "./context";
 import { fileBytes } from "../../lib/dashboard";
 import "./preserved-source.css";
@@ -13,7 +14,7 @@ type Asset = {
   downloadUrl: string;
   text: string | null;
 };
-type Preservation = { status: string; error: string | null; assets: Asset[] };
+type Preservation = { status: string; error: string | null; updatedAt:number; assets: Asset[] };
 export function PreservedSource({
   id,
   sourceUrl,
@@ -47,13 +48,18 @@ export function PreservedSource({
     mutationFn: () =>
       request("/captures/" + encodeURIComponent(id) + "/preservation", {
         method: "POST",
-        body: JSON.stringify({}),
+        body: {},
       }),
     onSuccess: () => cache.invalidateQueries({ queryKey: key }),
   });
-  if (!supported) return null;
   const saved = query.data?.preservation,
     working = !!saved && ["pending", "running"].includes(saved.status);
+  useEffect(()=>{
+    if(!saved)return;
+    void cache.invalidateQueries({queryKey:['captures',me.account.id]});
+    void cache.invalidateQueries({queryKey:['capture',me.account.id,id]});
+  },[cache,me.account.id,id,saved?.updatedAt,saved?.status,saved?.assets.length]);
+  if (!supported) return null;
   const status = !saved
     ? "Keep a server copy"
     : saved.status === "ready"

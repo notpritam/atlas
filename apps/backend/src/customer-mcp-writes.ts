@@ -1,3 +1,4 @@
+import {preservedMediaColumns} from './customer-media-preview.ts';
 import type {Database} from 'bun:sqlite';
 import {z} from 'zod';
 import {customerCaptureDto,type CustomerCaptureRow} from './customer.ts';
@@ -45,7 +46,7 @@ const byteLength=(value:string|null|undefined)=>Buffer.byteLength(value||'','utf
 const has=(value:Record<string,unknown>,key:string)=>Object.prototype.hasOwnProperty.call(value,key);
 
 function capture(db:Database,owner:string,id:string){
-  const row=db.query(`SELECT c.*,
+  const row=db.query(`SELECT c.*,${preservedMediaColumns('c')},
     (SELECT name FROM customer_folders WHERE id=c.folder_id AND account_id=c.account_id) folder_name,
     (SELECT 1 FROM customer_derivatives WHERE capture_id=c.id AND account_id=c.account_id AND kind='preview') has_derived_preview,
     (SELECT json_extract(source_json,'$.imageUrl') FROM customer_processing_results WHERE capture_id=c.id AND account_id=c.account_id) generated_image_url

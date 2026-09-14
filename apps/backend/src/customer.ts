@@ -1,4 +1,5 @@
 import {enqueuePreservation,preservationDetails,preparePreservedCleanup} from './customer-preservation.ts';
+import {preservedMediaColumns,type PreservedMediaPreview} from './customer-media-preview.ts';
 import {normalizeSocialContext,twitterPost} from './customer-twitter.ts';
 import {registerPreservation} from './customer-preservation-routes.ts';
 import {registerCustomerCollections} from './customer-collections';
@@ -59,7 +60,7 @@ const BODY_READ_DEADLINE_MS = 30_000;
 const MAX_IMAGE = 8 * 1024 * 1024;
 const MAX_CAPTURES = 10_000;
 const TYPES = new Set(["screenshot", "selection", "bookmark", "image", "note", "tweet", "video", "audio", "document", "file"]);
-const CAPTURE_COLUMNS = "id,account_id,client_id,batch_id,type,status,saved_via,source_url,source_title,selection_text,note_text,article_text,blob_mime,blob_bytes,file_name,file_path,file_mime,file_bytes,storage_bytes,width,height,captured_at,created_at,updated_at,summary,ocr_text,category,tags,enrich_error,enrich_attempts,processing_at,provenance_json,processing_options_json,manual_tags,folder_id,(SELECT name FROM customer_folders WHERE id=customer_captures.folder_id AND account_id=customer_captures.account_id) AS folder_name,(SELECT 1 FROM customer_derivatives WHERE capture_id=customer_captures.id AND account_id=customer_captures.account_id AND kind='preview') AS has_derived_preview,(SELECT json_extract(source_json,'$.imageUrl') FROM customer_processing_results WHERE capture_id=customer_captures.id AND account_id=customer_captures.account_id) AS generated_image_url";
+const CAPTURE_COLUMNS = "id,account_id,client_id,batch_id,type,status,saved_via,source_url,source_title,selection_text,note_text,article_text,blob_mime,blob_bytes,file_name,file_path,file_mime,file_bytes,storage_bytes,width,height,captured_at,created_at,updated_at,summary,ocr_text,category,tags,enrich_error,enrich_attempts,processing_at,provenance_json,processing_options_json,manual_tags,folder_id,(SELECT name FROM customer_folders WHERE id=customer_captures.folder_id AND account_id=customer_captures.account_id) AS folder_name,(SELECT 1 FROM customer_derivatives WHERE capture_id=customer_captures.id AND account_id=customer_captures.account_id AND kind='preview') AS has_derived_preview,(SELECT json_extract(source_json,'$.imageUrl') FROM customer_processing_results WHERE capture_id=customer_captures.id AND account_id=customer_captures.account_id) AS generated_image_url,"+preservedMediaColumns();
 // List views need excerpts, not every article and OCR result in the account.
 // Keep the full representation as the default for installed older clients.
 const CARD_TEXT_COLUMNS = new Set(["selection_text", "note_text", "article_text", "summary", "ocr_text"]);
@@ -71,6 +72,7 @@ export interface AccountRow { id: string; email: string; name: string; password_
 interface ConnectionRow { client_kind: "unknown" | "browser" | "mobile"; id: string; account_id: string; name: string; created_at: number; last_seen_at: number | null; expires_at: number }
 interface CredentialRow { id: string; account_id: string; expires_at: number }
 export interface CustomerCaptureRow {
+  preserved_media_json?: string|null;
   has_derived_preview?: number; generated_image_url?: string | null;
   id: string; account_id: string; client_id: string; type: string; status: string;
   batch_id: string | null; saved_via: SavedVia | null;
@@ -115,7 +117,8 @@ function accountDto(row: AccountRow) { return { id: row.id, email: row.email, na
 function connectionDto(row: ConnectionRow) { return { id: row.id, name: row.name, clientKind: row.client_kind, createdAt: row.created_at, lastSeenAt: row.last_seen_at }; }
 export function customerCaptureDto(row: CustomerCaptureRow) {
   const provenance = parseStoredJson<CaptureProvenance | null>(row.provenance_json, null);
-  const hasPreview = row.has_derived_preview || previewSourceUrl(row.generated_image_url) || (row.blob_mime && PREVIEW_MIMES.has(row.blob_mime) && row.blob_bytes > 0)
+  const preservedMedia=parseStoredJson<PreservedMediaPreview|null>(row.preserved_media_json||null,null);
+  const hasPreview = preservedMedia?.imageCount || row.has_derived_preview || previewSourceUrl(row.generated_image_url) || (row.blob_mime && PREVIEW_MIMES.has(row.blob_mime) && row.blob_bytes > 0)
     || (row.file_path && row.file_mime && PREVIEW_MIMES.has(row.file_mime)) || previewSourceUrl(provenance?.leadImageUrl);
   return {
     id: row.id, clientId: row.client_id, batchId: row.batch_id, type: row.type, status: row.status,
@@ -126,6 +129,7 @@ export function customerCaptureDto(row: CustomerCaptureRow) {
     folder: row.folder_id && row.folder_name ? { id: row.folder_id, name: row.folder_name } : null,
     blobUrl: row.blob_mime ? `/api/captures/${row.id}/blob` : null,
     previewUrl: hasPreview ? `/api/captures/${row.id}/preview` : null,
+    preservedMedia,
     fileName: row.file_name, fileMime: row.file_mime, fileBytes: row.file_bytes,
     fileUrl: row.file_path ? `/api/captures/${row.id}/file` : null,
     width: row.width, height: row.height, capturedAt: row.captured_at, createdAt: row.created_at,
@@ -1224,7 +1228,13 @@ export function createCustomerApi(db: Database, oauthGateway: OAuthGateway = cre
     rates.take(`preview:${current.account.id}`, 120, 60_000);
     let image;
     const derivative = db.query("SELECT data,mime FROM customer_derivatives WHERE capture_id=? AND account_id=? AND kind='preview'").get(row.id,current.account.id) as {data:Uint8Array;mime:string}|null;
-    if (derivative) {
+    const preserved = db.query("SELECT file_path,mime FROM customer_media_assets WHERE capture_id=? AND account_id=? AND kind='image' AND file_path IS NOT NULL ORDER BY position,id LIMIT 1").get(row.id,current.account.id) as {file_path:string;mime:string}|null;
+    if (preserved) {
+      let file;
+      try { file=Bun.file(resolveCustomerFile(config.dataDir,preserved.file_path)); } catch { throw new CustomerPreviewError(404); }
+      if(!file.size||file.size>MAX_PREVIEW_BYTES)throw new CustomerPreviewError(404);
+      image=validatePreviewImage(new Uint8Array(await file.arrayBuffer()),preserved.mime);
+    } else if (derivative) {
       image = validatePreviewImage(derivative.data, derivative.mime);
     } else if (row.blob_mime && PREVIEW_MIMES.has(row.blob_mime) && row.blob_bytes > 0) {
       if (row.blob_bytes > MAX_PREVIEW_BYTES) throw new CustomerPreviewError(404);

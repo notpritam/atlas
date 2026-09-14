@@ -1,3 +1,4 @@
+import {preservedMediaColumns} from './customer-media-preview.ts';
 import type {Database} from 'bun:sqlite';
 import type {Hono} from 'hono';
 import {Server} from '@modelcontextprotocol/sdk/server/index.js';
@@ -49,7 +50,7 @@ export function createMcpOperations(db:Database,header:string,globalMaxBytes=con
   return dispatch(input,authorize);
  };
  const owned=(owner:string,saveId:string)=>{
-  const row=db.query('SELECT c.*,(SELECT name FROM customer_folders WHERE id=c.folder_id AND account_id=c.account_id) folder_name FROM customer_captures c WHERE id=? AND account_id=?').get(saveId,owner) as CustomerCaptureRow|null;
+  const row=db.query(`SELECT c.*,${preservedMediaColumns('c')},(SELECT name FROM customer_folders WHERE id=c.folder_id AND account_id=c.account_id) folder_name FROM customer_captures c WHERE id=? AND account_id=?`).get(saveId,owner) as CustomerCaptureRow|null;
   if(!row)moduleFail(404,'not_found','Saved item not found.');return row;
  };
  const readSaved=(owner:string,saveId:string)=>({capture:customerCaptureDto(owned(owner,saveId)),importOrigins:importOrigins(db,saveId,owner),processing:createProcessingService(db).details(owner,saveId),preservation:preservationDetails(db,owner,saveId),derivatives:db.query('SELECT kind,mime,bytes FROM customer_derivatives WHERE account_id=? AND capture_id=?').all(owner,saveId),links:db.query('SELECT target_id AS id,origin FROM customer_capture_links WHERE account_id=? AND source_id=?').all(owner,saveId)});
