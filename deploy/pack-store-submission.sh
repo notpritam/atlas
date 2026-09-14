@@ -7,8 +7,10 @@ VERSION="$(tr -d '[:space:]' < "$ROOT/deploy/store-version.txt")"
 
 python3 - "$ROOT" "$VERSION" <<'PY'
 import hashlib
+import json
 import os
 import shutil
+import struct
 import sys
 import tempfile
 import zipfile
@@ -16,18 +18,38 @@ import zipfile
 root, version = sys.argv[1:]
 dist = os.path.join(root, "deploy", "dist")
 store_zip = os.path.join(dist, f"foundkeep-store-{version}.zip")
-assets = os.path.join(dist, "store-assets")
+assets = os.path.join(dist, f"store-assets-{version}")
 required_assets = [
-    "extension-popup.png",
-    "collection-sidebar.png",
-    "customer-dashboard.png",
-    "customer-browser-setup.png",
+    "native-sidebar.png",
+    "save-review.png",
+    "local-library.png",
     "promo-small.png",
     "promo-marquee.png",
+    "icon128.png",
 ]
 missing = [name for name in required_assets if not os.path.isfile(os.path.join(assets, name))]
 if missing:
-    raise SystemExit("missing store assets; run npm run store:assets: " + ", ".join(missing))
+    raise SystemExit(f"missing current {version} store assets in {assets}: " + ", ".join(missing))
+
+with zipfile.ZipFile(store_zip) as archive:
+    manifest = json.loads(archive.read("manifest.json"))
+    if manifest.get("version") != version or "key" in manifest or "update_url" in manifest:
+        raise SystemExit("Store upload version/signing fields are incorrect")
+with open(store_zip, "rb") as handle:
+    archive_hash = hashlib.sha256(handle.read()).hexdigest()
+with open(os.path.join(assets, "ASSET_PROVENANCE.json")) as handle:
+    provenance = json.load(handle)
+if (provenance.get("storeVersion") != version or
+        provenance.get("storeItem") != "cficnecbdbiddngllpfbacabgbcjinmk" or
+        provenance.get("archiveSha256") != archive_hash or
+        provenance.get("accountData") is not False):
+    raise SystemExit("Store screenshot provenance does not match the upload")
+for name in required_assets:
+    expected = {"promo-small.png": (440, 280), "promo-marquee.png": (1400, 560), "icon128.png": (128, 128)}.get(name, (1280, 800))
+    with open(os.path.join(assets, name), "rb") as handle:
+        header = handle.read(24)
+    if header[:8] != b"\x89PNG\r\n\x1a\n" or struct.unpack(">II", header[16:24]) != expected:
+        raise SystemExit(f"incorrect Store image dimensions: {name}")
 
 output = os.path.join(dist, f"foundkeep-cws-submission-kit-{version}.zip")
 with tempfile.TemporaryDirectory() as temporary:
@@ -37,9 +59,8 @@ with tempfile.TemporaryDirectory() as temporary:
         (store_zip, f"foundkeep-store-{version}.zip"),
         (os.path.join(root, "deploy", "STORE_LISTING.md"), "STORE_LISTING.md"),
         (os.path.join(root, "deploy", "STORE_REVIEWER_GUIDE.md"), "STORE_REVIEWER_GUIDE.md"),
-        (os.path.join(root, "docs", "extension-configuration-and-updates.md"), "EXTENSION_CONFIGURATION_AND_UPDATES.md"),
-        (os.path.join(root, "docs", "extension-audit-1.0.1.md"), "EXTENSION_AUDIT_1.0.1.md"),
-        (os.path.join(root, "docs", "AGENTIC-COLLECTIONS-OPERATIONS.md"), "AGENTIC_COLLECTIONS_OPERATIONS.md"),
+        (os.path.join(root, "deploy", "STORE_RELEASE_AUDIT.md"), "STORE_RELEASE_AUDIT.md"),
+        (os.path.join(assets, "ASSET_PROVENANCE.json"), "ASSET_PROVENANCE.json"),
     ]
     files += [(os.path.join(assets, name), os.path.join("assets", name)) for name in required_assets]
     for source, relative in files:

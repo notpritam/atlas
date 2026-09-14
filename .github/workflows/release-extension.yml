@@ -39,8 +39,15 @@ jobs:
       - name: Install Chromium for browser checks
         run: bunx playwright-core install --with-deps chromium
 
+      - name: Use full Chromium for native extension checks
+        run: node --input-type=module -e 'import {chromium} from "playwright-core"; import {appendFileSync} from "node:fs"; appendFileSync(process.env.GITHUB_ENV, `CHROMIUM_PATH=${chromium.executablePath()}\n`);'
+
       - name: Install bounded customer OCR and media runtimes
-        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng util-linux ffmpeg
+        run: |
+          sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng util-linux ffmpeg python3-venv
+          python3 -m venv "$RUNNER_TEMP/foundkeep-media"
+          "$RUNNER_TEMP/foundkeep-media/bin/pip" install --no-deps 'yt-dlp==2026.8.19'
+          "$RUNNER_TEMP/foundkeep-media/bin/python" apps/backend/scripts/test_customer_remote_media.py
 
       - name: Verify backend and browser flows
         run: |
@@ -67,16 +74,16 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ext-v${{ steps.v.outputs.version }}
-          name: Foundkeep extension v${{ steps.v.outputs.version }}
+          name: FoundKeep extension v${{ steps.v.outputs.version }}
           body: |
-            Foundkeep 1.6 saves readable page copies with their original source and gives customers direct control over capture methods, popup layout, sync, OCR, summaries and tags from the dashboard.
+            FoundKeep saves pages, posts, images, highlights and notes through its browser sidebar. Review the destination, title, personal notes, folder and tags before saving.
 
-            Get started at https://foundkeep.app/signup and follow the browser setup in your dashboard.
+            Get started at https://foundkeep.app/signup. Opening your library automatically connects a compatible unpaired extension to the signed-in account. Explicitly paused or different-account connections still require confirmation.
 
             - Chrome update manifest: `updates.xml`
-            - Signed Foundkeep extension: `foundkeep-extension.crx`
+            - Signed FoundKeep extension: `foundkeep-extension.crx`
             - Compatibility CRX for installed clients: `atlas-extension.crx`
-            - Foundkeep unpacked bundle: `foundkeep-extension.zip`
+            - FoundKeep unpacked bundle: `foundkeep-extension.zip`
             - Compatibility unpacked bundle: `atlas-extension.zip`
 
             Existing local captures stay local until you choose to import them. The unpacked ZIP supports Chrome, Edge, Brave, Opera and Vivaldi on desktop. Chrome Web Store publication is pending; the signed build supports existing managed Chrome installations.

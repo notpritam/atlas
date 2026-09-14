@@ -3,8 +3,8 @@ import assert from 'node:assert/strict';
 import {mkdir} from 'node:fs/promises';
 import {chromium} from 'playwright-core';
 const settle=page=>page.evaluate(async()=>{await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));await Promise.all(document.getAnimations().filter(animation=>animation.effect?.getTiming().iterations!==Infinity).map(animation=>animation.finished.catch(()=>{})));});
-const base='https://dev.foundkeep.app',candidate=process.env.FOUNDKEEP_CANDIDATE_URL;
-assert.equal(process.env.FOUNDKEEP_ALLOW_DEV_TEST,'1','Opt in to creating a temporary dev test account.');
+const base=process.env.FOUNDKEEP_MEDIA_TEST_ORIGIN||'https://dev.foundkeep.app',candidate=process.env.FOUNDKEEP_CANDIDATE_URL;
+assert.ok((base==='https://dev.foundkeep.app'&&process.env.FOUNDKEEP_ALLOW_DEV_TEST==='1')||(base==='https://foundkeep.app'&&process.env.FOUNDKEEP_ALLOW_PROD_TEST==='1'),'Explicitly opt in to temporary accounts on the selected FoundKeep environment.');
 if(candidate)assert.equal(new URL(candidate).hostname,'127.0.0.1');
 
 test('library cards update with private saved photos, videos and tags without reloading',{timeout:180000},async t=>{

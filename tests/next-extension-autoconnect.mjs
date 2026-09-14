@@ -1,5 +1,5 @@
 // Real extension + web shell. Use a disposable backend, or explicit temporary
-// dev accounts; production mutations are deliberately not supported.
+// live accounts only with an explicit per-environment release-test opt-in.
 import {test} from 'node:test';
 import assert from 'node:assert/strict';
 import {chromium} from 'playwright-core';
@@ -10,13 +10,14 @@ import path from 'node:path';
 const exec=promisify(execFile);
 const base=process.env.BASE_URL || 'http://127.0.0.1:18791';
 const host=new URL(base).hostname;
-assert.ok(['localhost','127.0.0.1'].includes(host) || (base==='https://dev.foundkeep.app' && process.env.FOUNDKEEP_ALLOW_DEV_TEST==='1'), 'Use a disposable backend or explicitly opt into temporary dev accounts.');
+assert.ok(['localhost','127.0.0.1'].includes(host) || (base==='https://dev.foundkeep.app' && process.env.FOUNDKEEP_ALLOW_DEV_TEST==='1') || (base==='https://foundkeep.app' && process.env.FOUNDKEEP_ALLOW_PROD_TEST==='1'), 'Use a disposable backend or explicitly opt into temporary accounts on the selected environment.');
 const candidate=process.env.FOUNDKEEP_CANDIDATE_URL;
 if(candidate)assert.ok(['localhost','127.0.0.1'].includes(new URL(candidate).hostname));
-const id='fngoidplpdpoamenhgpabbheghpkdkcb';
+const environment=base==='https://foundkeep.app'?'prod':'dev';
+const id=environment==='prod'?'mjfcgmboaijfcaanepdipbgmipnccnpn':'fngoidplpdpoamenhgpabbheghpkdkcb';
 const waitFor=async(fn)=>{for(let i=0;i<100;i++){if(await fn())return;await new Promise(r=>setTimeout(r,100));}throw new Error('Timed out waiting for automatic connection');};
 
-test('installed dev extension auto-connects from the library, stays paired across routes and preserves account confirmation', {timeout:90000}, async t=>{
+test('installed extension auto-connects from the library, stays paired across routes and preserves account confirmation', {timeout:90000}, async t=>{
  const temporary=await mkdtemp('/tmp/foundkeep-auto-connect-');let context;
  const accounts=[];
  t.after(async()=>{
@@ -24,9 +25,10 @@ test('installed dev extension auto-connects from the library, stays paired acros
   for(const account of accounts){try{const response=await context.request.delete(base+'/api/account',{headers:{Origin:base,Cookie:account.cookie},data:{password:account.password}});assert.ok(response.ok(),'Delete only the temporary test account');}catch(error){cleanupError=error;}}
   await context?.close();await rm(temporary,{recursive:true,force:true});if(cleanupError)throw cleanupError;
  });
- await exec('node',['deploy/build-extension.mjs','--environment','dev','--output',temporary]);
- const directory=path.join(temporary,'foundkeep-extension-dev');
- if(base!=='https://dev.foundkeep.app'){
+ if(!process.env.FOUNDKEEP_TEST_EXTENSION)await exec('node',['deploy/build-extension.mjs','--environment',environment,'--output',temporary]);
+ const directory=process.env.FOUNDKEEP_TEST_EXTENSION?path.resolve(process.env.FOUNDKEEP_TEST_EXTENSION):path.join(temporary,'foundkeep-extension-'+environment);
+ if(['localhost','127.0.0.1'].includes(host)){
+  assert.ok(!process.env.FOUNDKEEP_TEST_EXTENSION,'Never rewrite a supplied release artifact for a loopback fixture.');
   const file=path.join(directory,'manifest.json');const manifest=JSON.parse(await readFile(file,'utf8'));
   manifest.host_permissions=[base+'/*'];manifest.externally_connectable={matches:[base+'/*']};await writeFile(file,JSON.stringify(manifest));
   const product=path.join(directory,'src/product.js');await writeFile(product,(await readFile(product,'utf8')).replaceAll('https://dev.foundkeep.app',base));
@@ -37,7 +39,7 @@ test('installed dev extension auto-connects from the library, stays paired acros
  context.on('page',p=>p.on('pageerror',e=>errors.push(e.message)));
  await context.route(base+'/**',async route=>{
   const url=new URL(route.request().url());
-  if(url.pathname==='/customer-config.json')return route.fulfill({contentType:'application/json',body:await readFile(path.join(temporary,'customer-config.json'),'utf8')});
+  if(url.pathname==='/customer-config.json'&&['localhost','127.0.0.1'].includes(host))return route.fulfill({contentType:'application/json',body:await readFile(path.join(temporary,'customer-config.json'),'utf8')});
   if(!candidate || url.pathname.startsWith('/api/'))return route.continue();
   const response=await context.request.fetch(candidate+url.pathname+url.search,{headers:{...route.request().headers(),host:new URL(base).host,'x-forwarded-host':new URL(base).host,'x-forwarded-proto':new URL(base).protocol.slice(0,-1)}});
   return route.fulfill({response});
