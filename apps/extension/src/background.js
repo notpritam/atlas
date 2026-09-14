@@ -42,7 +42,7 @@ chrome.runtime.onMessageExternal.addListener((msg, sender, respond) => {
   handleExternalMessage(msg, sender)
     .then((result) => {
       respond(result);
-      if (result.ok && msg.kind === "atlas-connect") {
+      if (result.ok && ["atlas-connect", "atlas-auto-connect"].includes(msg.kind)) {
         refreshPreferences()
           .then(async (state) => {
             await reconcileContextMenus(state.preferences);

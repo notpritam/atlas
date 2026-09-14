@@ -8,9 +8,11 @@ import { cloudImageMime } from "./image-formats.js";
 
 export { CUSTOMER_ORIGIN } from "./product.js";
 const STATE_KEY = "atlasCustomer";
+const AUTO_CONNECT_PAUSED_KEY = "atlasAutoConnectPaused";
 let draining = null;
 let mutations = Promise.resolve();
 let pairingSequence = 0;
+let activeClaims = 0;
 
 function exclusive(action) {
   const result = mutations.then(action, action);
@@ -113,21 +115,42 @@ export async function handleExternalMessage(message, sender) {
       version: chrome.runtime.getManifest().version,
       environment: EXTENSION_ENVIRONMENT,
       origin: CUSTOMER_ORIGIN,
+      autoConnect: {
+        account: publicAccount(state?.account),
+        paused: Boolean((await chrome.storage.local.get(AUTO_CONNECT_PAUSED_KEY))[AUTO_CONNECT_PAUSED_KEY]),
+      },
       account:
         state?.token && state.status !== "reconnect"
           ? publicAccount(state.account)
           : null,
     };
   }
+  const automatic = message?.kind === "atlas-auto-connect";
   if (
-    message?.kind !== "atlas-connect" ||
-    Object.keys(message).some((k) => !["kind", "code"].includes(k)) ||
+    (!automatic && message?.kind !== "atlas-connect") ||
+    Object.keys(message).some((k) => !(automatic ? ["kind", "code", "accountId"] : ["kind", "code"]).includes(k)) ||
+    (automatic && (typeof message.accountId !== "string" || !message.accountId || message.accountId.length > 160)) ||
     typeof message.code !== "string" ||
     !/^[a-zA-Z0-9_-]{32,256}$/.test(message.code)
   ) {
     return { ok: false, error: "Request a new connection code from FoundKeep." };
   }
+  const automaticConflict = async (state) => {
+    if ((await chrome.storage.local.get(AUTO_CONNECT_PAUSED_KEY))[AUTO_CONNECT_PAUSED_KEY])
+      return "This browser was disconnected. Choose Connect FoundKeep to connect it again.";
+    if (state?.account?.id && state.account.id !== message.accountId)
+      return "This browser belongs to another account. Confirm the account switch in Apps & devices.";
+    return null;
+  };
+  if (automatic) {
+    const state = await readState();
+    const conflict = await automaticConflict(state);
+    if (conflict) return { ok: false, error: conflict };
+    if (state?.token && state.status !== "reconnect") return { ok: true, account: publicAccount(state.account) };
+    if (activeClaims) return { ok: false, error: "A browser connection is already in progress. Check again in a moment." };
+  }
   const sequence = ++pairingSequence;
+  activeClaims++;
   try {
     await protectCloudStorage();
     const response = await fetch(CUSTOMER_ORIGIN + "/api/pairing/claim", {
@@ -159,6 +182,10 @@ export async function handleExternalMessage(message, sender) {
         error: "FoundKeep returned an incomplete connection. Try again.",
       };
     }
+    if (automatic && result.account.id !== message.accountId) {
+      await revokeCredential({ token: result.token });
+      return { ok: false, error: "Your signed-in account changed. Open the dashboard again." };
+    }
     let previous, next;
     const connected = await exclusive(async () => {
       if (sequence !== pairingSequence)
@@ -167,6 +194,10 @@ export async function handleExternalMessage(message, sender) {
           error: "A newer connection request replaced this one.",
         };
       previous = await readState();
+      if (automatic) {
+        const conflict = await automaticConflict(previous);
+        if (conflict) return { ok: false, error: conflict };
+      }
       next = {
         account: publicAccount(result.account),
         connection: result.connection,
@@ -175,6 +206,7 @@ export async function handleExternalMessage(message, sender) {
         error: null,
       };
       await writeState(next);
+      if (!automatic) await chrome.storage.local.set({ [AUTO_CONNECT_PAUSED_KEY]: false });
       return { ok: true, account: publicAccount(result.account) };
     });
     if (!connected.ok) {
@@ -196,6 +228,8 @@ export async function handleExternalMessage(message, sender) {
       ok: false,
       error: "Could not reach FoundKeep. Check your connection and try again.",
     };
+  } finally {
+    activeClaims--;
   }
 }
 
@@ -234,7 +268,8 @@ export async function disconnectCloud() {
   pairingSequence++;
   const previous = await exclusive(async () => {
     const state = await readState();
-    await writeState(null);
+    await chrome.storage.local.set({ [STATE_KEY]: null, [AUTO_CONNECT_PAUSED_KEY]: true });
+    announce();
     return state;
   });
   await clearPreferenceCache();

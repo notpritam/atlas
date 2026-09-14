@@ -652,3 +652,122 @@ test('sidebar requests keep their account binding and never let callers override
   assert.match(value.request.url,/^https:\/\/foundkeep\.app\/api\/mobile\/captures\?/);assert.equal(value.request.credentials,'omit');
   assert.equal(value.request.headers.Authorization,'Bearer credential-account-a');
 });
+
+test('automatic pairing connects the signed-in account once and leaves historical saves local', async t => {
+  const page = await fixture(t);
+  await save(page, 'Local before connection');
+  const result = await page.evaluate(async () => {
+    const sender = { url: 'https://foundkeep.app/dashboard', frameId: 0 };
+    const message = { kind: 'atlas-auto-connect', code: 'a'.repeat(40), accountId: 'account-a' };
+    const connected = await cloud.handleExternalMessage(message, sender);
+    const repeated = await cloud.handleExternalMessage(message, sender);
+    return { connected, repeated, state: await cloud.getCloudStatus(), claims: requests.filter(r => r.url.endsWith('/pairing/claim')).length };
+  });
+  assert.equal(result.connected.account.id, 'account-a');
+  assert.equal(result.repeated.account.id, 'account-a');
+  assert.equal(result.claims, 1);
+  assert.equal(result.state.localOnly, 1);
+  await save(page, 'Automatic cloud save');
+  await page.evaluate(() => cloud.drainCloudQueue());
+  assert.equal(await page.evaluate(() => uploads.size), 1);
+});
+
+test('automatic pairing cannot replace another owner, including a revoked connection', async t => {
+  const page = await fixture(t); await pair(page, codeB);
+  await save(page, 'Account B pending');
+  await page.evaluate(async () => { mode = 'revoked'; await cloud.drainCloudQueue(); });
+  const result = await page.evaluate(async () => {
+    const before = requests.length;
+    const response = await cloud.handleExternalMessage({ kind: 'atlas-auto-connect', code: 'a'.repeat(40), accountId: 'account-a' }, { url: 'https://foundkeep.app/dashboard' });
+    const ping = await cloud.handleExternalMessage({ kind: 'atlas-ping' }, { url: 'https://foundkeep.app/dashboard' });
+    return { response, ping, requests: requests.length - before, binding: await cloud.captureBinding() };
+  });
+  assert.equal(result.response.ok, false); assert.equal(result.requests, 0);
+  assert.equal(result.ping.account, null); assert.equal(result.ping.autoConnect.account.id, 'account-b');
+  assert.equal(result.binding.cloudAccountId, 'account-b');
+});
+
+test('explicit disconnect pauses automatic pairing until a manual connection', async t => {
+  const page = await fixture(t); await pair(page);
+  const result = await page.evaluate(async () => {
+    await cloud.disconnectCloud();
+    const sender = { url: 'https://foundkeep.app/dashboard' };
+    const response = await cloud.handleExternalMessage({ kind: 'atlas-auto-connect', code: 'a'.repeat(40), accountId: 'account-a' }, sender);
+    return { response, ping: await cloud.handleExternalMessage({ kind: 'atlas-ping' }, sender), binding: await cloud.captureBinding() };
+  });
+  assert.equal(result.response.ok, false); assert.equal(result.ping.autoConnect.paused, true); assert.equal(result.binding.cloudAccountId, null);
+  await pair(page);
+  assert.equal(await page.evaluate(async () => (await cloud.handleExternalMessage({ kind: 'atlas-ping' }, { url: 'https://foundkeep.app/dashboard' })).autoConnect.paused), false);
+});
+
+test('an automatic code for another account is revoked without installing its credential', async t => {
+  const page = await fixture(t);
+  const result = await page.evaluate(async () => {
+    const response = await cloud.handleExternalMessage({ kind: 'atlas-auto-connect', code: 'b'.repeat(40), accountId: 'account-a' }, { url: 'https://foundkeep.app/dashboard' });
+    return { response, state: await cloud.getCloudStatus(), revoked: requests.filter(r => r.url.endsWith('/connections/disconnect')).map(r => r.authorization) };
+  });
+  assert.equal(result.response.ok, false); assert.equal(result.state.account, null);
+  assert.deepEqual(result.revoked, ['Bearer credential-account-b']);
+});
+
+test('manual pairing wins over an older automatic claim and overlapping auto checks do not issue extra claims', async t => {
+  const page = await fixture(t);
+  const result = await page.evaluate(async () => {
+    const original = fetch;
+    let release, entered;
+    const started = new Promise(resolve => { entered = resolve; });
+    window.fetch = async (url, options) => {
+      if (url.endsWith('/pairing/claim') && JSON.parse(options.body).code.startsWith('a')) {
+        entered(); await new Promise(resolve => { release = resolve; });
+      }
+      return original(url, options);
+    };
+    const sender = { url: 'https://foundkeep.app/dashboard' };
+    const automatic = cloud.handleExternalMessage({ kind: 'atlas-auto-connect', code: 'a'.repeat(40), accountId: 'account-a' }, sender);
+    await started;
+    const overlapping = await cloud.handleExternalMessage({ kind: 'atlas-auto-connect', code: 'a'.repeat(40), accountId: 'account-a' }, sender);
+    const manual = await cloud.handleExternalMessage({ kind: 'atlas-connect', code: 'b'.repeat(40) }, sender);
+    release(); const stale = await automatic;
+    return { overlapping, manual, stale, state: await cloud.getCloudStatus(), claims: requests.filter(r => r.url.endsWith('/pairing/claim')).length };
+  });
+  assert.equal(result.overlapping.ok, false); assert.equal(result.manual.account.id, 'account-b'); assert.equal(result.stale.ok, false);
+  assert.equal(result.state.account.id, 'account-b'); assert.equal(result.claims, 2);
+});
+
+test('automatic pairing keeps sender and payload validation and cannot race an explicit disconnect', async t => {
+  const page = await fixture(t);
+  const result = await page.evaluate(async () => {
+    const message = { kind: 'atlas-auto-connect', code: 'a'.repeat(40), accountId: 'account-a' };
+    const invalid = await Promise.all([
+      cloud.handleExternalMessage(message, { url: 'https://dev.foundkeep.app/dashboard' }),
+      cloud.handleExternalMessage(message, { url: 'https://foundkeep.app/dashboard', frameId: 1 }),
+      cloud.handleExternalMessage({ ...message, token: 'injected' }, { url: 'https://foundkeep.app/dashboard' }),
+      cloud.handleExternalMessage({ ...message, accountId: '' }, { url: 'https://foundkeep.app/dashboard' }),
+    ]);
+    const requestCount = requests.length;
+    const original = fetch; let release, entered;
+    const started = new Promise(resolve => { entered = resolve; });
+    window.fetch = async (url, options) => {
+      if (url.endsWith('/pairing/claim')) { entered(); await new Promise(resolve => { release = resolve; }); }
+      return original(url, options);
+    };
+    const claim = cloud.handleExternalMessage(message, { url: 'https://foundkeep.app/dashboard' });
+    await started; await cloud.disconnectCloud(); release();
+    return { invalid, requestCount, result: await claim, state: await cloud.getCloudStatus() };
+  });
+  assert.ok(result.invalid.every(r => r.ok === false)); assert.equal(result.requestCount, 0);
+  assert.equal(result.result.ok, false); assert.equal(result.state.account, null);
+});
+
+test('automatic pairing renews only the same revoked account and resumes its queue', async t => {
+  const page = await fixture(t); await pair(page);
+  await save(page, 'Pending before renewal');
+  await page.evaluate(async () => { mode = 'revoked'; await cloud.drainCloudQueue(); });
+  const result = await page.evaluate(async () => {
+    mode = 'online';
+    const response = await cloud.handleExternalMessage({ kind: 'atlas-auto-connect', code: 'a'.repeat(40), accountId: 'account-a' }, { url: 'https://foundkeep.app/dashboard' });
+    await cloud.drainCloudQueue();
+    return { response, state: await cloud.getCloudStatus(), uploaded: uploads.size };
+  });
+  assert.equal(result.response.account.id, 'account-a'); assert.equal(result.state.status, 'connected'); assert.equal(result.uploaded, 1);
+});

@@ -51,7 +51,7 @@ export interface Preferences {
   contextMenus: boolean;
 }
 export interface PreferenceEnvelope { preferences: Preferences; revision: number; updatedAt: number | null }
-export interface ExtensionStatus { id: string; result: { ok: boolean; account?: { id: string; email: string }; version?: string; environment?: 'dev' | 'prod'; origin?: string } }
+export interface ExtensionStatus { id: string; result: { ok: boolean; account?: { id: string; email: string }; version?: string; environment?: 'dev' | 'prod'; origin?: string; autoConnect?: { account: { id: string; email: string } | null; paused: boolean } } }
 export function kindLabel(type: string) { return Object.hasOwn(captureKinds, type) ? captureKinds[type as CaptureKind] : 'Capture'; }
 export function captureTitle(capture: Capture) { return capture.sourceTitle || capture.fileName || (capture.noteText || capture.selectionText || '').slice(0, 120) || `Untitled ${kindLabel(capture.type).toLowerCase()}`; }
 export function safeSource(value?: string) { try { const url = new URL(value || ''); return ['https:', 'http:'].includes(url.protocol) ? url : null; } catch { return null; } }

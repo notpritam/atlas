@@ -4,7 +4,7 @@ Keep readable page copies, screenshots, highlights, links, images, and notes wit
 
 ## Check the environment and version
 
-The popup, side panel and local library show **DEV / Production**, the installed manifest version, and the fixed cloud destination. For dev testing, use **DEV · v1.7.3 · dev.foundkeep.app**, then connect the same account at [Apps & devices](https://dev.foundkeep.app/dashboard/apps). That page also shows the detected extension version and destination.
+The popup, side panel and local library show **DEV / Production**, the installed manifest version, and the fixed cloud destination. For dev testing, use **DEV · v1.7.4 · dev.foundkeep.app**, then sign in to the same account at [your dev dashboard](https://dev.foundkeep.app/dashboard). The extension connects automatically; no Connect button is needed. That page also shows the detected extension version and destination.
 
 Save a note named **Dev sync test**. Confirm it appears in My library at `dev.foundkeep.app` under the same account. A local save or a pending upload is not yet a cloud save. The production library at `foundkeep.app` is separate.
 
@@ -29,7 +29,7 @@ To update an existing unpacked installation, replace its files in the existing f
 
 ## Connect your account
 
-Choose **Connect FoundKeep** in the popup, create an account or sign in at [FoundKeep](https://foundkeep.app/dashboard.html), then connect this browser from the dashboard. The website hands the extension a short-lived, one-use connection code. No developer token or separate software is required.
+Open [FoundKeep](https://foundkeep.app/dashboard), then create an account or sign in. The matching installed extension connects automatically from any dashboard page. Returning to the dashboard after installation checks again. A browser already connected to another account requires confirmation in Apps & devices; an explicit disconnect pauses automatic pairing until you choose to connect again. The website hands the extension a short-lived, one-use connection code. No developer token or separate software is required.
 
 New captures made while an account is selected are saved locally and queued for that account. FoundKeep retries automatically after network failures when automatic sync is enabled. **Try sync again** requests an immediate retry; **Reconnect** appears if the browser credential expires or is revoked. Captures remain available locally throughout.
 

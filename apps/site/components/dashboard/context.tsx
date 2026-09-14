@@ -12,6 +12,8 @@ export interface DashboardContextValue {
   refreshAccount: () => Promise<void>;
   detectExtension: () => Promise<ExtensionStatus | null>;
   extension: ExtensionStatus | null;
+  extensionConnecting: boolean;
+  extensionError: string;
   preferences?: PreferenceEnvelope;
   closePanel: () => void;
   endSession: (code?: string) => void;

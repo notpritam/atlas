@@ -61,6 +61,8 @@ function ShellContent({ me: initialMe, request, endSession, children }: { me: Me
   const readingPage = part === 'saved';
   const [restoring, setRestoring] = useState(false), [restoreError, setRestoreError] = useState('');
   const [extension, setExtension] = useState<ExtensionStatus | null>(null);
+  const [extensionConnecting, setExtensionConnecting] = useState(false), [extensionError, setExtensionError] = useState('');
+  const extensionCheck = useRef<Promise<ExtensionStatus | null> | null>(null);
   const detection = useRef(0), alive = useRef(true);
   const [toastText, setToast] = useState(''), toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null), confirmationRef = useRef<Confirmation | null>(null);
@@ -76,18 +78,43 @@ function ShellContent({ me: initialMe, request, endSession, children }: { me: Me
   const toast = useCallback((message: string) => { setToast(message); if (toastTimer.current) clearTimeout(toastTimer.current); toastTimer.current = setTimeout(() => setToast(''), 5000); }, []);
   const confirm = useCallback((title: string, description: string, label = 'Continue') => new Promise<boolean>(resolve => { confirmationRef.current?.resolve(false); const next = { title, description, label, resolve }; confirmationRef.current = next; setConfirmation(next); }), []);
   const finishConfirmation = useCallback((accepted: boolean) => { confirmationRef.current?.resolve(accepted); confirmationRef.current = null; setConfirmation(null); }, []);
-  const detectExtension = useCallback(async () => {
-    const serial = ++detection.current, config = await customerConfig();
-    if (!alive.current) return null;
-    let best: ExtensionStatus | null = null;
-    await Promise.allSettled(config.extensionIds.map(async id => {
-      const result = await extensionMessage<ExtensionStatus['result']>({ kind: 'atlas-ping' }, id);
-      if (!best || result.account?.id === accountId) best = { id, result };
-      if (alive.current && detection.current === serial) setExtension(best);
-    }));
-    if (alive.current && detection.current === serial) setExtension(best);
-    return best;
-  }, [accountId]);
+  const detectExtension = useCallback(() => {
+    if (extensionCheck.current) return extensionCheck.current;
+    const serial = ++detection.current;
+    const current = () => alive.current && detection.current === serial;
+    const check = async (): Promise<ExtensionStatus | null> => {
+      const config = await customerConfig();
+      if (!current()) return null;
+      const candidates = await Promise.allSettled(config.extensionIds.map(async id => ({ id, result: await extensionMessage<ExtensionStatus['result']>({ kind: 'atlas-ping' }, id) })));
+      if (!current()) return null;
+      const installed = candidates.flatMap(result => result.status === 'fulfilled' ? [result.value] : []);
+      const eligible = (value: ExtensionStatus) => value.result.autoConnect && !value.result.autoConnect.paused && (!value.result.autoConnect.account || value.result.autoConnect.account.id === accountId);
+      let best = installed.find(value => value.result.account?.id === accountId) || installed.find(eligible) || installed[0] || null;
+      setExtension(best); setExtensionError(''); setExtensionConnecting(false);
+      if (!best || best.result.account || !eligible(best)) return best;
+      // The server binds this one-use code to the active account. The extension
+      // separately refuses an automatic claim that would replace another owner.
+      setExtensionConnecting(true);
+      try {
+        const pairing = await request<{ code: string }>('/pairing', { method: 'POST', body: {} });
+        if (!current()) return null;
+        const result = await extensionMessage<{ account: { id: string; email: string } }>({ kind: 'atlas-auto-connect', code: pairing.code, accountId }, best.id);
+        if (!current()) return null;
+        if (result.account?.id !== accountId) throw new Error('Your browser connected to a different account. Open Apps & devices to check it.');
+        best = { ...best, result: { ...best.result, account: result.account, autoConnect: { account: result.account, paused: false } } };
+        setExtension(best);
+        await refreshAccount();
+      } catch (error) {
+        if (current()) setExtensionError(messageFor(error));
+      } finally {
+        if (current()) setExtensionConnecting(false);
+      }
+      return best;
+    };
+    const task = check().finally(() => { if (extensionCheck.current === task) extensionCheck.current = null; });
+    extensionCheck.current = task;
+    return task;
+  }, [accountId, request, refreshAccount]);
   useEffect(() => {
     alive.current = true;
     void detectExtension();
@@ -97,10 +124,10 @@ function ShellContent({ me: initialMe, request, endSession, children }: { me: Me
     const restored = (event: PageTransitionEvent) => { if (event.persisted) void verifyRestored(); };
     window.addEventListener('pagehide', leaving);
     window.addEventListener('focus', focus); window.addEventListener('pageshow', restored);
-    return () => { alive.current = false; detection.current++; confirmationRef.current?.resolve(false); if (toastTimer.current) clearTimeout(toastTimer.current); window.removeEventListener('focus', focus); window.removeEventListener('pageshow', restored); window.removeEventListener('pagehide', leaving); };
+    return () => { alive.current = false; detection.current++; extensionCheck.current = null; confirmationRef.current?.resolve(false); if (toastTimer.current) clearTimeout(toastTimer.current); window.removeEventListener('focus', focus); window.removeEventListener('pageshow', restored); window.removeEventListener('pagehide', leaving); };
   }, [detectExtension, refreshAccount, preferences.refetch]);
   const me = account.data;
-  return <DashboardContext.Provider value={{ me, request, endSession, preferences: preferences.data, refresh, refreshAccount, toast, confirm, extension, detectExtension, closePanel: () => router.push('/dashboard') }}><div className={`customer-body dashboard-body${readingPage ? ' saved-reading-page' : ''}${section ? ' has-account-page' : ''}${section === 'mind-map' ? ' has-mind-map' : ''}${restoring ? ' session-verifying' : ''}`}>
+  return <DashboardContext.Provider value={{ me, request, endSession, preferences: preferences.data, refresh, refreshAccount, toast, confirm, extension, extensionConnecting, extensionError, detectExtension, closePanel: () => router.push('/dashboard') }}><div className={`customer-body dashboard-body${readingPage ? ' saved-reading-page' : ''}${section ? ' has-account-page' : ''}${section === 'mind-map' ? ' has-mind-map' : ''}${restoring ? ' session-verifying' : ''}`}>
     {restoring ? <Dialog id="session-verification" className="session-verification" labelledBy="verification-title" preventClose><h1 id="verification-title">{restoreError ? 'Reconnect to your library' : 'Opening your library…'}</h1><p>{restoreError || 'Verifying your session.'}</p>{restoreError ? <button className="button secondary" onClick={async () => { setRestoreError(''); try { await refreshAccount(); setRestoring(false); } catch { setRestoreError('Reconnect to verify your session before opening your library.'); } }}>Try again</button> : null}</Dialog> : null}
     <a className="skip-link" href="#main">Skip to content</a><div className="library-shell"><Sidebar me={me} section={section} collectionId={collectionId} /><main className="library-main" id="main">{account.isError ? <p className="form-message is-error" role="alert">{messageFor(account.error)}<button className="subtle-button" onClick={() => void refreshAccount()}>Try again</button></p> : null}{children}<footer className="library-footer"><span>Saved with intention.</span><span id="usage-summary">{me.usage.captures.toLocaleString('en-US')} captures · {bytes(me.usage.bytes)}</span></footer></main></div>
     <ConfirmDialog confirmation={confirmation} finish={finishConfirmation} /><div className="toast" id="toast" role="status" hidden={!toastText}>{toastText}</div>
