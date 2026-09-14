@@ -12,7 +12,8 @@ import {
 
 const exec = promisify(execFile);
 const root = path.resolve(".");
-const archive = path.join(root, "deploy/dist/foundkeep-store-1.0.1.zip");
+const storeVersion = (await readFile("deploy/store-version.txt", "utf8")).trim();
+const archive = path.join(root, `deploy/dist/foundkeep-store-${storeVersion}.zip`);
 
 test("cloud image capture accepts exactly the formats supported by the API", () => {
   assert.deepEqual(CLOUD_IMAGE_MIME_TYPES, [
@@ -28,11 +29,8 @@ test("cloud image capture accepts exactly the formats supported by the API", () 
   assert.throws(() => cloudImageMime(new Blob([])), /unsupported format/i);
 });
 
-test("Chrome Web Store package is a focused version 1.0.1 MV3 build", async () => {
-  assert.equal(
-    (await readFile("deploy/store-version.txt", "utf8")).trim(),
-    "1.0.1",
-  );
+test("Chrome Web Store package is a focused MV3 build at the configured version", async () => {
+  assert.match(storeVersion, /^\d+(?:\.\d+){0,3}$/);
   await exec("bash", ["deploy/pack-store.sh"], { cwd: root });
   const firstHash = createHash("sha256")
     .update(await readFile(archive))
@@ -60,7 +58,7 @@ test("Chrome Web Store package is a focused version 1.0.1 MV3 build", async () =
   ]);
   const manifest = JSON.parse(manifestText);
   assert.equal(manifest.manifest_version, 3);
-  assert.equal(manifest.version, "1.0.1");
+  assert.equal(manifest.version, storeVersion);
   assert.ok(
     [...manifest.description].length <= 132,
     `manifest description is ${[...manifest.description].length} characters; Chrome Web Store allows 132`,

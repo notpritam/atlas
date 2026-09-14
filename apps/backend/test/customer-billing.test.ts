@@ -5,6 +5,21 @@ import { revenueCatSnapshot, createBillingService } from '../src/customer-billin
 let db: ReturnType<typeof openDb>; let id: string;
 beforeEach(() => { db=openDb(':memory:'); id=crypto.randomUUID(); db.query("INSERT INTO customer_accounts(id,email,name,password_hash,recovery_hash,created_at) VALUES(?,?,'Billing','','',0)").run(id,id+'@example.com'); });
 afterEach(() => db.close());
+test('operator beta access grants Pro limits without creating a paid subscription', () => {
+  const plan=accountPlan(db,id,Date.now(),{FOUNDKEEP_BETA_PRO:'true'});
+  expect(plan).toMatchObject({plan:'pro',pro:true,complimentaryPro:true,subscriptions:[],limits:{monthlyProcessing:500,maxBytes:2*1024**3}});
+  expect(db.query('SELECT COUNT(*) AS count FROM customer_subscriptions').get()).toEqual({count:0});
+  expect(accountPlan(db,id,Date.now(),{})).toMatchObject({pro:false,complimentaryPro:false,limits:{maxBytes:200*1024**2}});
+  expect(accountPlan(db,id,Date.now(),{FOUNDKEEP_BETA_PRO:'false'}).pro).toBe(false);
+});
+test('a real paid subscription retains its identity during and after beta access', () => {
+  writeSubscription(db,id,'paddle',{status:'active',expiresAt:Date.now()+60_000,renews:true,sandbox:false});
+  const beta=accountPlan(db,id,Date.now(),{FOUNDKEEP_BETA_PRO:'true'});
+  expect(beta).toMatchObject({pro:true,complimentaryPro:false});
+  expect(beta.subscriptions).toHaveLength(1);
+  expect(beta.subscriptions[0]).toMatchObject({provider:'paddle',active:true,renews:true,sandbox:false});
+  expect(accountPlan(db,id,Date.now(),{})).toMatchObject({pro:true,complimentaryPro:false});
+});
 test('early access includes every feature on Free; only verified subscriptions grant paid identity and storage', () => {
   expect(accountPlan(db,id).features).toEqual({imports:true,mcp:true,managedProcessing:true,groupCollections:true});
   expect(accountPlan(db,id).pro).toBe(false);
