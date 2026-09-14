@@ -9,6 +9,7 @@ on:
     paths:
       - "apps/extension/**"
       - "deploy/release-extension.mjs"
+      - ".github/workflows/release-extension.yml"
   workflow_dispatch:
 
 permissions:
@@ -38,8 +39,8 @@ jobs:
       - name: Install Chromium for browser checks
         run: bunx playwright-core install --with-deps chromium
 
-      - name: Install bounded customer OCR runtime
-        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng util-linux
+      - name: Install bounded customer OCR and media runtimes
+        run: sudo apt-get update && sudo apt-get install -y tesseract-ocr tesseract-ocr-eng util-linux ffmpeg
 
       - name: Verify backend and browser flows
         run: |

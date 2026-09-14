@@ -50,8 +50,8 @@ jobs:
       - name: Compile the app and Share Extension
         run: >-
           xcodebuild
-          -workspace ios/Foundkeep.xcworkspace
-          -scheme Foundkeep
+          -workspace ios/FoundKeep.xcworkspace
+          -scheme FoundKeep
           -configuration Release
           -sdk iphonesimulator
           -destination "generic/platform=iOS Simulator"
