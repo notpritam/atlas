@@ -99,6 +99,7 @@ export async function addCapture(input, { id: stableId } = {}) {
     cloudAttempts: 0,
     cloudNextRetryAt: 0,
     folderId: input.folderId || null,
+    userTags: input.userTags || [],
     collectionSubmission: input.collectionSubmission || null,
     sourceUrl: input.sourceUrl ?? null,
     sourceTitle: input.sourceTitle ?? null,
@@ -243,7 +244,7 @@ export function filterCaptureRows(input, {
   let rows = [...input].sort((a, b) => b.createdAt - a.createdAt);
   if (type) rows = rows.filter((r) => r.type === type);
   if (status) rows = rows.filter((r) => r.status === status);
-  if (tag) rows = rows.filter((r) => (r.tags || []).includes(tag));
+  if (tag) rows = rows.filter((r) => [...(r.tags || []), ...(r.userTags || [])].includes(tag));
   if (category) rows = rows.filter((r) => r.category === category);
   if (q) {
     const needle = q.toLowerCase();
@@ -257,6 +258,7 @@ export function filterCaptureRows(input, {
         r.description,
         r.articleText,
         (r.tags || []).join(" "),
+        (r.userTags || []).join(" "),
         r.category,
       ]
         .filter(Boolean)

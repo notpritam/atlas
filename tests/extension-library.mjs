@@ -15,12 +15,17 @@ async function fixture(t,width=390){
   const storage={};window.chrome={storage:{local:{get:async key=>({[key]:storage[key]}),set:async value=>Object.assign(storage,value)}},permissions:{request:async()=>false},bookmarks:{getTree:async()=>[]},runtime:{getManifest:()=>({version:"9.8.7"}),onMessage:{addListener:listener=>fixture.listeners.push(listener)},getURL:path=>'https://foundkeep-extension.test/'+path,sendMessage:async msg=>{
     fixture.requests.push(msg);
     if(msg.kind==='save-review-get')return{ok:true,draft:fixture.reviewDraft||null};
+    if(msg.kind==='save-review-update'){if(fixture.reviewDraft?.id===msg.id)fixture.reviewDraft.form=msg.form;return{ok:true};}
+    if(msg.kind==='save-review-confirm'){if(fixture.saveError)return{ok:false,error:fixture.saveError};fixture.reviewDraft=null;return{ok:true,capture:{id:'saved-review',cloudStatus:'queued'}};}
+    if(msg.kind==='save-review-cancel'){fixture.reviewDraft=null;return{ok:true};}
     if(msg.kind==='prepare-save'){if(msg.action==='note'&&fixture.noteError)return{ok:false,error:fixture.noteError};return{ok:true,draft:{id:'review',action:msg.action,text:msg.text}};}
     if(msg.kind==='saveNote')return fixture.noteError?{ok:false,error:fixture.noteError}:{ok:true,capture:{id:'new-note',cloudStatus:'local'}};
     if(msg.kind==='cloud-status')return{ok:true,account:fixture.account?{id:fixture.account,name:'Alex Morgan'}:null,status:fixture.account?'connected':'disconnected'};
     if(msg.kind==='bookmark-import-status')return{ok:true,data:null};
     if(msg.kind==='library-request'){
-      if(msg.operation==='organization')return{ok:true,data:{folders:[{id:'folder-a',name:'Reading',count:12}],tags:[{name:'inspiration',count:12}]}};
+      if(msg.operation==='organization')return{ok:true,data:{folders:[{id:'folder-a',name:'Reading',count:12},...(fixture.newFolders||[])],tags:[{name:'inspiration',count:12}]}};
+      if(msg.operation==='collections')return{ok:true,data:{collections:fixture.collections||[]}};
+      if(msg.operation==='create-folder'){const folder={id:'created-folder',name:msg.args.name};fixture.newFolders=[folder];return{ok:true,data:{folder}};}
       if(msg.operation==='list'){const values=fixture.captures.filter(c=>!msg.args.q||c.sourceTitle.toLowerCase().includes(msg.args.q.toLowerCase()));return{ok:true,data:{captures:values,total:values.length,nextCursor:null}};}
       if(msg.operation==='detail')return{ok:true,data:{capture:fixture.captures.find(c=>c.id===msg.args.id)}};
       if(msg.operation==='preservation')return{ok:true,data:{preservation:fixture.preservation||null}};
@@ -119,4 +124,30 @@ test('sidebar reads preserved text and private photo copies in place and clears 
  assert.ok(await page.evaluate(()=>fixture.requests.some(r=>r.operation==='asset-chunk'&&r.accountId==='account-a'&&r.args.asset==='photo'&&r.args.offset===0)));
  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);
  await page.locator('#back').click();assert.equal(await page.locator('#preservedSource img').count(),0);assert.deepEqual(errors,[]);
+});
+
+test('detailed save review creates a folder, keeps private fields after failure, and shares only chosen collection fields',async t=>{
+ const {page,errors}=await fixture(t,320);
+ await page.evaluate(()=>{
+  fixture.collections=[{id:'collection-a',title:'Team references',visibility:'public',canSubmit:true}];
+  fixture.reviewDraft={id:'details-review',accountId:'account-a',action:'tweet',tab:{id:12,windowId:1,title:'Source'},tweet:{title:'Nero on X',url:'https://x.com/nero/status/12345',text:'The original tweet'}};
+  fixture.listeners.forEach(listener=>listener({kind:'foundkeep-save-review-changed'}));
+ });
+ await page.waitForFunction(()=>document.querySelector('#destinationDialog').open);
+ await page.locator('#destinationPersonalTitle').fill('UI references');await page.locator('#destinationNote').fill('Keep these for our redesign');
+ await page.locator('#destinationNewFolderToggle').click();await page.locator('#destinationFolderName').fill('Component research');await page.locator('#destinationCreateFolder').click();
+ await page.waitForFunction(()=>document.querySelector('#destinationFolder').value==='created-folder');
+ await page.locator('#destinationTags input').fill('UI, React');await page.locator('#destinationTags .save-tag-entry button').click();
+ await page.locator('#saveDestination').selectOption('collection:collection-a');
+ await page.locator('#destinationTitle').fill('Components to explore');await page.locator('#destinationBody').fill('Only this text is shared');await page.locator('#destinationSharedTags input').fill('Team');
+ await page.evaluate(()=>{fixture.saveError='The folder is temporarily unavailable. Try again.';});
+ await page.locator('#destinationConfirm').click();await page.getByRole('status').filter({hasText:'folder is temporarily unavailable'}).waitFor();
+ assert.equal(await page.locator('#destinationNote').inputValue(),'Keep these for our redesign');assert.equal(await page.locator('#destinationTags .selected').count(),2);assert.equal(await page.locator('#destinationFolder').inputValue(),'created-folder');
+ assert.equal(await page.locator('#destinationConfirm').isEnabled(),true);
+ const choice=await page.evaluate(()=>fixture.requests.filter(r=>r.kind==='save-review-confirm').at(-1).choice);
+ assert.deepEqual(choice.details,{sourceTitle:'UI references',noteText:'Keep these for our redesign',folderId:'created-folder',userTags:['UI','React']});assert.deepEqual(choice.entry.tags,['Team']);assert.equal(choice.entry.body,'Only this text is shared');assert.equal(JSON.stringify(choice.entry).includes('redesign'),false);
+ await page.locator('#destinationFields').evaluate(element=>{element.scrollTop=0;});
+ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);assert.equal(await page.locator('#destinationConfirm').evaluate(button=>button.getBoundingClientRect().bottom<=innerHeight),true);
+ await page.screenshot({path:'/tmp/foundkeep-detailed-save-light.png'});await page.emulateMedia({colorScheme:'dark'});await page.waitForFunction(()=>Number(getComputedStyle(document.querySelector('#destinationCancel')).backgroundColor.match(/\d+/g)?.[0])<100);await page.screenshot({path:'/tmp/foundkeep-detailed-save-dark.png'});
+ await page.evaluate(()=>{fixture.saveError=null;});await page.locator('#destinationConfirm').click();await page.waitForFunction(()=>!document.querySelector('#destinationDialog').open);assert.deepEqual(errors,[]);
 });

@@ -19,3 +19,11 @@ test('private asset chunks use fixed owned routes and bounded ranges',()=>{
  for(const offset of [-1,0.5,50*1024*1024,'0'])assert.throws(()=>libraryOperation('asset-chunk',{id:'save',asset:'photo',offset}));
  assert.throws(()=>libraryOperation('asset-chunk',{id:'save',asset:'../private'}));
 });
+
+test('save details keep manual tags bounded and normalize equivalent names',async()=>{
+ const {normalizeSaveDetails,normalizeSaveTags}=await import('../apps/extension/src/save-details.js');
+ assert.deepEqual(normalizeSaveDetails({sourceTitle:' My title ',noteText:' Private note ',folderId:'folder-a',userTags:['#UI','ui','React']}),{sourceTitle:'My title',noteText:'Private note',folderId:'folder-a',userTags:['UI','React']});
+ assert.throws(()=>normalizeSaveTags(Array.from({length:21},(_,i)=>'tag'+i)));
+ assert.throws(()=>normalizeSaveTags(Array.from({length:11},(_,i)=>'tag'+i),10));
+ assert.throws(()=>normalizeSaveTags(['one\ntwo']));assert.throws(()=>normalizeSaveDetails({folderId:'../other'}));assert.throws(()=>normalizeSaveDetails({noteText:'x'.repeat(50001)}));assert.throws(()=>normalizeSaveDetails({sourceUrl:'https://evil.example'}));
+});

@@ -28,6 +28,7 @@ export function bindSidebarLocal() {
       $('localTitle').textContent = title(capture);
       $('localState').textContent = capture.cloudAccountId ? (capture.cloudStatus === 'synced' ? 'Account copy synced. This is the copy kept in your browser.' : 'Waiting to sync to the account this capture was saved with.') : 'Only in this browser. Connect and import local captures to sync it.';
       $('localText').textContent = [capture.noteText, capture.selectionText, capture.articleText, capture.ocrText].filter(Boolean).join('\n\n');
+      $('localTags').textContent = (capture.userTags || []).map(tag => '#' + tag).join(' · '); $('localTags').hidden = !capture.userTags?.length;
       const url = sourceUrl(capture.sourceUrl); $('localSource').hidden = !url; if (url) $('localSource').href = url;
       const image = capture.blob && /^image\/(png|jpeg|webp|gif)$/.test(capture.blob.type);
       $('localImage').hidden = $('localDownload').hidden = !image;

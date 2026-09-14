@@ -332,6 +332,7 @@ async function uploadBody(record) {
     height: record.height,
     capturedAt: record.capturedAt,
     folderId: record.folderId || null,
+    userTags: record.userTags || [],
   };
   if (record.blob) {
     if (record.blob.size > 8 * 1024 * 1024)

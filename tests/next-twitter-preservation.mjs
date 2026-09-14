@@ -29,11 +29,16 @@ test('dev extension preserves a real X video; the web and sidebar play server co
  const tweet=await context.newPage();await tweet.goto(post);await tweet.locator('article [data-state]').click();
  const panel=await actionPanel(context,tweet,worker,{open:false});
  await panel.waitFor('document.querySelector("#destinationDialog")?.open');
+ await panel.evaluate(`document.querySelector('#destinationNewFolderToggle').click();document.querySelector('#destinationFolderName').value='UI motion checks';document.querySelector('#destinationCreateFolder').click()`);
+ await panel.waitFor(`document.querySelector('#destinationFolder')?.selectedOptions[0]?.textContent==='UI motion checks' && !document.querySelector('#destinationFields').disabled`);
+ const chosenFolder=await panel.evaluate(`document.querySelector('#destinationFolder').value`);
+ await panel.evaluate(`document.querySelector('#destinationPersonalTitle').value='Public video for motion research';document.querySelector('#destinationNote').value='Keep this for our UI motion review';document.querySelector('#destinationTags input').value='Motion, Video'`);
  const choices=await panel.evaluate('[...document.querySelector("#saveDestination").options].map(option=>option.value)');
  const destination=choices.find(value=>value==='account'||value==='library');assert.ok(destination,'The connected private library is offered');
  await panel.evaluate(`document.querySelector('#saveDestination').value=${JSON.stringify(destination)};document.querySelector('#saveDestination').dispatchEvent(new Event('change'));document.querySelector('#destinationConfirm').click()`);
  await panel.waitFor('!document.querySelector("#destinationDialog")?.open');
  const videoSave=await waitFor(async()=>{const result=await context.request.get(base+'/api/captures');return(await result.json()).captures.find(item=>item.sourceUrl===post);});
+ assert.equal(videoSave.sourceTitle,'Public video for motion research');assert.equal(videoSave.noteText,'Keep this for our UI motion review');assert.equal(videoSave.selectionText,'A public video post.');assert.equal(videoSave.folderId,chosenFolder);assert.deepEqual(videoSave.userTags,['Motion','Video']);
  const preserved=await waitFor(async()=>{const response=await context.request.get(base+`/api/captures/${videoSave.id}/preservation`);const {preservation}=await response.json();return preservation?.status==='ready'&&preservation;});
  const video=preserved.assets.find(asset=>asset.kind==='video');assert.ok(video);assert.ok(video.bytes>100000);
  const downloaded=await context.request.get(base+video.downloadUrl);assert.equal(downloaded.status(),200);assert.match(downloaded.headers()['content-disposition'],/^attachment/);

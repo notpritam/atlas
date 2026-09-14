@@ -12,6 +12,7 @@
   "src/library.js",
   "src/sidebar-capture.js",
   "src/save-review.js",
+  "src/save-details.js",
   "src/sidebar-destination.js",
   "src/sidebar-local.js",
   "src/library.css",

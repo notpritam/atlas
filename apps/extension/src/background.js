@@ -1,4 +1,4 @@
-import { stageSaveReview, readSaveReview, confirmSaveReview, cancelSaveReview } from "./save-review.js";
+import { stageSaveReview, readSaveReview, confirmSaveReview, cancelSaveReview, updateSaveReview } from "./save-review.js";
 import { PRODUCT_NAME } from "./product.js";
 import { trustedLibrarySender } from "./library-api.js";
 import { startBookmarkImport, resumeBookmarkImport, cancelBookmarkImport, importProgress } from "./import-queue.js";
@@ -324,10 +324,11 @@ chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     }).catch(error => sendResponse({ ok: false, error: error.message }));
     return true;
   }
-  if (['prepare-save', 'save-review-get', 'save-review-confirm', 'save-review-cancel'].includes(msg?.kind)) {
+  if (['prepare-save', 'save-review-get', 'save-review-confirm', 'save-review-cancel', 'save-review-update'].includes(msg?.kind)) {
     if (!trustedLibrarySender(sender, chrome.runtime) || !Number.isInteger(msg.windowId)) { sendResponse({ ok: false, error: 'Open the FoundKeep sidebar to choose a destination.' }); return; }
     void (async () => {
       if (msg.kind === 'save-review-get') return { draft: await readSaveReview(msg.windowId) };
+      if (msg.kind === 'save-review-update') { await updateSaveReview(msg.windowId, msg.id, msg.form); return {}; }
       if (msg.kind === 'save-review-cancel') { await cancelSaveReview(msg.windowId, msg.id); return {}; }
       if (msg.kind === 'save-review-confirm') {
         const record = await confirmSaveReview(msg, (draft, commit) => performCapture(draft.action, { ...draft, commit }));

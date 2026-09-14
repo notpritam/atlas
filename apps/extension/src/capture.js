@@ -11,6 +11,7 @@ export async function saveCapture(input, { destination, id } = {}) {
     throw new Error('Your connected account changed. Choose the destination again.');
   const rec = await db.addCapture({ ...input, ...binding,
     ...(destination ? {
+      ...destination.details,
       cloudAccountId: destination.kind === 'local' ? null : destination.reviewAccountId,
       folderId: destination.folderId || null,
       collectionSubmission: destination.collection || null,

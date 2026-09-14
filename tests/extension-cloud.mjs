@@ -785,7 +785,7 @@ test('a selected folder survives upload and a collection retry reuses the privat
    }
    return originalFetch(url,options);
   };
-  const record=await db.addCapture({type:'note',noteText:'My private annotation',folderId:'folder-a',...(await cloud.captureBinding()),collectionSubmission:{id:'collection-a',visibility:'private',entry:{title:'A shared thought',url:'https://example.org',body:'Only this text is shared',tags:[],shareImage:false}}});
+  const record=await db.addCapture({type:'note',sourceTitle:'My private title',noteText:'My private annotation',folderId:'folder-a',userTags:['Private research','UI'],...(await cloud.captureBinding()),collectionSubmission:{id:'collection-a',visibility:'private',entry:{title:'A shared thought',url:'https://example.org',body:'Only this text is shared',tags:['Shared reference'],shareImage:false}}});
   await cloud.drainCloudQueue();const first=await db.getCapture(record.id);
   await cloud.retryCloudSync();const final=await db.getCapture(record.id);
   return{first,final,submissions,entries:[...entries.values()],posts:requests.filter(r=>r.url.endsWith('/api/captures'))};
@@ -794,6 +794,7 @@ test('a selected folder survives upload and a collection retry reuses the privat
  assert.equal(result.final.cloudStatus,'synced');assert.equal(result.final.collectionEntryStatus,'approved');
  assert.equal(result.posts.length,1,'Retry the collection submission without re-uploading the private save');assert.equal(result.posts[0].body.folderId,'folder-a');
  assert.equal(result.submissions,2);assert.equal(result.entries.length,1);assert.equal(result.entries[0].body,'Only this text is shared');assert.equal(result.entries[0].noteText,undefined);
+ assert.equal(result.posts[0].body.sourceTitle,'My private title');assert.deepEqual(result.posts[0].body.userTags,['Private research','UI']);assert.deepEqual(result.entries[0].tags,['Shared reference']);assert.equal(JSON.stringify(result.entries[0]).includes('Private research'),false);
 });
 
 test('a collection whose visibility changes does not receive the queued private text',async t=>{
