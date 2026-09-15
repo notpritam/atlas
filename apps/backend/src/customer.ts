@@ -3,6 +3,7 @@ import {preservedMediaColumns,type PreservedMediaPreview} from './customer-media
 import {normalizeSocialContext,twitterPost} from './customer-twitter.ts';
 import {registerPreservation} from './customer-preservation-routes.ts';
 import {registerCustomerCollections} from './customer-collections';
+import {registerAdmin, registerSupport} from './admin-console';
 import {registerCustomerProcessing,createProcessingService} from './customer-processing.ts';
 import {registerAgentAccess} from './customer-agent-access.ts';
 import {registerCustomerMcp} from './customer-mcp.ts';
@@ -496,6 +497,8 @@ export function createCustomerApi(db: Database, oauthGateway: OAuthGateway = cre
   registerCustomerMcp(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) },dispatchAgentRequest);
   registerCustomerGraph(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
   registerCustomerCollections(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) }, c => { try { return auth(c); } catch(error) { if(error instanceof CustomerError && error.status===401)return null; throw error; } });
+  registerAdmin(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
+  registerSupport(app, db, { auth, jsonBody, usage, savingClient, globalMaxCaptures, globalMaxBytes, rate: (key,limit,window) => rates.take(key,limit,window) });
 
   app.post("/mobile/register", async (c) => {
     publicRate(c, "mobile-register");

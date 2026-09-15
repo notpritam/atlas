@@ -561,6 +561,24 @@ const MIGRATIONS: string[] = [
     created_at INTEGER NOT NULL, UNIQUE(capture_id,source_key)
    );
    CREATE INDEX customer_media_files ON customer_media_assets(file_path);`,
+  // Support tickets + feedback intake and admin triage notes.
+  `CREATE TABLE support_tickets (
+    id TEXT PRIMARY KEY,
+    account_id TEXT REFERENCES customer_accounts(id) ON DELETE SET NULL,
+    email TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK(kind IN ('support','feedback','bug','idea')) DEFAULT 'support',
+    subject TEXT NOT NULL, body TEXT NOT NULL,
+    status TEXT NOT NULL CHECK(status IN ('open','in_progress','closed')) DEFAULT 'open',
+    created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL
+   );
+   CREATE INDEX support_tickets_status ON support_tickets(status,created_at);
+   CREATE INDEX support_tickets_account ON support_tickets(account_id,created_at);
+   CREATE TABLE support_ticket_notes (
+    id TEXT PRIMARY KEY,
+    ticket_id TEXT NOT NULL REFERENCES support_tickets(id) ON DELETE CASCADE,
+    body TEXT NOT NULL, created_at INTEGER NOT NULL
+   );
+   CREATE INDEX support_ticket_notes_ticket ON support_ticket_notes(ticket_id,created_at);`,
 ];
 
 export const DATABASE_SCHEMA_VERSION = MIGRATIONS.length;
