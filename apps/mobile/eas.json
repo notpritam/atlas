@@ -90,6 +90,12 @@
       "ios": {
         "ascAppId": "6809771188"
       }
+    },
+    "friends-play": {
+      "android": {
+        "serviceAccountKeyPath": "/Users/notpritamm/.config/foundkeep/google/play-service-account.json",
+        "track": "internal"
+      }
     }
   }
 }
