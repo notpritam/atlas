@@ -2,6 +2,7 @@ import '../customer.css';
 import Link from 'next/link';
 import type {Metadata} from 'next';
 import {BetaAccess} from '@/components/iphone-access';
+import SupportForm from '@/components/support-form';
 export const metadata:Metadata={title:'Support',alternates:{canonical:'/support'}};
 export default function Page(){return <div className="customer-body reading-body">
 
@@ -118,6 +119,14 @@ export default function Page(){return <div className="customer-body reading-body
         <p>Open Account &amp; settings to control capture methods, readable page extraction, metadata, note source attachment, popup order, automatic sync, OCR, summaries, and tags. In the iPhone app, Settings also controls capture-ready alerts. Connected browsers and iPhones refresh the data-only policy without a Store release.</p>
         <p>FoundKeep links can open sign-in, account recovery, the collection, Settings, a new note, or a specific capture. If the iPhone is signed out, FoundKeep asks the customer to sign in and then continues to the original safe destination. Links never contain account credentials or saved content.</p>
         <p>Browser permissions, executable extension code, iPhone native code, Share Extension capabilities and other manifest or entitlement changes arrive through signed Store updates. The iPhone interface and copy can update through EAS Update within the installed native runtime. FoundKeep’s remote policies contain data only and never download executable code.</p>
+      </div>
+    </section>
+
+    <section className="support-section" id="contact" aria-labelledby="contact-support-title">
+      <div className="support-section-heading"><h2 id="contact-support-title">Send us a message.</h2></div>
+      <div className="support-answer">
+        <p>Signed in to FoundKeep? Send support, a bug report, feedback or an idea straight to the team — we reply to your account email.</p>
+        <SupportForm />
       </div>
     </section>
 

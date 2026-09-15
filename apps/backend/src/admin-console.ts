@@ -32,6 +32,11 @@ export function registerAdmin(app: Hono<CustomerEnv>, db: Database, services: Cu
     return current;
   }
 
+  app.get('/admin/me', c => {
+    const current = admin(c);
+    return c.json({ admin: true, email: current.account.email, name: current.account.name });
+  });
+
   app.get('/admin/overview', c => {
     admin(c);
     const now = Date.now();

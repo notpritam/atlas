@@ -43,8 +43,12 @@ async function save(cookie: string, extra: Record<string, unknown> = {}) {
 test("admin gate blocks non-admins and allows an allowlisted email", async () => {
   const user = await register();
   expect((await request("/admin/overview", "GET", undefined, user.cookie)).status).toBe(403);
+  expect((await request("/admin/me", "GET", undefined, user.cookie)).status).toBe(403);
   process.env.FOUNDKEEP_ADMIN_EMAILS = user.account.email;
   expect((await request("/admin/overview", "GET", undefined, user.cookie)).status).toBe(200);
+  const me = (await (await request("/admin/me", "GET", undefined, user.cookie)).json()) as any;
+  expect(me.admin).toBe(true);
+  expect(me.email).toBe(user.account.email);
 });
 
 test("overview and usage reflect seeded users and saves", async () => {
