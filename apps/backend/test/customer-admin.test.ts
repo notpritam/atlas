@@ -110,3 +110,27 @@ test("support intake, admin triage, and access control", async () => {
   // Invalid status rejected.
   expect((await request(`/admin/support/${ticketId}`, "POST", { status: "nope" }, admin.cookie)).status).toBe(400);
 });
+
+test("monitoring and cost endpoints return shapes", async () => {
+  const admin = await register();
+  process.env.FOUNDKEEP_ADMIN_EMAILS = admin.account.email;
+  const mon = (await (await request("/admin/monitoring", "GET", undefined, admin.cookie)).json()) as any;
+  expect(mon.services.backend).toBe("up");
+  expect(typeof mon.dbBytes).toBe("number");
+  expect(mon).toHaveProperty("queueDepth");
+  expect(Array.isArray(mon.processingByStatus)).toBe(true);
+  const cost = (await (await request("/admin/cost", "GET", undefined, admin.cookie)).json()) as any;
+  expect(cost.assumptions.aiCentsPerCredit).toBeGreaterThan(0);
+  expect(cost).toHaveProperty("estTotalMonthlyUsd");
+  expect(cost).toHaveProperty("estNetMonthlyUsd");
+});
+
+test("server-to-server admin token grants access without a session", async () => {
+  const TOKEN = "test-admin-token-abcdefghijklmnopqrstuvwx";
+  process.env.FOUNDKEEP_ADMIN_API_TOKEN = TOKEN;
+  const ok = await app.request(config.customerOrigin + "/api/admin/overview", { method: "GET", headers: { Origin: config.customerOrigin, "x-admin-token": TOKEN } });
+  expect(ok.status).toBe(200);
+  const bad = await app.request(config.customerOrigin + "/api/admin/overview", { method: "GET", headers: { Origin: config.customerOrigin, "x-admin-token": "wrong" } });
+  expect(bad.status).toBe(401);
+  delete process.env.FOUNDKEEP_ADMIN_API_TOKEN;
+});

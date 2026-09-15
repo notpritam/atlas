@@ -26,15 +26,20 @@ const ticketDto = (t: TicketRow) => ({ id: t.id, accountId: t.account_id, email:
 /** Admin analytics + support triage. All routes require an allowlisted admin. */
 export function registerAdmin(app: Hono<CustomerEnv>, db: Database, services: CustomerServices) {
   const { auth, jsonBody } = services;
-  function admin(c: C): Auth {
+  // Admin access: either a signed-in allowlisted account (the in-site /console),
+  // or a server-to-server token (the standalone admin app calling from its server).
+  function admin(c: C): { email: string } {
+    const token = c.req.header('x-admin-token');
+    const configured = process.env.FOUNDKEEP_ADMIN_API_TOKEN;
+    if (configured && token && token.length >= 24 && token === configured) return { email: 'service-token' };
     const current = auth(c);
     if (!isAdminEmail(current.account.email)) fail(403, 'admin_required', 'This area is for FoundKeep administrators.');
-    return current;
+    return { email: current.account.email };
   }
 
   app.get('/admin/me', c => {
     const current = admin(c);
-    return c.json({ admin: true, email: current.account.email, name: current.account.name });
+    return c.json({ admin: true, email: current.email });
   });
 
   app.get('/admin/overview', c => {
@@ -104,6 +109,56 @@ export function registerAdmin(app: Hono<CustomerEnv>, db: Database, services: Cu
       plan: { plan: plan.plan, pro: plan.pro, complimentaryPro: plan.complimentaryPro },
       saves, savesByType, storage: { captureBytes, mediaBytes, totalBytes: captureBytes + mediaBytes },
       collections, connections, identities, processing, recentCaptures,
+    });
+  });
+
+  app.get('/admin/monitoring', c => {
+    admin(c);
+    const now = Date.now();
+    const rows = (q: string) => db.query(q).all() as { k: string; n: number }[];
+    const processing = rows("SELECT status k, COUNT(*) n FROM customer_processing_jobs GROUP BY status");
+    const preservation = rows("SELECT status k, COUNT(*) n FROM customer_preservation_jobs GROUP BY status");
+    const queued = n(db.query("SELECT COUNT(*) n FROM customer_processing_jobs WHERE status IN ('pending','processing')").get())
+      + n(db.query("SELECT COUNT(*) n FROM customer_preservation_jobs WHERE status IN ('pending','processing')").get());
+    const failures24h = n(db.query("SELECT COUNT(*) n FROM customer_processing_jobs WHERE status='failed' AND updated_at>?").get(now - DAY));
+    const recentErrors = db.query("SELECT capture_id, reason, error, updated_at FROM customer_processing_jobs WHERE status='failed' AND error IS NOT NULL ORDER BY updated_at DESC LIMIT 12").all() as { capture_id: string; reason: string; error: string; updated_at: number }[];
+    const pageCount = (db.query('PRAGMA page_count').get() as { page_count: number }).page_count;
+    const pageSize = (db.query('PRAGMA page_size').get() as { page_size: number }).page_size;
+    return c.json({
+      services: { backend: 'up', database: 'up' },
+      dbBytes: pageCount * pageSize,
+      queueDepth: queued,
+      failures24h,
+      processingByStatus: processing.map(r => ({ status: r.k, count: r.n })),
+      preservationByStatus: preservation.map(r => ({ status: r.k, count: r.n })),
+      recentErrors,
+    });
+  });
+
+  app.get('/admin/cost', c => {
+    admin(c);
+    const env = process.env;
+    const aiCentsPerCredit = Number(env.FOUNDKEEP_AI_COST_PER_CREDIT_CENTS) || 0.5; // est. cents per processing credit
+    const storageCentsPerGbMonth = Number(env.FOUNDKEEP_STORAGE_COST_PER_GB_CENTS) || 2; // est. cents per GB-month
+    const byCycle = db.query('SELECT cycle, COALESCE(SUM(used),0) used FROM customer_processing_usage GROUP BY cycle ORDER BY cycle DESC LIMIT 12').all() as { cycle: string; used: number }[];
+    const cycle = new Date().toISOString().slice(0, 7);
+    const creditsThisCycle = n(db.query('SELECT COALESCE(SUM(used),0) n FROM customer_processing_usage WHERE cycle=?').get(cycle));
+    const captureBytes = n(db.query('SELECT COALESCE(SUM(storage_bytes),0) n FROM customer_captures').get());
+    const mediaBytes = n(db.query('SELECT COALESCE(SUM(bytes),0) n FROM customer_media_assets').get());
+    const storageBytes = captureBytes + mediaBytes;
+    const storageGb = storageBytes / (1024 ** 3);
+    const aiCostUsd = (creditsThisCycle * aiCentsPerCredit) / 100;
+    const storageCostUsd = (storageGb * storageCentsPerGbMonth) / 100;
+    const paidUsers = n(db.query("SELECT COUNT(*) n FROM customer_subscriptions WHERE status='active' AND expires_at>?").get(Date.now()));
+    return c.json({
+      assumptions: { aiCentsPerCredit, storageCentsPerGbMonth },
+      creditsThisCycle, aiCreditsByCycle: byCycle,
+      storageBytes, storageGb: Math.round(storageGb * 1000) / 1000,
+      estAiCostUsd: Math.round(aiCostUsd * 100) / 100,
+      estStorageCostUsd: Math.round(storageCostUsd * 100) / 100,
+      estTotalMonthlyUsd: Math.round((aiCostUsd + storageCostUsd) * 100) / 100,
+      mrrUsd: paidUsers * 5,
+      estNetMonthlyUsd: Math.round((paidUsers * 5 - aiCostUsd - storageCostUsd) * 100) / 100,
     });
   });
 
